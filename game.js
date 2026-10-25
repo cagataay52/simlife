@@ -2710,3 +2710,67 @@ function showToast(msg) {
 }
 
 window.addEventListener('DOMContentLoaded', initStartScreen);
+
+/* ============================================================================
+   GENİŞLETME PAKETİ V1 — OTOMATİK OLAY VE BAŞARIM KÖPRÜSÜ
+   ============================================================================ */
+(function attachExpansionPackV1() {
+  // 1. Yeni Başarımları (Pilot, Deniz Kurdu, Emlak Baronu) Her Render'da Kontrol Et
+  const _origRenderAll = renderAll;
+  renderAll = function () {
+    if (G) {
+      if (G.jobId === 'kaptan_pilot') unlockAchievement('captain_sky');
+      if (G.jobId === 'gemi_kaptan' || (G.businesses && G.businesses.some(b => b.typeId === 'deniz_acente'))) {
+        unlockAchievement('sea_wolf');
+      }
+      if (G.houses && G.houses.length >= 5) unlockAchievement('real_estate_mogul');
+    }
+    _origRenderAll();
+  };
+
+  // 2. RANDOM_EVENTS_DB Havuzunu Yıllık Olay Motoruna Bağla
+  const _origTriggerYearlyEvents = triggerYearlyEvents;
+  triggerYearlyEvents = function () {
+    _origTriggerYearlyEvents();
+
+    // Eğer o yıl YKS, Askerlik vb. zorunlu bir modal zaten açıldıysa üstüne açma
+    const modal = document.getElementById('eventModal');
+    if (!G || !G.alive || G.inPrison) return;
+    if (modal && !modal.classList.contains('hidden')) return;
+    if (typeof RANDOM_EVENTS_DB === 'undefined' || !Array.isArray(RANDOM_EVENTS_DB)) return;
+
+    // Karakterin yaşına ve şartlarına uyan olayları filtrele
+    const eligibleEvents = RANDOM_EVENTS_DB.filter(ev => {
+      if (G.age < ev.minAge || G.age > ev.maxAge) return false;
+      if (ev.onlyUni && G.eduStage !== 'Üniversite') return false;
+      if (ev.requiresCar && (!G.cars || G.cars.length === 0)) return false;
+      if (ev.requiresJob && !G.jobId) return false;
+      return true;
+    });
+
+    // %65 ihtimalle havuzdan rastgele bir olay seç ve göster
+    if (eligibleEvents.length > 0 && Math.random() < 0.65) {
+      const picked = pickRandom(eligibleEvents);
+      const c = getCountry();
+
+      openEventModal({
+        badge: picked.badge || '🎲 Yaşam Olayı',
+        title: picked.title,
+        desc: picked.desc,
+        choices: picked.choices.map(ch => ({
+          label: ch.label,
+          action: () => {
+            const res = ch.effect(G, c);
+            if (res && res.text) {
+              addLog(G.age, res.text, res.type || 'normal');
+              if (res.type === 'good' || res.type === 'milestone' || res.type === 'fame') playSfx('coin');
+              if (res.type === 'bad') playSfx('bad');
+            }
+            saveGame();
+            renderAll();
+          }
+        }))
+      });
+    }
+  };
+})();
