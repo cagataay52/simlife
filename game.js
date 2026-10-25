@@ -2774,3 +2774,563 @@ window.addEventListener('DOMContentLoaded', initStartScreen);
     }
   };
 })();
+
+
+/* ============================================================================
+   GENİŞLETME PAKETİ V2 — BORSA GRAFİK EKRANI & ÇOCUK ETKİLEŞİM MOTORU
+   ============================================================================ */
+
+let selectedChartAsset = 'stock';
+
+// Mevcut veya yeni oyunlarda Borsa Geçmişi ve Çocuk İstatistiklerini hazırlar
+function ensureMarketAndChildrenState() {
+  if (!G) return;
+  const c = getCountry();
+
+  if (!G.market) {
+    G.market = {
+      tradesThisYear: 0,
+      costBasis: { gold: 0, forex: 0, stock: 0, crypto: 0 },
+      lastPct: { gold: 4.2, forex: 3.1, stock: 11.4, crypto: 18.5 },
+      history: {
+        gold: [1800, 1920, 2050, 2180, 2310, 2450, 2590, 2720, 2850],
+        forex: [24.0, 25.5, 27.1, 28.8, 30.2, 31.9, 33.4, 34.9, 36.5],
+        stock: [6200, 6550, 6300, 7100, 7650, 7400, 8200, 8900, 9400],
+        crypto: [38000, 44000, 35000, 52000, 48000, 61000, 54000, 63000, 68500]
+      }
+    };
+  }
+
+  if (Array.isArray(G.children)) {
+    G.children.forEach(ch => {
+      if (typeof ch.smart !== 'number') ch.smart = randInt(62, 88);
+      if (typeof ch.happy !== 'number') ch.happy = randInt(75, 95);
+      if (typeof ch.love !== 'number') ch.love = randInt(78, 96);
+      if (typeof ch.obp !== 'number') ch.obp = randInt(70, 90);
+      if (typeof ch.privateSchool !== 'boolean') ch.privateSchool = false;
+      if (typeof ch.trustFund !== 'number') ch.trustFund = 0;
+      if (typeof ch.actionsThisYear !== 'number') ch.actionsThisYear = 0;
+      if (ch.smart >= 90 && ch.happy >= 90) unlockAchievement('super_parent');
+    });
+  }
+
+  if (getTotalPortfolioValue() >= c.monthlyMinWage * 40) {
+    unlockAchievement('wolf_of_borsa');
+  }
+}
+
+// SVG Borsa Grafiği Oluşturucu
+function buildStockChartSVG(assetKey) {
+  ensureMarketAndChildrenState();
+  const series = G.market.history[assetKey] || [100, 105, 110];
+  const pct = G.market.lastPct[assetKey] || 0;
+  const isUp = pct >= 0;
+  const strokeColor = isUp ? '#10b981' : '#f43f5e';
+  const gradId = 'chartGrad_' + assetKey;
+
+  const w = 340;
+  const h = 125;
+  const padX = 12;
+  const padY = 16;
+
+  const minVal = Math.min(...series);
+  const maxVal = Math.max(...series);
+  const range = Math.max(1, maxVal - minVal);
+
+  const points = series.map((val, idx) => {
+    const x = padX + (idx / Math.max(1, series.length - 1)) * (w - padX * 2);
+    const y = h - padY - ((val - minVal) / range) * (h - padY * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const polylinePoints = points.join(' ');
+  const firstX = padX;
+  const lastX = w - padX;
+  const areaPoints = `${firstX},${h - 6} ${polylinePoints} ${lastX},${h - 6}`;
+
+  const lastPt = points[points.length - 1].split(',');
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" class="w-full h-32 overflow-visible">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${strokeColor}" stop-opacity="0.38" />
+          <stop offset="100%" stop-color="${strokeColor}" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+      <!-- Yatay Kılavuz Çizgileri -->
+      <line x1="${padX}" y1="22" x2="${w - padX}" y2="22" stroke="rgba(148,163,184,0.12)" stroke-dasharray="3 3" />
+      <line x1="${padX}" y1="${h / 2}" x2="${w - padX}" y2="${h / 2}" stroke="rgba(148,163,184,0.12)" stroke-dasharray="3 3" />
+      <line x1="${padX}" y1="${h - 18}" x2="${w - padX}" y2="${h - 18}" stroke="rgba(148,163,184,0.12)" stroke-dasharray="3 3" />
+
+      <!-- Dolgu Alanı ve Fiyat Çizgisi -->
+      <polygon points="${areaPoints}" fill="url(#${gradId})" />
+      <polyline fill="none" stroke="${strokeColor}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />
+
+      <!-- Son Fiyat Noktası -->
+      <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="4.5" fill="${strokeColor}" stroke="#090d16" stroke-width="2" />
+    </svg>
+  `;
+}
+
+// Borsa Grafik Sekmesini Render Eden Fonksiyon
+function renderInteractiveBorsaView() {
+  ensureMarketAndChildrenState();
+  const c = getCountry();
+  const meta = MARKET_ASSETS_META[selectedChartAsset] || MARKET_ASSETS_META.stock;
+  const series = G.market.history[selectedChartAsset];
+  const curPrice = series[series.length - 1];
+  const minPrice = Math.min(...series);
+  const maxPrice = Math.max(...series);
+  const lastPct = G.market.lastPct[selectedChartAsset] || 0;
+  const isUp = lastPct >= 0;
+
+  const invested = G.investments[selectedChartAsset] || 0;
+  const basis = G.market.costBasis[selectedChartAsset] || 0;
+  const profit = invested - basis;
+  const profitPct = basis > 0 ? ((profit / basis) * 100).toFixed(1) : '0.0';
+
+  const buyUnit = Math.round(c.monthlyMinWage * 2);
+
+  return `
+    <!-- Varlık Seçici Sekmeler -->
+    <div class="grid grid-cols-4 gap-1.5 mb-2">
+      ${Object.values(MARKET_ASSETS_META).map(a => {
+        const active = a.key === selectedChartAsset;
+        const p = G.market.lastPct[a.key] || 0;
+        return `
+          <button onclick="selectedChartAsset='${a.key}'; openNavSheet('finance');" class="p-2 rounded-xl border text-left transition ${active ? 'border-emerald-500 bg-emerald-500/15' : 'border-slate-800 bg-slate-900/80'}">
+            <div class="text-xs font-extrabold text-white truncate">${a.icon} ${a.name.split(' ')[0]}</div>
+            <div class="text-[10px] font-mono-num font-bold ${p >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${p >= 0 ? '+' : ''}${p.toFixed(1)}%</div>
+          </button>
+        `;
+      }).join('')}
+    </div>
+
+    <!-- Canlı Grafik Kartı -->
+    <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs font-extrabold text-white">${meta.icon} ${meta.name} <span class="text-[10px] text-slate-400 font-mono-num">(${meta.ticker})</span></div>
+          <div class="text-[10px] text-slate-400">${meta.risk}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-extrabold font-mono-num text-white">${curPrice.toLocaleString('tr-TR')} <span class="text-[10px] text-slate-400">Puan</span></div>
+          <div class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono-num font-extrabold ${isUp ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">
+            ${isUp ? '▲ +' : '▼ '}${lastPct.toFixed(1)}% (Son Dönem)
+          </div>
+        </div>
+      </div>
+
+      <!-- SVG Çizgi/Alan Grafiği -->
+      <div class="pt-1 pb-0.5">
+        ${buildStockChartSVG(selectedChartAsset)}
+      </div>
+
+      <div class="flex justify-between text-[10px] font-mono-num text-slate-400 border-t border-slate-800/80 pt-1.5">
+        <span>10D Dip: <strong class="text-slate-200">${minPrice.toLocaleString('tr-TR')}</strong></span>
+        <span>10D Zirve: <strong class="text-slate-200">${maxPrice.toLocaleString('tr-TR')}</strong></span>
+        <span>Gün İçi Hak: <strong class="text-emerald-400">${3 - (G.market.tradesThisYear || 0)}/3</strong></span>
+      </div>
+    </div>
+
+    <!-- Pozisyon & Kâr/Zarar (P&L) Özeti -->
+    <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-400 font-semibold">Bu Varlıktaki Bakiyen:</span>
+        <span class="font-mono-num font-extrabold text-white">${fmtMoney(invested)}</span>
+      </div>
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="text-slate-400">Net Kâr / Zarar (P&L):</span>
+        <span class="font-mono-num font-bold ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+          ${profit >= 0 ? '+' : ''}${fmtMoney(profit)} (${profit >= 0 ? '+' : ''}${profitPct}%)
+        </span>
+      </div>
+
+      <!-- Hızlı Alım / Satım Butonları -->
+      <div class="grid grid-cols-3 gap-1.5 pt-1">
+        <button onclick="executeChartTrade('${selectedChartAsset}', 'buy_unit', ${buyUnit})" class="py-2 rounded-xl bg-emerald-500 text-slate-950 text-[11px] font-extrabold">
+          + Al (${fmtMoney(buyUnit)})
+        </button>
+        <button onclick="executeChartTrade('${selectedChartAsset}', 'buy_half', 0)" class="py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">
+          Nakit %50 Al
+        </button>
+        <button onclick="executeChartTrade('${selectedChartAsset}', 'sell_all', 0)" class="py-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-bold">
+          Tümünü Sat
+        </button>
+      </div>
+
+      <button onclick="simulateDayTradeTick('${selectedChartAsset}')" class="w-full py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-extrabold">
+        ⚡ Gün İçi Canlı Mum Hareketi Yakala (Hızlı Trade)
+      </button>
+    </div>
+  `;
+}
+
+// Grafik Üzerinden Alım/Satım İşlemi
+function executeChartTrade(key, actionType, fixedAmt) {
+  ensureMarketAndChildrenState();
+  if (actionType === 'buy_unit' || actionType === 'buy_half') {
+    const amt = actionType === 'buy_half' ? Math.floor(G.money * 0.5) : fixedAmt;
+    if (amt <= 0 || G.money < amt) {
+      showToast('Yatırım için nakit bakiyen yetersiz!');
+      return;
+    }
+    G.money -= amt;
+    G.investments[key] = (G.investments[key] || 0) + amt;
+    G.market.costBasis[key] = (G.market.costBasis[key] || 0) + amt;
+    playSfx('coin');
+    showToast(`${fmtMoney(amt)} ${MARKET_ASSETS_META[key].name} alındı!`);
+  } else if (actionType === 'sell_all') {
+    const curVal = G.investments[key] || 0;
+    if (curVal <= 0) {
+      showToast('Satılacak pozisyonun yok!');
+      return;
+    }
+    const basis = G.market.costBasis[key] || 0;
+    const pnl = curVal - basis;
+    G.money += curVal;
+    G.investments[key] = 0;
+    G.market.costBasis[key] = 0;
+    playSfx('coin');
+    addLog(G.age, `📊 **${MARKET_ASSETS_META[key].name}** pozisyonunu **${fmtMoney(curVal)}** değerle kapattın (Net: ${pnl >= 0 ? '+' : ''}${fmtMoney(pnl)}).`, pnl >= 0 ? 'good' : 'bad');
+  }
+  saveGame();
+  renderAll();
+  openNavSheet('finance');
+}
+
+// Gün İçi Hızlı Piyasa Hareketi (Yılda 3 Hak)
+function simulateDayTradeTick(key) {
+  ensureMarketAndChildrenState();
+  if (G.market.tradesThisYear >= 3) {
+    showToast('Bu yılki 3 gün içi hızlı işlem hakkını doldurdun! +1 Yaş ilerle.');
+    return;
+  }
+  G.market.tradesThisYear += 1;
+  const meta = MARKET_ASSETS_META[key];
+  const pct = Number(((Math.random() * (meta.maxChange - meta.minChange) + meta.minChange) * 0.55).toFixed(1));
+
+  const series = G.market.history[key];
+  const lastPrice = series[series.length - 1];
+  const nextPrice = Math.max(1, Number((lastPrice * (1 + pct / 100)).toFixed(1)));
+  series.push(nextPrice);
+  if (series.length > 12) series.shift();
+  G.market.lastPct[key] = pct;
+
+  if ((G.investments[key] || 0) > 0) {
+    const delta = Math.round(G.investments[key] * (pct / 100));
+    G.investments[key] = Math.max(0, G.investments[key] + delta);
+  }
+
+  playSfx(pct >= 0 ? 'coin' : 'bad');
+  showToast(`${meta.name}: ${pct >= 0 ? '+' : ''}${pct}% hareket etti!`);
+  saveGame();
+  renderAll();
+  openNavSheet('finance');
+}
+
+/* ============================================================================
+   ÇOCUKLARLA ETKİLEŞİM VE EBEVEYNLİK MENÜSÜ FONKSİYONLARI
+   ============================================================================ */
+function openChildInteractionSheet(childIdx) {
+  ensureMarketAndChildrenState();
+  const ch = G.children[childIdx];
+  if (!ch) return;
+  const c = getCountry();
+
+  const sheet = document.getElementById('bottomSheet');
+  const title = document.getElementById('sheetTitle');
+  const sub = document.getElementById('sheetSubtitle');
+  const body = document.getElementById('sheetBody');
+  sheet.classList.remove('hidden');
+
+  title.textContent = `👶 ${ch.name} (${ch.age || 0} Yaş)`;
+  sub.textContent = `Ebeveynlik, Eğitim & Gelecek Fonu Yönetimi`;
+
+  const allowanceCost = Math.round(c.monthlyMinWage * 0.15);
+  const tutorCost = Math.round(c.monthlyMinWage * 0.45);
+  const collegeCost = Math.round(c.monthlyMinWage * 1.4);
+  const fundDeposit = Math.round(c.monthlyMinWage * 2.0);
+
+  body.innerHTML = `
+    <button onclick="openNavSheet('relations')" class="text-xs font-bold text-emerald-400 mb-1 flex items-center gap-1">
+      &larr; İlişkiler Menüsüne Dön
+    </button>
+
+    <!-- Çocuğun İstatistik Kartı -->
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-sm font-extrabold text-white">${ch.gender === 'F' ? '👧' : '👦'} ${ch.name}</div>
+          <div class="text-[11px] text-slate-400">Yaş: ${ch.age || 0} • Okul: ${ch.privateSchool ? '🏫 Özel Kolej Öğrencisi' : 'Devlet Okulu'} • OBP: <strong>${ch.obp}</strong></div>
+        </div>
+        <span class="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-extrabold">
+          ${G.willChildIndex === childIdx ? '👑 Baş Mirasçı' : 'Mirasçı Adayı'}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
+          <div class="text-[10px] text-sky-400 font-bold">🧠 Zeka</div>
+          <div class="text-xs font-extrabold font-mono-num text-white">%${ch.smart}</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
+          <div class="text-[10px] text-amber-400 font-bold">😊 Mutluluk</div>
+          <div class="text-xs font-extrabold font-mono-num text-white">%${ch.happy}</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
+          <div class="text-[10px] text-rose-400 font-bold">❤️ Bağlılık</div>
+          <div class="text-xs font-extrabold font-mono-num text-white">%${ch.love}</div>
+        </div>
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-emerald-950/25 border border-emerald-500/30 flex items-center justify-between">
+        <div>
+          <div class="text-[11px] font-extrabold text-emerald-300">🏦 Vergisiz Çocuk Kumbarası (Gelecek Fonu)</div>
+          <div class="text-[10px] text-slate-400">Bu fon sen vefat ettiğinde %0 vergiyle doğrudan çocuğa geçer</div>
+        </div>
+        <div class="text-xs font-mono-num font-extrabold text-emerald-400">${fmtMoney(ch.trustFund)}</div>
+      </div>
+    </div>
+
+    <!-- Ebeveynlik Etkileşim Butonları -->
+    <div class="space-y-2">
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">🤝 Etkileşim & Eğitim Kararları</h4>
+
+      <button onclick="doChildAction(${childIdx}, 'quality_time', 0)" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">🎡 Birlikte Kaliteli Vakit Geçir & Parka/Maça Götür</div>
+          <div class="text-[10px] text-slate-400">+12 Bağlılık, +10 Mutluluk (Ücretsiz)</div>
+        </div>
+        <span class="text-xs font-bold text-emerald-400">Yap &rarr;</span>
+      </button>
+
+      <button onclick="doChildAction(${childIdx}, 'allowance', ${allowanceCost})" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">💵 Bol Cep Harçlığı & Hediye Ver</div>
+          <div class="text-[10px] text-slate-400">+16 Mutluluk, +10 Bağlılık</div>
+        </div>
+        <span class="text-xs font-bold text-emerald-400">${fmtMoney(allowanceCost)}</span>
+      </button>
+
+      <button onclick="doChildAction(${childIdx}, 'tutor', ${tutorCost})" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">📚 Özel Ders, Yabancı Dil & Kodlama Kursu Aldır</div>
+          <div class="text-[10px] text-slate-400">+9 Zeka, +6 OBP Başarı Puanı</div>
+        </div>
+        <span class="text-xs font-bold text-sky-400">${fmtMoney(tutorCost)}</span>
+      </button>
+
+      <button onclick="doChildAction(${childIdx}, 'college', ${collegeCost})" class="w-full p-3 rounded-2xl bg-slate-900 border ${ch.privateSchool ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">🏫 Özel Koleje Kaydettir</div>
+          <div class="text-[10px] text-slate-400">Her yıl otomatik +5 Zeka ve +4 OBP kazandırır</div>
+        </div>
+        <span class="text-xs font-bold ${ch.privateSchool ? 'text-emerald-400' : 'text-amber-400'}">${ch.privateSchool ? 'Kayıtlı ✓' : fmtMoney(collegeCost)}</span>
+      </button>
+
+      <button onclick="doChildAction(${childIdx}, 'trust_fund', ${fundDeposit})" class="w-full p-3 rounded-2xl bg-slate-900 border border-emerald-500/30 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-emerald-300">🏦 Çocuk Kumbarasına Gelecek Fonu Yatır</div>
+          <div class="text-[10px] text-slate-400">Miras vergisinden muaf birikim sağlar</div>
+        </div>
+        <span class="text-xs font-bold text-emerald-400">+${fmtMoney(fundDeposit)}</span>
+      </button>
+
+      <button onclick="doChildAction(${childIdx}, 'advice', 0)" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">🧭 Hayat, Disiplin & Kariyer Öğüdü Ver</div>
+          <div class="text-[10px] text-slate-400">Zeka ve OBP artırır (Ergenlikte küçük tartışma riski)</div>
+        </div>
+        <span class="text-xs font-bold text-indigo-400">Konuş &rarr;</span>
+      </button>
+    </div>
+  `;
+}
+
+function doChildAction(childIdx, action, cost) {
+  ensureMarketAndChildrenState();
+  const ch = G.children[childIdx];
+  if (!ch) return;
+
+  if (cost > 0 && G.money < cost) {
+    showToast('Bu işlem için nakit bakiyen yetersiz!');
+    return;
+  }
+
+  if (action === 'quality_time') {
+    ch.love = clamp(ch.love + 12);
+    ch.happy = clamp(ch.happy + 10);
+    G.happy = clamp(G.happy + 6);
+    playSfx('coin');
+    addLog(G.age, `🎡 Çocuğun **${ch.name}** ile harika bir gün geçirdin. Aranızdaki bağ güçlendi!`, 'good');
+  } else if (action === 'allowance') {
+    G.money -= cost;
+    ch.happy = clamp(ch.happy + 16);
+    ch.love = clamp(ch.love + 10);
+    playSfx('coin');
+    addLog(G.age, `💵 Çocuğun **${ch.name}**'e **${fmtMoney(cost)}** harçlık verdin.`, 'good');
+  } else if (action === 'tutor') {
+    G.money -= cost;
+    ch.smart = clamp(ch.smart + 9);
+    ch.obp = clamp(ch.obp + 6, 50, 100);
+    playSfx('coin');
+    addLog(G.age, `📚 **${ch.name}** için özel ders ve kurs aldırdın! Zekası **%${ch.smart}**, OBP puanı **${ch.obp}** oldu.`, 'good');
+  } else if (action === 'college') {
+    if (ch.privateSchool) {
+      showToast('Çocuğun zaten Özel Kolejde okuyor!');
+      return;
+    }
+    G.money -= cost;
+    ch.privateSchool = true;
+    ch.smart = clamp(ch.smart + 8);
+    ch.obp = clamp(ch.obp + 6, 50, 100);
+    playSfx('trophy');
+    addLog(G.age, `🏫 Çocuğun **${ch.name}**'i prestijli bir **Özel Koleje** kaydettirdin!`, 'milestone');
+  } else if (action === 'trust_fund') {
+    G.money -= cost;
+    ch.trustFund = (ch.trustFund || 0) + cost;
+    playSfx('coin');
+    addLog(G.age, `🏦 **${ch.name}**'in gelecek fonuna **+${fmtMoney(cost)}** aktardın (Toplam Fon: ${fmtMoney(ch.trustFund)}).`, 'good');
+  } else if (action === 'advice') {
+    if (ch.age >= 13 && ch.age <= 17 && Math.random() < 0.35) {
+      ch.love = clamp(ch.love - 6);
+      addLog(G.age, `😤 Ergenlik çağındaki **${ch.name}** verdiğin öğütlere biraz asi tepki verdi.`, 'normal');
+    } else {
+      ch.smart = clamp(ch.smart + 5);
+      ch.obp = clamp(ch.obp + 4, 50, 100);
+      ch.love = clamp(ch.love + 5);
+      playSfx('click');
+      addLog(G.age, `🧭 **${ch.name}** verdiğin hayat ve kariyer öğütlerini can kulağıyla dinledi.`, 'good');
+    }
+  }
+
+  saveGame();
+  renderAll();
+  openChildInteractionSheet(childIdx);
+}
+
+/* ============================================================================
+   MEVCUT FONKSİYONLARI KANCALAYAN (HOOK) ENTEGRASYON BLOĞU
+   ============================================================================ */
+(function attachExpansionPackV2() {
+  // 1. Yaş İlerlediğinde Borsa Grafiğini ve Çocukların Gelişimini Güncelle
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureMarketAndChildrenState();
+    const c = getCountry();
+
+    // Borsa grafik geçmişine yeni yılın mumunu ekle
+    if (G && G.market) {
+      G.market.tradesThisYear = 0;
+      Object.keys(MARKET_ASSETS_META).forEach(key => {
+        const meta = MARKET_ASSETS_META[key];
+        const infBoost = (key === 'gold' || key === 'forex') ? (c.inflation * 55) : (c.inflation * 25);
+        const rawPct = randInt(meta.minChange, meta.maxChange) + infBoost * 0.25;
+        const pct = Number(rawPct.toFixed(1));
+        G.market.lastPct[key] = pct;
+
+        const series = G.market.history[key];
+        const lastP = series[series.length - 1];
+        const nextP = Math.max(1, Number((lastP * (1 + pct / 100)).toFixed(1)));
+        series.push(nextP);
+        if (series.length > 12) series.shift();
+      });
+    }
+
+    // Özel kolejde okuyan çocukların zeka/OBP gelişimi ve kumbara faizi
+    if (G && Array.isArray(G.children)) {
+      G.children.forEach(ch => {
+        ch.actionsThisYear = 0;
+        if (ch.privateSchool && (ch.age || 0) < 18) {
+          ch.smart = clamp((ch.smart || 70) + 5);
+          ch.obp = clamp((ch.obp || 75) + 4, 50, 100);
+        }
+        if ((ch.trustFund || 0) > 0) {
+          ch.trustFund = Math.round(ch.trustFund * 1.15); // Kumbara yıllık %15 büyür
+        }
+      });
+    }
+
+    _prevAdvanceAge();
+  };
+
+  // 2. Finans (Borsa Grafiği) ve İlişkiler (Çocuk Etkileşim Kartları) Sekmelerini Güncelle
+  const _prevOpenNavSheet = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureMarketAndChildrenState();
+    _prevOpenNavSheet(tab);
+
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // Finans -> Borsa & Döviz sekmesi seçiliyse Canlı Grafik Ekranını yerleştir
+    if (tab === 'finance' && activeFinanceTab === 'invest') {
+      const c = getCountry();
+      const tabBar = `
+        <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2">
+          <button onclick="activeFinanceTab='bank'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold text-slate-400">💳 Banka & Kredi</button>
+          <button onclick="activeFinanceTab='invest'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950">📈 Borsa & Grafik</button>
+          <button onclick="activeFinanceTab='biz'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold text-slate-400">🚛 Şirket & Filo</button>
+        </div>
+      `;
+      body.innerHTML = tabBar + renderInteractiveBorsaView();
+    }
+
+    // İlişkiler sekmesindeyse Çocuklar bölümünü interaktif ebeveynlik kartlarıyla zenginleştir
+    if (tab === 'relations' && G.children && G.children.length > 0) {
+      const childrenHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/30 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold text-emerald-400">👨‍👩‍👧‍👦 Çocukların & Ebeveynlik Menüsü (${G.children.length})</div>
+            <span class="text-[10px] text-slate-400">Eğitim & Harçlık Yönetimi</span>
+          </div>
+          <div class="space-y-2">
+            ${G.children.map((ch, idx) => `
+              <div class="p-3 rounded-xl bg-slate-950 border ${G.willChildIndex === idx ? 'border-amber-400/70' : 'border-slate-800'} space-y-2">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">${ch.gender === 'F' ? '👧' : '👦'} ${ch.name} <span class="text-slate-400 font-normal">(${ch.age || 0} Yaş)</span></div>
+                    <div class="text-[10px] text-slate-400">🧠 Zeka: <strong>%${ch.smart}</strong> • 😊 Mut: <strong>%${ch.happy}</strong> • ❤️ Bağ: <strong>%${ch.love}</strong></div>
+                    ${ch.trustFund > 0 ? `<div class="text-[10px] text-emerald-400 font-mono-num">🏦 Kumbara Fonu: ${fmtMoney(ch.trustFund)}</div>` : ''}
+                  </div>
+                  <div class="flex flex-col gap-1 shrink-0">
+                    <button onclick="openChildInteractionSheet(${idx})" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold">
+                      👨‍👧 Etkileşim & Eğitim
+                    </button>
+                    <button onclick="G.willChildIndex=${idx}; saveGame(); openNavSheet('relations');" class="px-2.5 py-1 rounded-lg text-[9px] font-bold ${G.willChildIndex === idx ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">
+                      ${G.willChildIndex === idx ? '👑 Baş Mirasçı' : 'Mirasçı Yap'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      body.innerHTML = childrenHtml + body.innerHTML;
+    }
+  };
+
+  // 3. Çocuğun Olarak Devam Ettiğinde (2. Kuşak) Yetiştirdiğin İstatistikleri ve Kumbarayı Aktar
+  const _prevContinueAsChild = continueAsChild;
+  continueAsChild = function (childIdx, rejectInheritance) {
+    ensureMarketAndChildrenState();
+    const childSnap = G.children[childIdx] ? Object.assign({}, G.children[childIdx]) : null;
+    _prevContinueAsChild(childIdx, rejectInheritance);
+
+    if (childSnap && G) {
+      G.smart = clamp(childSnap.smart || 75);
+      G.happy = clamp(childSnap.happy || 85);
+      G.obpScore = clamp(childSnap.obp || 82, 50, 100);
+      G.lastExamScore = clamp(170 + G.obpScore * 2.1 + G.smart * 1.15, 220, 495);
+      if ((childSnap.trustFund || 0) > 0) {
+        G.money += childSnap.trustFund;
+        addLog(G.age, `🏦 Ebeveyninin senin için biriktirdiği **+${fmtMoney(childSnap.trustFund)} Çocuk Gelecek Fonu** %0 vergi kesintisiyle hesabına aktarıldı!`, 'good');
+      }
+      saveGame();
+      renderAll();
+    }
+  };
+})();
