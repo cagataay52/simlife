@@ -651,3 +651,130 @@ const RANDOM_EVENTS_DB = [
     ]
   }
 ];
+
+
+/* ============================================================================
+   GENİŞLETME PAKETİ V2 — BORSA VARLIK META VERİLERİ & EBEVEYNLİK OLAYLARI
+   ============================================================================ */
+
+const MARKET_ASSETS_META = {
+  gold: {
+    key: 'gold',
+    name: 'Gram Altın',
+    ticker: 'XAU/TRY',
+    icon: '🪙',
+    risk: 'Düşük Risk • Enflasyon Korumalı',
+    basePrice: 2850,
+    minChange: 2,
+    maxChange: 15
+  },
+  forex: {
+    key: 'forex',
+    name: 'Döviz Sepeti ($/€)',
+    ticker: 'FX/BASKET',
+    icon: '💵',
+    risk: 'Düşük Risk • Kur Koruması',
+    basePrice: 36.5,
+    minChange: 0,
+    maxChange: 10
+  },
+  stock: {
+    key: 'stock',
+    name: 'Teknoloji & Holding Endeksi',
+    ticker: 'TECH100',
+    icon: '📈',
+    risk: 'Orta Risk • Temettü & Büyüme',
+    basePrice: 9400,
+    minChange: -14,
+    maxChange: 32
+  },
+  crypto: {
+    key: 'crypto',
+    name: 'Kripto & AI Token Sepeti',
+    ticker: 'BTC/AI',
+    icon: '⚡',
+    risk: 'Yüksek Risk • Yüksek Volatilite',
+    basePrice: 68500,
+    minChange: -40,
+    maxChange: 80
+  }
+};
+
+// Yeni Başarımlar (Borsa Kurdu & Örnek Ebeveyn)
+ACHIEVEMENTS_DB.push(
+  { id: 'wolf_of_borsa', title: 'Borsa Kurdu', desc: 'Yatırım portföyünü asgari ücretin 40 katına çıkardın.', icon: '📊' },
+  { id: 'super_parent', title: 'Örnek Ebeveyn', desc: 'Çocuğunun zeka ve mutluluğunu %90 üzerine taşıdın.', icon: '👨‍👧‍👦' }
+);
+
+// Çocuk Sahibi Olanlar İçin Rastgele Ebeveynlik Olayları
+if (typeof RANDOM_EVENTS_DB !== 'undefined') {
+  RANDOM_EVENTS_DB.push(
+    {
+      id: 'child_wants_console',
+      minAge: 22, maxAge: 65,
+      requiresChild: true,
+      badge: '🎮 Çocuk & Aile İsteği',
+      title: 'Çocuğun Son Model Oyun Konsolu İstiyor',
+      desc: 'Çocuğun okulda bütün arkadaşlarında yeni nesil oyun konsolu ve oyuncu kulaklığı olduğunu söyleyerek senden karne hediyesi istiyor.',
+      choices: [
+        {
+          label: '🎁 Hemen Satın Al (0.6x Asgari Ücret)',
+          effect: (G, c) => {
+            const cost = Math.round(c.monthlyMinWage * 0.6);
+            if (G.money < cost) return { text: '💸 Bütçen yetmediği için konsolu alamadın.', type: 'bad' };
+            G.money -= cost;
+            G.children.forEach(ch => {
+              ch.happy = clamp((ch.happy || 75) + 18);
+              ch.love = clamp((ch.love || 75) + 14);
+            });
+            return { text: `🎮 Çocuğuna son model konsol ve ekipman aldın! Mutluluktan havalara uçtu (-${fmtMoney(cost)}).`, type: 'good' };
+          }
+        },
+        {
+          label: '📚 "Önce Takdir Belgesi Getir" De (+Zeka)',
+          effect: (G, c) => {
+            G.children.forEach(ch => {
+              ch.smart = clamp((ch.smart || 70) + 6);
+              ch.obp = clamp((ch.obp || 75) + 4, 50, 100);
+            });
+            return { text: '📚 Şartlı sözün çocuğunu hırslandırdı, derslerine daha sıkı sarıldı!', type: 'good' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'child_school_project',
+      minAge: 24, maxAge: 65,
+      requiresChild: true,
+      badge: '🔬 Okul Bilim Fuarı',
+      title: 'Çocuğunun Robotik & Yazılım Projesi Finale Kaldı',
+      desc: 'Çocuğun okulunun düzenlediği ulusal bilim yarışmasında finale kaldı ancak prototip parçaları için malzeme desteğine ihtiyacı var.',
+      choices: [
+        {
+          label: '🚀 Tüm Malzemeleri Finanse Et (0.5x Maaş)',
+          effect: (G, c) => {
+            const cost = Math.round(c.monthlyMinWage * 0.5);
+            if (G.money < cost) return { text: '💸 Malzeme parası çıkmadığı için basit bir maketle katıldı.', type: 'normal' };
+            G.money -= cost;
+            G.children.forEach(ch => {
+              ch.smart = clamp((ch.smart || 70) + 10);
+              ch.happy = clamp((ch.happy || 75) + 10);
+              ch.obp = clamp((ch.obp || 75) + 6, 50, 100);
+            });
+            return { text: '🏆 Çocuğun bilim fuarında 1. oldu! Zekası ve okul başarısı büyük sıçrama yaptı.', type: 'milestone' };
+          }
+        },
+        {
+          label: '🛠️ Evdeki Malzemelerle Birlikte Yapın',
+          effect: (G, c) => {
+            G.children.forEach(ch => {
+              ch.love = clamp((ch.love || 75) + 12);
+              ch.smart = clamp((ch.smart || 70) + 4);
+            });
+            return { text: '🛠️ Bütün hafta sonu çocuğunla omuz omuza çalışıp harika vakit geçirdiniz.', type: 'good' };
+          }
+        }
+      ]
+    }
+  );
+}
