@@ -277,3 +277,377 @@ const PORTRAITS = {
     old: ['https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=300&q=80']
   }
 };
+
+/* ============================================================================
+   GENİŞLETME PAKETİ V1 — YENİ BÖLÜMLER, MESLEKLER, ARAÇLAR VE OLAY HAVUZU
+   ============================================================================ */
+
+// 1. Yeni Üniversite Bölümleri
+UNI_MAJORS.push(
+  { id: 'havacilik', name: 'Sivil Havacılık & Pilotaj', minScore: 455, rankText: 'İlk 22.000', years: 4, icon: '✈️' },
+  { id: 'denizcilik', name: 'Deniz Ulaştırma & Gemi İşletme Müh.', minScore: 390, rankText: 'İlk 95.000', years: 4, icon: '⚓' },
+  { id: 'mimarlik', name: 'Mimarlık & Şehir Planlama', minScore: 410, rankText: 'İlk 70.000', years: 4, icon: '📐' }
+);
+
+// 2. Yeni Part-Time Öğrenci İşleri
+PART_TIME_JOBS.push(
+  { id: 'pt_kutuphane', title: 'Üniversite Kütüphane Asistanı (Part-Time)', mult: 0.40, icon: '📚' },
+  { id: 'pt_oto_yikama', title: 'Hafta Sonu Oto Yıkama & Detailing (Part-Time)', mult: 0.58, icon: '🧽' }
+);
+
+// 3. Yeni Tam Zamanlı Meslekler
+JOBS.push(
+  // Ehliyet & Zanaat Odaklı
+  { id: 'sanayi_usta', title: 'Oto Sanayi Motor & Kaporta Ustası', reqEdu: 'none', mult: 2.35, stress: 7, icon: '🔧' },
+  { id: 'otobus_kaptan', title: 'Şehirlerarası Otobüs Kaptanı', reqEdu: 'highschool', reqLicense: 'CE', mult: 2.85, stress: 9, icon: '🚌' },
+  { id: 'vinc_op', title: 'Liman Konteyner Vinç Operatörü', reqEdu: 'highschool', reqLicense: 'CE', mult: 3.10, stress: 8, icon: '🏗️' },
+
+  // Lojistik & Gümrük Uzmanlığı
+  { id: 'gumruk_sef', title: 'Gümrük Operasyon & Mevzuat Şefi', reqEdu: 'uni', major: 'lojistik', minExp: 2, cleanRecord: true, mult: 3.8, stress: 8, icon: '🛃' },
+  { id: 'liman_mudur', title: 'Uluslararası Konteyner Liman Müdürü', reqEdu: 'uni', major: 'lojistik', minExp: 5, cleanRecord: true, mult: 6.4, stress: 9, icon: '🚢' },
+
+  // Denizcilik
+  { id: 'gemi_zabit', title: 'Uzakyol Vardiya Zabiti', reqEdu: 'uni', major: 'denizcilik', mult: 4.5, stress: 8, icon: '🛳️' },
+  { id: 'gemi_kaptan', title: 'Uzakyol Süvari (Gemi Kaptanı)', reqEdu: 'uni', major: 'denizcilik', minExp: 5, mult: 9.2, stress: 10, icon: '⚓' },
+
+  // Havacılık & Pilotaj
+  { id: 'first_officer', title: 'Havayolu Yardımcı Pilotu (First Officer)', reqEdu: 'uni', major: 'havacilik', cleanRecord: true, mult: 6.5, stress: 9, icon: '🛫' },
+  { id: 'kaptan_pilot', title: 'Kıdemli Kaptan Pilot', reqEdu: 'uni', major: 'havacilik', minExp: 5, cleanRecord: true, mult: 13.5, stress: 11, icon: '👨‍✈️' },
+
+  // Mimarlık & Siber Güvenlik
+  { id: 'santiye_mimar', title: 'Proje & Şantiye Mimarı', reqEdu: 'uni', major: 'mimarlik', mult: 3.0, stress: 7, icon: '📐' },
+  { id: 'bas_mimar', title: 'Baş Mimar & Kentsel Dönüşüm Müteahhidi', reqEdu: 'uni', major: 'mimarlik', minExp: 5, mult: 7.8, stress: 9, icon: '🏙️' },
+  { id: 'siber_uzman', title: 'Siber Güvenlik & Beyaz Şapkalı Hacker', reqEdu: 'uni', major: 'yazilim', minExp: 2, cleanRecord: true, mult: 4.9, stress: 8, icon: '🛡️' }
+);
+
+// 4. Yeni Araçlar (Ticari, Makam, Çekici Tır ve Süper Lüks)
+CARS.push(
+  { id: 'doblo', name: 'Fiat Doblo Combi 1.6 Multijet', cat: 'Ekonomik & Ticari', baseMinWages: 28, reqLic: 'B', icon: '🚐', prestige: 10 },
+  { id: 'egea_cross', name: 'Fiat Egea Cross Lounge (Özel Panjur Paket)', cat: 'Binek Sıfır', baseMinWages: 44, reqLic: 'B', icon: '🚗', prestige: 17 },
+  { id: 'transporter', name: 'VW Transporter VIP Özel Yapım', cat: 'Ticari & VIP', baseMinWages: 76, reqLic: 'B', icon: '🚐', prestige: 28 },
+  { id: 'passat', name: 'Volkswagen Passat 2.0 TDI Elegance', cat: 'Binek & Makam', baseMinWages: 88, reqLic: 'B', icon: '🚘', prestige: 34 },
+  { id: 'scania_s730', name: 'Scania S730 V8 Uzun Yol Çekici Tır', cat: 'Ticari Ağır Vasıta', baseMinWages: 210, reqLic: 'CE', icon: '🚛', prestige: 36 },
+  { id: 'ferrari_f8', name: 'Ferrari F8 Tributo', cat: 'Süper Lüks', baseMinWages: 540, reqLic: 'B', icon: '🏎️', prestige: 90 },
+  { id: 'maybach', name: 'Mercedes-Maybach S680 Makam Aracı', cat: 'Ultra Lüks', baseMinWages: 620, reqLic: 'B', icon: '🎩', prestige: 95 }
+);
+
+// 5. Yeni Emlaklar
+HOUSES.push(
+  { id: 'ogrenci_apart', name: 'Üniversite Yakını 1+0 Yatırımlık Apart', baseMinWages: 60, rentYield: 0.072, icon: '🏬', happy: 6 },
+  { id: 'lojistik_depo', name: 'Gümrük Yanı Kiralık Lojistik Antrepo', baseMinWages: 320, rentYield: 0.068, icon: '🏭', happy: 18 },
+  { id: 'penthouse', name: 'Rezidans 40. Kat Penthouse', baseMinWages: 790, rentYield: 0.048, icon: '🌆', happy: 36 }
+);
+
+// 6. Yeni Şirket & Filo Türleri
+BUSINESS_TYPES.push(
+  { id: 'oto_servis', name: 'Oto Ekspertiz, Kaporta & Bakım Servisi', costMinWages: 45, baseProfitMult: 3.1, unitName: 'Servis Lifti', icon: '🔧' },
+  { id: 'otobus_firma', name: 'Şehirlerarası Otobüs & Turizm Firması', costMinWages: 135, baseProfitMult: 7.8, unitName: 'Yolcu Otobüsü', icon: '🚌' },
+  { id: 'deniz_acente', name: 'Uluslararası Konteyner & Gemi Acentesi', costMinWages: 310, baseProfitMult: 19.5, unitName: 'Kargo Gemisi', icon: '🛳️' }
+);
+
+// 7. Yeni Başarımlar (Kupalar)
+ACHIEVEMENTS_DB.push(
+  { id: 'captain_sky', title: 'Gökyüzü Hakimi', desc: 'Kıdemli Kaptan Pilot unvanına ulaştın.', icon: '👨‍✈️' },
+  { id: 'sea_wolf', title: 'Denizlerin Kurdu', desc: 'Uzakyol Gemi Kaptanı veya Gemi Acentesi sahibi oldun.', icon: '⚓' },
+  { id: 'real_estate_mogul', title: 'Emlak Baronu', desc: 'Aynı anda 5 veya daha fazla gayrimenkule sahip oldun.', icon: '🏰' }
+);
+
+// 8. Genişletilmiş Rastgele Olay Havuzu (RANDOM_EVENTS_DB)
+const RANDOM_EVENTS_DB = [
+  // ÇOCUKLUK VE OKUL YILLARI (7 - 17 YAŞ)
+  {
+    id: 'school_tournament',
+    minAge: 8, maxAge: 14,
+    badge: '⚽ Okul Turnuvası',
+    title: 'Sınıflararası Maçta Son Dakika Penaltısı',
+    desc: 'Okul bahçesindeki turnuvada maç 1-1 ve son dakikada penaltı kazandınız. Topun başına kim geçecek?',
+    choices: [
+      {
+        label: '🔥 Sorumluluğu Al ve Köşeye Vur',
+        effect: (G, c) => {
+          if (Math.random() < 0.65) {
+            G.happy = clamp(G.happy + 12);
+            G.sports.skill = clamp((G.sports.skill || 50) + 6);
+            return { text: '⚽ Topu doksana astın! Tüm okul seni omuzlarında taşıdı.', type: 'good' };
+          } else {
+            G.happy = clamp(G.happy - 8);
+            return { text: '🥅 Top direkten döndü, maçı penaltılardabettiniz.', type: 'bad' };
+          }
+        }
+      },
+      {
+        label: '🤝 Takımın En İyi Oyuncusuna Bırak',
+        effect: (G, c) => {
+          G.happy = clamp(G.happy + 6);
+          return { text: '🤝 Arkadaşın golü attı, centilmenliğinle takdir topladın.', type: 'good' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'highschool_cheat_sheet',
+    minAge: 14, maxAge: 17,
+    badge: '🏫 Lise Koridorları',
+    title: 'Zorlu Matematik Sınavı Öncesi Fırsat',
+    desc: 'Sınıfın en çalışkan öğrencisi sınav öncesi sana çalışma notlarını vermeyi teklif ediyor ama karşılığında kantinden bir hafta tost ısmarlamanı istiyor.',
+    choices: [
+      {
+        label: '🥪 Kabul Et ve Notlara Çalış (+OBP)',
+        effect: (G, c) => {
+          G.obpScore = clamp(G.obpScore + 4, 50, 100);
+          G.smart = clamp(G.smart + 4);
+          return { text: `📘 Özel notlar sayesinde sınavdan 95 aldın! OBP puanın **${G.obpScore}** oldu.`, type: 'good' };
+        }
+      },
+      {
+        label: '💪 Kendi Başımın Çaresine Bakarım',
+        effect: (G, c) => {
+          const gain = Math.random() < 0.5 ? 2 : -2;
+          G.obpScore = clamp(G.obpScore + gain, 50, 100);
+          return { text: `✏️ Kendi bilginle sınava girdin. OBP: **${G.obpScore}**.`, type: 'normal' };
+        }
+      }
+    ]
+  },
+
+  // ÜNİVERSİTE VE GENÇLİK YILLARI (18 - 25 YAŞ)
+  {
+    id: 'intercity_bus_trip',
+    minAge: 18, maxAge: 26,
+    badge: '🚌 Şehirlerarası Otobüs Yolculuğu',
+    title: 'Otogarda Gece Seferi Rötarı',
+    desc: 'Gece otobüsüyle şehir dışına çıkarken otobüs perona 2 saat geç yanaştı ve koltuğunun başkasına da satıldığını gördün!',
+    choices: [
+      {
+        label: '🎫 Yazıhaneye Gidip VIP Koltuk + İade Talep Et',
+        effect: (G, c) => {
+          const refund = Math.round(c.monthlyMinWage * 0.12);
+          G.money += refund;
+          G.happy = clamp(G.happy + 6);
+          return { text: `🚌 Hakkını aradın! Seni bir sonraki 2+1 VIP otobüse aldılar ve **+${fmtMoney(refund)}** bilet iadesi yaptılar.`, type: 'good' };
+        }
+      },
+      {
+        label: '😤 Muavinle Tartış',
+        effect: (G, c) => {
+          G.stress = clamp((G.stress || 0) + 10);
+          G.happy = clamp(G.happy - 6);
+          return { text: '😤 Otogarda sinirlerin gerildi, arka dörtlüde sıkışık bir yolculuk yaptın.', type: 'bad' };
+        }
+      },
+      {
+        label: '🎧 Kulaklığı Takıp Boş Koltuğa Geç',
+        effect: (G, c) => {
+          G.stress = clamp((G.stress || 0) - 4);
+          return { text: '🎧 Hiç stres yapmadan boş bir cam kenarına geçip yol boyu müzik dinledin.', type: 'normal' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'erasmus_opportunity',
+    minAge: 19, maxAge: 24,
+    onlyUni: true,
+    badge: '🌍 Üniversite & Erasmus',
+    title: 'Yurt Dışı Staj ve Değişim Programı',
+    desc: 'Bölüm başkanlığı Avrupa’da 1 dönemlik değişim ve lojistik/teknoloji stajı için başvuru açtı. Katılım için cep harçlığı gerekiyor.',
+    choices: [
+      {
+        label: '✈️ Başvur ve Git (+Zeka, +Ün, +Deneyim)',
+        effect: (G, c) => {
+          const cost = Math.round(c.monthlyMinWage * 0.8);
+          if (G.money < cost) return { text: '💸 Cep harçlığın yetmediği için programa katılamadın.', type: 'bad' };
+          G.money -= cost;
+          G.smart = clamp(G.smart + 9);
+          G.happy = clamp(G.happy + 14);
+          G.jobExp += 1;
+          return { text: '🌍 Yurt dışı stajında yabancı dilini geliştirdin ve +1 yıl iş deneyimi kazandın!', type: 'milestone' };
+        }
+      },
+      {
+        label: '🏠 Ülkede Kalıp Derslere Odaklan',
+        effect: (G, c) => {
+          G.smart = clamp(G.smart + 3);
+          return { text: '📚 Dönemi kendi kampüsünde sakin şekilde tamamladın.', type: 'normal' };
+        }
+      }
+    ]
+  },
+
+  // YETİŞKİN, TRAFİK, SANAYİ VE TİCARET OLAYLARI (20 - 65 YAŞ)
+  {
+    id: 'traffic_fender_bender',
+    minAge: 19, maxAge: 65,
+    requiresCar: true,
+    badge: '🚘 Trafik & Kaza Tutanağı',
+    title: 'Kavşakta Arkadan Çarpma Vakası',
+    desc: 'Yoğun trafikte arkandaki sürücü dalgınlıkla tamponuna çarptı. Sürücü "Sigortam bozulmasın, tutanak tutmayalım sana elden nakit vereyim" diyor.',
+    choices: [
+      {
+        label: '💵 Elden Nakit Al ve Sanayide Tanıdığa Yaptır',
+        effect: (G, c) => {
+          const cash = Math.round(c.monthlyMinWage * 0.9);
+          const fix = Math.round(c.monthlyMinWage * 0.45);
+          G.money += (cash - fix);
+          return { text: `🔧 Sürücüden **${fmtMoney(cash)}** aldın, sanayide tanıdık ustaya **${fmtMoney(fix)}** verip tamponu boyattın. Cebine net **+${fmtMoney(cash - fix)}** kaldı!`, type: 'good' };
+        }
+      },
+      {
+        label: '📝 Resmi Kaza Tutanağı Tut (Yetkili Servis)',
+        effect: (G, c) => {
+          return { text: '📝 Kaza tutanağını tuttunuz, karşı tarafın trafik sigortası yetkili serviste aracını orijinal parçayla onardı.', type: 'good' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'customs_container_crisis',
+    minAge: 21, maxAge: 62,
+    badge: '🚢 Gümrük & Lojistik Fırsatı',
+    title: 'Limanda Sahipsiz Kalan İthalat Konteyneri',
+    desc: 'Gümrük antreposunda bekleyen elektronik ve tekstil dolu bir konteyner ihale yoluyla satışa çıkarıldı. İçinden servet de çıkabilir, arızalı ürün de!',
+    choices: [
+      {
+        label: '📦 İhaleye Gir ve Konteyneri Satın Al (1.8x Maaş)',
+        effect: (G, c) => {
+          const cost = Math.round(c.monthlyMinWage * 1.8);
+          if (G.money < cost) return { text: '💸 İhale teminatı için nakitin yetmedi.', type: 'bad' };
+          G.money -= cost;
+          if (Math.random() < 0.6) {
+            const revenue = Math.round(cost * 2.8);
+            G.money += revenue;
+            return { text: `🚢 Konteynerin içinden sıfır kutulu ürünler çıktı! Toptancılara satıp **+${fmtMoney(revenue)}** ciro yaptın!`, type: 'good' };
+          } else {
+            const salvage = Math.round(cost * 0.4);
+            G.money += salvage;
+            return { text: `📉 Ürünlerin çoğu nemden zarar görmüş çıktı. Hurda fiyatına **${fmtMoney(salvage)}** kurtarabildin.`, type: 'bad' };
+          }
+        }
+      },
+      {
+        label: '🛑 İhaleye Girmeden Uzaktan İzle',
+        effect: (G, c) => {
+          return { text: '🛑 Kapalı kutu konteyner riskine girmedin.', type: 'normal' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'scam_call_alert',
+    minAge: 20, maxAge: 75,
+    badge: '📱 Siber Dolandırıcılık Girişimi',
+    title: 'Kendini Savcı / Bankacı Tanıtan Şüpheli Arama',
+    desc: 'Telefonda kendini üst düzey yetkili olarak tanıtan biri, hesabının terör/suç örgütlerince ele geçirildiğini söyleyip doğrulama kodunu istiyor!',
+    choices: [
+      {
+        label: '🧠 Oyuna Gelme ve Siber Suçlara İhbar Et',
+        effect: (G, c) => {
+          const reward = Math.round(c.monthlyMinWage * 0.5);
+          G.money += reward;
+          G.smart = clamp(G.smart + 3);
+          return { text: `🚓 Dolandırıcıları oyalayıp polise yakalattın! Emniyetten **+${fmtMoney(reward)}** ihbar ödülü aldın.`, type: 'good' };
+        }
+      },
+      {
+        label: '😰 Panik Yapıp Kodu Söyle',
+        effect: (G, c) => {
+          const stolen = Math.max(0, Math.round(G.money * 0.35));
+          G.money -= stolen;
+          G.happy = clamp(G.happy - 18);
+          return { text: `🚨 Dolandırıcılara kodu verdin! Hesabından **-${fmtMoney(stolen)}** çekildi.`, type: 'bad' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'relative_loan_request',
+    minAge: 22, maxAge: 65,
+    badge: '👨‍👩‍👦 Akraba Krizi',
+    title: 'Uzak Akrabadan "Çok Acil" Borç İsteği',
+    desc: 'Yıllardır aramayan bir kuzenin "Çok sağlam bir ticaret var, 1 aya iki katıyla ödeyeceğim" diyerek senden borç istiyor.',
+    choices: [
+      {
+        label: '💸 Borç Ver (1.2x Asgari Ücret)',
+        effect: (G, c) => {
+          const loan = Math.round(c.monthlyMinWage * 1.2);
+          if (G.money < loan) return { text: '💸 Verecek nakitin olmadığını söyledin.', type: 'normal' };
+          G.money -= loan;
+          if (Math.random() < 0.3) {
+            const back = Math.round(loan * 1.5);
+            G.money += back;
+            return { text: `🤝 Şaşırtıcı şekilde kuzenin sözünü tuttu ve **+${fmtMoney(back)}** olarak geri ödedi!`, type: 'good' };
+          } else {
+            return { text: `📵 Kuzenin parayı aldıktan sonra telefon numarasını değiştirdi! **-${fmtMoney(loan)}** gitti.`, type: 'bad' };
+          }
+        }
+      },
+      {
+        label: '🙅‍♂️ "Ben de Kredi Ödüyorum" Deyip Reddet',
+        effect: (G, c) => {
+          return { text: '🛡️ Politik bir bahaneyle paranı cebinde tuttun.', type: 'good' };
+        }
+      }
+    ]
+  },
+  {
+    id: 'museum_historical_find',
+    minAge: 18, maxAge: 70,
+    badge: '🏛️ Kültür & Doğa Gezisi',
+    title: 'Tarihi Ören Yeri Yakınında Sikke Buldun',
+    desc: 'Hafta sonu gezisinde toprağın yüzeyinde parlayan antik dönemden kalma bir kese gümüş sikke fark ettin!',
+    choices: [
+      {
+        label: '🏛️ Müze Müdürlüğüne Teslim Et (Yasal Ödül)',
+        effect: (G, c) => {
+          const bonus = Math.round(c.monthlyMinWage * 2.5);
+          G.money += bonus;
+          G.fame = clamp(G.fame + 8);
+          return { text: `🏛️ Eserleri müzeye teslim ettin! Kültür Bakanlığı sana **+${fmtMoney(bonus)}** ikramiye verdi ve gazetelere çıktın.`, type: 'fame' };
+        }
+      },
+      {
+        label: '🕶️ Karaborsada Koleksiyoncuya Satmayı Dene (Riskli)',
+        effect: (G, c) => {
+          if (Math.random() < 0.45) {
+            const blackMoney = Math.round(c.monthlyMinWage * 6.5);
+            G.dirtyMoney = (G.dirtyMoney || 0) + blackMoney;
+            return { text: `🕶️ Antikaları gizlice satıp **+${fmtMoney(blackMoney)} Kara Para** elde ettin.`, type: 'good' };
+          } else {
+            const fine = Math.round(c.monthlyMinWage * 3.0);
+            G.money -= fine;
+            G.criminalRecord = true;
+            return { text: `🚨 Alıcı sivil jandarma çıktı! Tarihi eser kaçakçılığından **-${fmtMoney(fine)}** ceza yedin ve sicilin bozuldu.`, type: 'bad' };
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: 'headhunter_offer',
+    minAge: 23, maxAge: 58,
+    requiresJob: true,
+    badge: '💼 Kariyer & Transfer',
+    title: 'Rakip Şirketten Transfer Teklifi',
+    desc: 'Sektördeki başarını duyan rakip bir firma, mevcut işinden ayrılıp kendilerine geçmen için imza primi teklif ediyor.',
+    choices: [
+      {
+        label: '✍️ Teklifi Kabul Et (+İmza Primi & Kıdem)',
+        effect: (G, c) => {
+          const bonus = Math.round(c.monthlyMinWage * 3.0);
+          G.money += bonus;
+          G.jobExp += 2;
+          return { text: `🚀 Rakip şirkete transfer olarak **+${fmtMoney(bonus)}** imza parası ve +2 yıl kıdem kazandın!`, type: 'milestone' };
+        }
+      },
+      {
+        label: '🏢 Mevcut Şirketinle Maaş Pazarlığı Yap',
+        effect: (G, c) => {
+          const raiseBonus = Math.round(c.monthlyMinWage * 1.6);
+          G.money += raiseBonus;
+          G.happy = clamp(G.happy + 6);
+          return { text: `🤝 Şirketin seni kaybetmemek için **+${fmtMoney(raiseBonus)}** sadakat primi ödedi.`, type: 'good' };
+        }
+      }
+    ]
+  }
+];
