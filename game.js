@@ -3334,3 +3334,556 @@ function doChildAction(childIdx, action, cost) {
     }
   };
 })();
+
+/* ============================================================================
+   GÖRSEL DÖNÜŞÜM PAKETİ (PROJELER 1, 2, 4, 5) — TAM ENTEGRASYON MOTORU
+   ============================================================================ */
+
+let inspectedCarIndex = null;
+
+// 1. Her Menü İçin Sinematik Atmosfer Başlığı (Proje 5)
+const SHEET_BANNERS = {
+  career: {
+    img: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+    tag: 'ULUSAL KARİYER & AKADEMİ PORTALI',
+    title: 'ÖSYM Sınav Sonuçları & Kurumsal İş İlanları'
+  },
+  finance: {
+    img: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80',
+    tag: 'DİJİTAL BANKACILIK & VARLIK YÖNETİMİ',
+    title: 'Sanal Kart, Findeks Raporu & Portföy'
+  },
+  relations: {
+    img: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=800&q=80',
+    tag: 'NÜFUS & AİLE KÜTÜĞÜ',
+    title: 'Evlilik Hukuku, Çocuklar & Veraset'
+  },
+  cars: {
+    img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
+    tag: 'OTOMOTİV İLAN & EKSPERTİZ MERKEZİ',
+    title: 'Sıfır/2. El Galeri & Sanayi Kaporta Raporu'
+  },
+  houses: {
+    img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+    tag: 'TAPU VE KATASTRO & EMLAK İLANLARI',
+    title: 'Gayrimenkul Tapuları & Kira Kontratları'
+  },
+  license: {
+    img: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=800&q=80',
+    tag: 'E-DEVLET KAPISI & NÜFUS MÜDÜRLÜĞÜ',
+    title: 'Çipli Kimlik, Sürücü Belgesi & Adli Sicil'
+  },
+  crime: {
+    img: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80',
+    tag: 'YERALTI SENDİKASI & İSTİHBARAT DOSYASI',
+    title: 'Kayıt Dışı Operasyonlar & Kara Para'
+  },
+  politics: {
+    img: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80',
+    tag: 'YÜKSEK SEÇİM KURULU & PARLAMENTO',
+    title: 'Kamuoyu Yoklaması, Miting & Kararnameler'
+  },
+  sports: {
+    img: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=800&q=80',
+    tag: 'ULUSLARARASI SPOR FEDERASYONU',
+    title: 'Profesyonel Lig Kontratları & Transfer'
+  },
+  health: {
+    img: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
+    tag: 'SAĞLIK BAKANLIĞI E-NABIZ SİSTEMİ',
+    title: 'Klinik Tanılar, Psikoloji & Check-Up'
+  }
+};
+
+function renderHeroBannerHTML(key) {
+  const b = SHEET_BANNERS[key];
+  if (!b) return '';
+  return `
+    <div class="sheet-hero-banner" style="background-image:url('${b.img}')">
+      <div class="sheet-hero-overlay">
+        <div class="text-[9px] font-extrabold tracking-widest text-emerald-400 uppercase">${b.tag}</div>
+        <div class="text-xs font-extrabold text-white">${b.title}</div>
+      </div>
+    </div>
+  `;
+}
+
+// 2. Karakter İçin Gerçekçi Plaka, IBAN ve Kimlik No Üretici
+function getCharacterPlate(idx = 0) {
+  if (!G) return '34 KLC 01';
+  const cityCode = G.countryId === 'TR' ? '34' : G.countryId;
+  const letters = ((G.lastName || 'KLC').replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ]/g, '').toUpperCase() + 'X').slice(0, 3);
+  const num = String((idx + 1) * 11).padStart(2, '0');
+  return { country: G.countryId, text: `${cityCode} ${letters} ${num}` };
+}
+
+function getCharacterIBAN() {
+  if (!G) return 'TR48 0006 2000 1940 0008 4192 01';
+  const nameCode = (G.firstName.charCodeAt(0) || 65) + (G.lastName.charCodeAt(0) || 75);
+  return `${G.countryId}48 0006 2000 ${1000 + nameCode} 0008 4192 0${G.generation || 1}`;
+}
+
+function getCharacterNationalId() {
+  if (!G) return '10482941028';
+  const seed = (G.firstName.length * 17 + G.lastName.length * 31 + (G.generation || 1) * 13);
+  return `429${String(seed).padStart(4, '8')}104${( seed % 4 ) * 2}`;
+}
+
+// 3. PROJE 4: Ana Ekran Günlüğünü "Bildirim, Tebligat, Manşet & Dekont" Zaman Tüneli Olarak Render Etme
+renderLogs = function () {
+  const container = document.getElementById('logContainer');
+  if (!container || !G) return;
+
+  container.innerHTML = G.logs.map(group => {
+    const itemsHtml = group.items.map((item, i) => {
+      const raw = item.text || '';
+      const formatted = raw.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+
+      // Olay İçeriğine Göre Gerçekçi Kart Kategorisi Belirleme
+      const isBank = /💳|🏦|📈|📉|📊|mevduat|kredi|maaş|nakit akış|enflasyon|portföy/i.test(raw);
+      const isTebligat = /🚨|⛓️|⚖️|🚓|🪖|💔|⚰️|MAHKEME|İCRA|MASAK|ceza|tahliye|askerlik|boşan/i.test(raw);
+      const isSocial = /🎬|🔥|☑️|📱|takipçi|viral|yayın|Mavi Tik/i.test(raw);
+      const isManset = /🗳️|🏆|👑|✈️|🎓|🏢|💍|BAŞARIM|SEÇİM|TRANSFER|mezun|şirket/i.test(raw);
+
+      if (isTebligat) {
+        return `
+          <div class="p-3 rounded-xl log-card-tebligat space-y-1">
+            <div class="flex items-center justify-between border-b border-rose-500/20 pb-1">
+              <span class="text-[9px] font-extrabold tracking-wider uppercase text-rose-400">📩 RESMİ TEBLİGAT &bull; EVRAK NO: #${group.age}0${i + 1}</span>
+              <span class="text-[9px] font-mono-num text-slate-400">GİZLİ / İVEDİ</span>
+            </div>
+            <div class="text-xs text-slate-200 leading-relaxed">${formatted}</div>
+          </div>
+        `;
+      }
+
+      if (isManset) {
+        return `
+          <div class="p-3 rounded-xl log-card-manset space-y-1">
+            <div class="flex items-center justify-between border-b border-amber-500/20 pb-1">
+              <span class="text-[9px] font-extrabold tracking-wider uppercase text-amber-400">📰 GÜNDEM &amp; RESMİ BÜLTEN</span>
+              <span class="text-[9px] font-mono-num text-amber-200/80">YAŞ ${group.age}</span>
+            </div>
+            <div class="text-xs text-slate-100 leading-relaxed">${formatted}</div>
+          </div>
+        `;
+      }
+
+      if (isSocial) {
+        const handle = `@${(G.firstName + G.lastName).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        return `
+          <div class="p-3 rounded-xl log-card-social space-y-1">
+            <div class="flex items-center justify-between border-b border-fuchsia-500/20 pb-1">
+              <span class="text-[10px] font-extrabold text-fuchsia-300">${handle} ${G.social?.verified ? '☑️' : ''}</span>
+              <span class="text-[9px] font-mono-num text-slate-400">📱 Sosyal Akış</span>
+            </div>
+            <div class="text-xs text-slate-200 leading-relaxed">${formatted}</div>
+          </div>
+        `;
+      }
+
+      if (isBank) {
+        return `
+          <div class="p-2.5 rounded-xl log-card-bank space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-[9px] font-extrabold tracking-wider uppercase text-emerald-400">🏦 MOBİL BANKACILIK &bull; HESAP ÖZETİ</span>
+              <span class="text-[9px] font-mono-num text-slate-400">ONAYLI</span>
+            </div>
+            <div class="text-xs text-slate-200 leading-relaxed font-mono-num">${formatted}</div>
+          </div>
+        `;
+      }
+
+      return `<div class="p-2.5 rounded-xl border border-slate-800/90 bg-slate-900/70 text-xs text-slate-300 leading-relaxed">${formatted}</div>`;
+    }).join('');
+
+    return `
+      <div class="timeline-age-block space-y-2 pb-1">
+        <div class="timeline-age-dot"></div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-slate-800/90 border border-slate-700 text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider">
+          <span>YAŞ ${group.age}</span>
+          <span class="text-slate-500">&bull;</span>
+          <span class="text-slate-300 font-mono-num">${2026 + group.age} YILI</span>
+        </div>
+        <div class="space-y-2">${itemsHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+};
+
+// 4. PROJE 1: Dijital Bankacılık Sanal Kartı, Findeks SVG Kadranı ve Varlık Dağılımı
+function renderDigitalBankingHeaderHTML() {
+  const c = getCountry();
+  const netWorth = getNetWorth();
+  let tierClass = 'card-tier-classic';
+  let tierName = 'CLASSIC DEBIT';
+  if (netWorth >= c.monthlyMinWage * 100) {
+    tierClass = 'card-tier-black';
+    tierName = 'OBSIDIAN VIP WORLD';
+  } else if (netWorth >= c.monthlyMinWage * 25) {
+    tierClass = 'card-tier-gold';
+    tierName = 'PLATINUM PRESTIGE';
+  }
+
+  // Findeks SVG Yarı Daire Kadranı (300 - 1900)
+  const score = clamp(G.creditScore || 1150, 300, 1900);
+  const ratio = (score - 300) / 1600;
+  const dashOffset = (126 * (1 - ratio)).toFixed(1);
+  const scoreColor = score >= 1400 ? '#10b981' : (score >= 950 ? '#f59e0b' : '#f43f5e');
+  const riskLabel = score >= 1400 ? 'Çok İyi (Düşük Risk)' : (score >= 950 ? 'Orta Riskli' : 'Yüksek Risk / İcra Takibi');
+
+  // Varlık Dağılım Yüzdeleri
+  const cashVal = Math.max(0, G.money + G.bankSavings);
+  const invVal = getTotalPortfolioValue();
+  const propVal = G.cars.reduce((a, x) => a + (x.value || 0), 0) + G.houses.reduce((a, x) => a + (x.value || 0), 0);
+  const totalAssets = Math.max(1, cashVal + invVal + propVal);
+  const pCash = Math.round((cashVal / totalAssets) * 100);
+  const pInv = Math.round((invVal / totalAssets) * 100);
+  const pProp = Math.max(0, 100 - pCash - pInv);
+
+  return `
+    <!-- 3D Sanal Banka Kartı -->
+    <div class="virtual-bank-card ${tierClass} mb-2.5">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="text-[9px] font-extrabold tracking-widest text-slate-300 uppercase">${c.flag} ${c.name} MERKEZ BANKACILIK</div>
+          <div class="text-xs font-extrabold text-amber-300 tracking-wider">${tierName}</div>
+        </div>
+        <!-- Altın Çip & Temassız SVG -->
+        <div class="flex items-center gap-2">
+          <svg class="w-7 h-5 text-amber-300/90" viewBox="0 0 36 26" fill="none">
+            <rect x="1" y="1" width="34" height="24" rx="4" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M12 1V25M24 1V25M1 13H35" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+          <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8.5 14.5A2.5 2.5 0 0 1 8.5 9.5M12 17a6 6 0 0 1 0-10M15.5 19.5a9.5 9.5 0 0 1 0-15" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="text-[11px] font-mono-num tracking-widest text-slate-200 mb-3">${getCharacterIBAN()}</div>
+
+      <div class="flex items-end justify-between">
+        <div>
+          <div class="text-[9px] text-slate-400 uppercase">KART SAHİBİ</div>
+          <div class="text-xs font-extrabold tracking-wide text-white uppercase">${G.firstName} ${G.lastName}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-400 uppercase">TOPLAM NET SERVET</div>
+          <div class="text-sm font-extrabold font-mono-num text-emerald-400">${fmtMoney(netWorth)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Findeks Kredi Notu Kadranı & Varlık Dağılım Halkası -->
+    <div class="grid grid-cols-2 gap-2 mb-2.5">
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center">
+        <div class="text-[10px] font-extrabold text-slate-400 uppercase mb-1">Findeks Kredi Raporu</div>
+        <svg viewBox="0 0 100 55" class="w-28 h-14 overflow-visible">
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="${scoreColor}" stroke-width="9" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="${dashOffset}"/>
+          <text x="50" y="46" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800" font-family="JetBrains Mono">${score}</text>
+        </svg>
+        <div class="text-[9px] font-bold mt-0.5" style="color:${scoreColor}">${riskLabel}</div>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
+        <div class="text-[10px] font-extrabold text-slate-400 uppercase">Varlık Dağılımı</div>
+        <div class="h-3 w-full rounded-full bg-slate-950 overflow-hidden flex my-1.5">
+          <div style="width:${pCash}%" class="bg-emerald-400" title="Nakit"></div>
+          <div style="width:${pInv}%" class="bg-sky-400" title="Borsa/Altın"></div>
+          <div style="width:${pProp}%" class="bg-amber-400" title="Gayrimenkul/Araç"></div>
+        </div>
+        <div class="space-y-0.5 text-[10px] font-mono-num">
+          <div class="flex justify-between"><span class="text-emerald-400">● Nakit/Mevduat:</span><span>%${pCash}</span></div>
+          <div class="flex justify-between"><span class="text-sky-400">● Borsa/Altın:</span><span>%${pInv}</span></div>
+          <div class="flex justify-between"><span class="text-amber-400">● Mülk/Filo:</span><span>%${pProp}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 5. PROJE 2: Kuşbakışı SVG Görsel Oto Ekspertiz Raporu Oluşturucu
+function renderCarExpertiseSVGModal(car, idx) {
+  const cond = car.cond || 100;
+  // Parça durumları: Orijinal (#10b981), Boyalı (#f59e0b), Değişen (#f43f5e)
+  const hoodColor = cond >= 85 ? '#10b981' : (cond >= 60 ? '#f59e0b' : '#f43f5e');
+  const roofColor = cond >= 50 ? '#10b981' : '#f59e0b';
+  const trunkColor = cond >= 78 ? '#10b981' : '#f59e0b';
+  const leftDoors = cond >= 70 ? '#10b981' : (cond >= 48 ? '#f59e0b' : '#f43f5e');
+  const rightDoors = cond >= 90 ? '#10b981' : '#f59e0b';
+
+  const statusText = clr => clr === '#10b981' ? 'Orijinal' : (clr === '#f59e0b' ? 'Lokal Boyalı' : 'Değişen');
+  const plate = getCharacterPlate(idx);
+
+  return `
+    <div class="p-3.5 rounded-2xl bg-slate-950 border border-emerald-500/40 space-y-3 mb-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div>
+          <div class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider">📋 TSE ONAYLI OTO EKSPERTİZ RAPORU</div>
+          <div class="text-xs font-extrabold text-white">${car.name}</div>
+        </div>
+        <div class="license-plate">
+          <span class="license-plate-blue">${plate.country}</span>
+          <span class="license-plate-num">${plate.text}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 items-center">
+        <!-- Kuşbakışı Otomobil Kaporta Şeması SVG -->
+        <div class="flex flex-col items-center bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+          <svg viewBox="0 0 120 200" class="w-24 h-36">
+            <!-- Gövde Çerçevesi -->
+            <rect x="20" y="10" width="80" height="180" rx="22" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+            <!-- Ön Kaput -->
+            <path d="M 26 20 Q 60 12 94 20 L 90 62 L 30 62 Z" fill="${hoodColor}" fill-opacity="0.75" stroke="#090d16" stroke-width="1.5"/>
+            <text x="60" y="44" text-anchor="middle" fill="#fff" font-size="8" font-weight="bold">KAPUT</text>
+            <!-- Ön Cam -->
+            <polygon points="30,64 90,64 84,82 36,82" fill="#38bdf8" fill-opacity="0.3"/>
+            <!-- Tavan -->
+            <rect x="36" y="84" width="48" height="52" rx="4" fill="${roofColor}" fill-opacity="0.75" stroke="#090d16" stroke-width="1.5"/>
+            <text x="60" y="113" text-anchor="middle" fill="#fff" font-size="8" font-weight="bold">TAVAN</text>
+            <!-- Arka Cam -->
+            <polygon points="36,138 84,138 90,152 30,152" fill="#38bdf8" fill-opacity="0.3"/>
+            <!-- Bagaj -->
+            <path d="M 30 154 L 90 154 L 92 182 Q 60 188 28 182 Z" fill="${trunkColor}" fill-opacity="0.75" stroke="#090d16" stroke-width="1.5"/>
+            <text x="60" y="172" text-anchor="middle" fill="#fff" font-size="8" font-weight="bold">BAGAJ</text>
+            <!-- Sol Yan Kapılar -->
+            <rect x="20" y="66" width="12" height="82" rx="3" fill="${leftDoors}" fill-opacity="0.85"/>
+            <!-- Sağ Yan Kapılar -->
+            <rect x="88" y="66" width="12" height="82" rx="3" fill="${rightDoors}" fill-opacity="0.85"/>
+          </svg>
+          <div class="flex gap-2 mt-2 text-[9px] font-bold">
+            <span class="text-emerald-400">● Orijinal</span>
+            <span class="text-amber-400">● Boyalı</span>
+            <span class="text-rose-400">● Değişen</span>
+          </div>
+        </div>
+
+        <!-- Parça ve Dyno Motor Özeti -->
+        <div class="space-y-1.5 text-[10px]">
+          <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
+            <div class="text-slate-400">Motor Dyno Performansı</div>
+            <div class="text-xs font-extrabold font-mono-num text-emerald-400">%${cond} HP Güç</div>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 py-0.5"><span class="text-slate-400">Ön Kaput:</span><strong class="text-white">${statusText(hoodColor)}</strong></div>
+          <div class="flex justify-between border-b border-slate-800 py-0.5"><span class="text-slate-400">Tavan:</span><strong class="text-white">${statusText(roofColor)}</strong></div>
+          <div class="flex justify-between border-b border-slate-800 py-0.5"><span class="text-slate-400">Sol Yan:</span><strong class="text-white">${statusText(leftDoors)}</strong></div>
+          <div class="flex justify-between border-b border-slate-800 py-0.5"><span class="text-slate-400">Sağ Yan:</span><strong class="text-white">${statusText(rightDoors)}</strong></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">Bagaj Kapağı:</span><strong class="text-white">${statusText(trunkColor)}</strong></div>
+          <div class="pt-1 text-[9px] text-slate-400">Tramer: <strong>${cond >= 90 ? 'Hasar Kayıtsız' : fmtMoney(Math.round(car.value * 0.08)) + ' Ağır Hasar'}</strong></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 6. PROJE 2: Çipli Ulusal Kimlik Kartı, Sürücü Belgesi ve Barkodlu Adli Sicil Belgesi
+function renderOfficialIdentityAndDocumentsHTML() {
+  const c = getCountry();
+  const idNo = getCharacterNationalId();
+  const birthYear = 2026 - (G.age || 0);
+
+  return `
+    <!-- Ulusal Çipli Kimlik Kartı -->
+    <div class="national-id-card space-y-2.5">
+      <div class="flex items-center justify-between border-b border-sky-500/25 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">${c.flag}</span>
+          <div>
+            <div class="text-[10px] font-extrabold tracking-wider text-sky-400 uppercase">${c.name} CUMHURİYETİ</div>
+            <div class="text-[9px] text-slate-400 font-bold uppercase">ULUSAL KİMLİK KARTI / IDENTITY CARD</div>
+          </div>
+        </div>
+        <div class="text-right font-mono-num text-[10px] text-slate-300">
+          <div>KİMLİK NO</div>
+          <div class="font-extrabold text-white">${idNo}</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3.5">
+        <img src="${getCurrentPortrait()}" class="w-16 h-20 rounded-xl object-cover border border-sky-400/50 bg-slate-800 shrink-0" />
+        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 flex-1 text-[10px]">
+          <div>
+            <div class="text-slate-400 text-[8px] uppercase">SOYADI / SURNAME</div>
+            <div class="font-extrabold text-white uppercase">${G.lastName}</div>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[8px] uppercase">ADI / GIVEN NAME</div>
+            <div class="font-extrabold text-white uppercase">${G.firstName}</div>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[8px] uppercase">DOĞUM YILI / YAŞ</div>
+            <div class="font-mono-num font-bold text-slate-200">${birthYear} (${G.age})</div>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[8px] uppercase">CİNSİYET / KUŞAK</div>
+            <div class="font-bold text-slate-200">${G.gender === 'M' ? 'ERKEK / M' : 'KADIN / F'} &bull; #${G.generation || 1}</div>
+          </div>
+          <div class="col-span-2 pt-0.5 flex items-center justify-between border-t border-slate-800">
+            <span class="text-[9px] font-mono-num text-emerald-400">SERİ: A${G.generation || 1}9B8402</span>
+            <span class="text-[9px] text-slate-400">SON GEÇERLİLİK: 2036</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sürücü Belgesi Kartı -->
+    <div class="driver-license-card space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-extrabold text-fuchsia-400 uppercase tracking-wider">${c.flag} SÜRÜCÜ BELGESİ / DRIVING LICENCE</div>
+          <div class="text-xs font-extrabold text-white">${G.firstName} ${G.lastName}</div>
+        </div>
+        <div class="flex gap-1.5">
+          <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${G.licenses.B ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-500'}">🚗 B SINIFI ${G.licenses.B ? '✓' : '✗'}</span>
+          <span class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${G.licenses.CE ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500'}">🚛 CE TIR ${G.licenses.CE ? '✓' : '✗'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barkodlu Resmi e-Devlet Adli Sicil Belgesi -->
+    <div class="official-doc-card space-y-2">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div>
+          <div class="text-[9px] font-extrabold text-slate-400 uppercase">ADALET BAKANLIĞI &bull; ADLİ SİCİL İSTATİSTİK</div>
+          <div class="text-xs font-extrabold text-white">Resmi Adli Sicil ve Arşiv Kaydı</div>
+        </div>
+        <div class="${G.criminalRecord ? 'official-stamp-alert' : 'official-stamp-clean'}">
+          ${G.criminalRecord ? 'SABIKA KAYDI VARDIR' : 'ADLİ SİCİL TEMİZDİR'}
+        </div>
+      </div>
+      <div class="text-[10px] text-slate-300 leading-relaxed">
+        Yukarıda kimlik bilgileri yer alan <strong>${G.firstName} ${G.lastName}</strong> (${idNo}) hakkında yapılan ulusal arşiv sorgulamasında <strong>${G.criminalRecord ? 'kesinleşmiş mahkumiyet / adli sicil kaydı BULUNMAKTADIR.' : 'herhangi bir adli sicil ve arşiv kaydı BULUNMAMAKTADIR.'}</strong>
+      </div>
+      <div class="pt-1 flex items-center justify-between text-[9px] font-mono-num text-slate-500">
+        <span>║▌║█║▌│║▌║▌█ &bull; DOĞRULAMA: E-DEV-${idNo.slice(-5)}</span>
+        <span>RESMİ BELGEDİR</span>
+      </div>
+    </div>
+  `;
+}
+
+// 7. Mevcut Menülere (openNavSheet & openMenuSection) Görsel Tasarımları Enjekte Etme
+(function attachVisualOverhaulHooks() {
+  const _baseOpenNavSheet = openNavSheet;
+  openNavSheet = function (tab) {
+    _baseOpenNavSheet(tab);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // 1. Kariyer Sekmesine Sinematik Başlık + ÖSYM Sonuç Belgesi Kartı Ekle
+    if (tab === 'career' && !G.inPrison) {
+      let osymCard = '';
+      if (G.age >= 14) {
+        const percentile = G.lastExamRank ? Math.max(0.1, Math.min(99, (G.lastExamRank / 30000))).toFixed(2) : '--';
+        osymCard = `
+          <div class="official-doc-card mb-3 space-y-2">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <div>
+                <div class="text-[9px] font-extrabold text-sky-400 uppercase tracking-wider">ÖSYM &bull; ULUSAL SINAV SONUÇ BELGESİ</div>
+                <div class="text-xs font-extrabold text-white">${G.firstName} ${G.lastName} (${G.eduStage})</div>
+              </div>
+              <span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono-num font-bold text-emerald-400">Aday #${getCharacterNationalId().slice(-6)}</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 text-center">
+              <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div class="text-[9px] text-slate-400">Lise OBP</div>
+                <div class="text-xs font-extrabold font-mono-num text-white">${G.obpScore}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div class="text-[9px] text-slate-400">YKS Puanı</div>
+                <div class="text-xs font-extrabold font-mono-num text-emerald-400">${G.lastExamScore || 'Girmedi'}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div class="text-[9px] text-slate-400">Ulusal Sıra</div>
+                <div class="text-xs font-extrabold font-mono-num text-amber-400">${G.lastExamRank ? '#' + G.lastExamRank.toLocaleString('tr-TR') : '-'}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div class="text-[9px] text-slate-400">Dilim</div>
+                <div class="text-xs font-extrabold font-mono-num text-sky-400">%${percentile}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      body.innerHTML = renderHeroBannerHTML('career') + osymCard + body.innerHTML;
+    }
+
+    // 2. Finans Sekmesine Sinematik Başlık + Sanal Banka Kartı + Findeks Kadranı Ekle
+    if (tab === 'finance') {
+      body.innerHTML = renderHeroBannerHTML('finance') + renderDigitalBankingHeaderHTML() + body.innerHTML;
+    }
+
+    // 3. İlişkiler Sekmesine Sinematik Başlık Ekle
+    if (tab === 'relations') {
+      body.innerHTML = renderHeroBannerHTML('relations') + body.innerHTML;
+    }
+  };
+
+  const _baseOpenMenuSection = openMenuSection;
+  openMenuSection = function (sec) {
+    _baseOpenMenuSection(sec);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    const c = getCountry();
+
+    // Galeri & Sanayi Sekmesi: Sahibinden İlan Etiketleri + Plaka + Görsel Oto Ekspertiz Raporu
+    if (sec === 'cars') {
+      if (activeGarageTab === 'mycars' && G.cars.length > 0) {
+        const idx = (inspectedCarIndex !== null && G.cars[inspectedCarIndex]) ? inspectedCarIndex : 0;
+        const expHtml = renderCarExpertiseSVGModal(G.cars[idx], idx);
+
+        const selectorBtns = G.cars.length > 1 ? `
+          <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            ${G.cars.map((car, i) => {
+              const p = getCharacterPlate(i);
+              return `<button onclick="inspectedCarIndex=${i}; openMenuSection('cars');" class="px-2.5 py-1.5 rounded-xl border text-[10px] font-extrabold shrink-0 ${i === idx ? 'border-emerald-500 bg-emerald-500/20 text-white' : 'border-slate-800 bg-slate-900 text-slate-400'}">${car.icon} ${p.text} Ekspertiz</button>`;
+            }).join('')}
+          </div>
+        ` : '';
+
+        body.innerHTML = renderHeroBannerHTML('cars') + selectorBtns + expHtml + body.innerHTML;
+      } else {
+        body.innerHTML = renderHeroBannerHTML('cars') + body.innerHTML;
+      }
+      return;
+    }
+
+    // Emlak Sekmesi: Tapu Senedi Görünümü
+    if (sec === 'houses') {
+      let tapuSummary = '';
+      if (G.houses.length > 0) {
+        tapuSummary = `
+          <div class="tapu-card mb-2.5 space-y-1.5">
+            <div class="flex items-center justify-between border-b border-amber-500/25 pb-1">
+              <span class="text-[9px] font-extrabold text-amber-400 uppercase tracking-widest">${c.flag} TAPU VE KADASTRO GENEL MÜDÜRLÜĞÜ</span>
+              <span class="text-[9px] font-mono-num text-amber-200">MÜLKİYET SENEDİ</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-[10px]">
+              <div><span class="text-slate-400 block text-[8px]">MALİK ADI</span><strong class="text-white">${G.firstName} ${G.lastName}</strong></div>
+              <div><span class="text-slate-400 block text-[8px]">KAYITLI TAŞINMAZ</span><strong class="text-emerald-400">${G.houses.length} Adet Tam Hisse</strong></div>
+              <div><span class="text-slate-400 block text-[8px]">TOPLAM DEĞER</span><strong class="text-white font-mono-num">${fmtMoney(G.houses.reduce((a, x) => a + x.value, 0))}</strong></div>
+            </div>
+          </div>
+        `;
+      }
+      body.innerHTML = renderHeroBannerHTML('houses') + tapuSummary + body.innerHTML;
+      return;
+    }
+
+    // Ehliyet & Sicil veya Kimlik Sekmesi: Çipli Kimlik Kartı + Sürücü Belgesi + Barkodlu Adli Sicil
+    if (sec === 'license' || sec === 'identity') {
+      body.innerHTML = renderHeroBannerHTML('license') + renderOfficialIdentityAndDocumentsHTML() + body.innerHTML;
+      return;
+    }
+
+    // Diğer Sekmelere Sinematik Atmosfer Başlığı Ekle
+    if (SHEET_BANNERS[sec]) {
+      body.innerHTML = renderHeroBannerHTML(sec) + body.innerHTML;
+    }
+  };
+})();
