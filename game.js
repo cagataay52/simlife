@@ -1,5 +1,5 @@
 /* ============================================================================
-   1 IN 8 BILLION ULTIMATE — ANA OYUN MOTORU (game.js)
+   1 IN 8 BILLION ULTIMATE — ANA OYUN VE DİNAMİK TEMA MOTORU (game.js)
    ============================================================================ */
 
 let soundEnabled = true;
@@ -147,7 +147,6 @@ function formatCompactNumber(n) {
   return String(n || 0);
 }
 
-// Eski veya eksik kayıtları hatasız onaran koruma fonksiyonu
 function normalizeState() {
   if (!G) return;
   G.generation = G.generation || 1;
@@ -169,6 +168,9 @@ function normalizeState() {
   G.children = Array.isArray(G.children) ? G.children : [];
   G.relations = Array.isArray(G.relations) ? G.relations : [];
   G.logs = Array.isArray(G.logs) ? G.logs : [];
+  if (!Array.isArray(G.visas) || G.visas.length === 0) {
+    G.visas = [{ code: G.countryId || 'TR', age: 0, type: 'DOĞUM / VATANDAŞ' }];
+  }
 
   if (!G.market) {
     G.market = {
@@ -225,6 +227,41 @@ function getCharacterNationalId() {
   if (!G) return '10482941028';
   const seed = (G.firstName.length * 17 + G.lastName.length * 31 + (G.generation || 1) * 13);
   return `429${String(seed).padStart(4, '8')}104${(seed % 4) * 2}`;
+}
+
+function getCarClassifiedSpecs(car) {
+  const specs = {
+    scooter: { km: '14.200 km', fuel: 'Benzin • Otomatik', body: 'Motosiklet' },
+    tofas: { km: '248.000 km', fuel: 'LPG & Benzin • Düz', body: 'Sedan' },
+    doblo: { km: '162.000 km', fuel: '1.6 Multijet Dizel', body: 'Camlı Van' },
+    egea: { km: '0 km / Sıfır', fuel: '1.6 Multijet DCT', body: 'Sedan' },
+    egea_cross: { km: '0 km / Sıfır', fuel: '1.6 Multijet Lounge', body: 'Crossover' },
+    corolla: { km: '0 km / Sıfır', fuel: '1.8 Hybrid e-CVT', body: 'Sedan' },
+    togg: { km: '0 km / Sıfır', fuel: '100% Elektrik 523km', body: 'C-SUV' },
+    transporter: { km: '45.000 km', fuel: '2.0 TDI VIP Dizel', body: 'VIP Panelvan' },
+    passat: { km: '32.000 km', fuel: '2.0 TDI DSG Elegance', body: 'Makam Sedan' },
+    bmw320: { km: '0 km / Sıfır', fuel: 'TwinPower Otomatik', body: 'M Sport Sedan' },
+    volvo_fh16: { km: '0 km / Sıfır', fuel: '750 HP Euro 6 Dizel', body: 'Çekici Tır' },
+    scania_s730: { km: '0 km / Sıfır', fuel: 'V8 730 HP Retarder', body: 'Uzun Yol Çekici' },
+    g63: { km: '0 km / Sıfır', fuel: '4.0 V8 Biturbo', body: '4x4 Lüks SUV' },
+    porsche911: { km: '0 km / Sıfır', fuel: '3.8 Boxer PDK', body: 'Süper Spor' },
+    ferrari_f8: { km: '0 km / Sıfır', fuel: '3.9 V8 Twin-Turbo', body: 'Coupe' },
+    maybach: { km: '0 km / Sıfır', fuel: '6.0 V12 4MATIC', body: 'Zırhlı Makam' }
+  };
+  return specs[car.id] || { km: '15.000 km', fuel: 'Hibrit / Otomatik', body: 'Sedan' };
+}
+
+function getHouseClassifiedSpecs(h) {
+  const specs = {
+    ogrenci_apart: { m2: '45 m²', rooms: '1+0 Stüdyo', floor: '2. Kat' },
+    studio: { m2: '65 m²', rooms: '1+1 Rezidans', floor: '8. Kat' },
+    apt31: { m2: '145 m²', rooms: '3+1 Site İçi', floor: '5. Kat' },
+    lojistik_depo: { m2: '1.850 m²', rooms: 'Tır Rampalı Antrepo', floor: 'Müstakil' },
+    villa: { m2: '380 m²', rooms: '5+2 Özel Havuzlu', floor: 'Dublex' },
+    penthouse: { m2: '460 m²', rooms: '6+2 Panoramik', floor: '40. Kat' },
+    mansion: { m2: '950 m²', rooms: '10+3 Özel İskeleli', floor: 'Triplex Yalı' }
+  };
+  return specs[h.id] || { m2: '120 m²', rooms: '3+1', floor: 'Ara Kat' };
 }
 
 function unlockAchievement(achId) {
@@ -367,6 +404,7 @@ function startNewLife() {
     sports: { branchId: null, tierIndex: 0, skill: randInt(45, 70), injured: false },
     syndicate: { joined: false, rankLevel: 0, respect: 10 },
     diseases: [], achievements: [],
+    visas: [{ code: c.id, age: 0, type: 'DOĞUM / VATANDAŞ' }],
     social: { activePlatforms: [], followers: 0, verified: false, postsThisYear: 0, annualAdIncome: 0 },
     cars: [], houses: [], businesses: [],
     relations: [
@@ -457,16 +495,29 @@ function calculateFinances() {
     }
   }
 
-  const monthlyTax = Math.round(monthlyGrossSalary * getEffectiveTaxRate());
-  const monthlyNetSalary = monthlyGrossSalary - monthlyTax + monthlyStudentIncome;
+  const sgkCut = Math.round(monthlyGrossSalary * 0.14);
+  const incomeTaxCut = Math.round(monthlyGrossSalary * getEffectiveTaxRate());
+  const monthlyTax = sgkCut + incomeTaxCut;
+  const monthlyNetSalary = Math.max(0, monthlyGrossSalary - monthlyTax) + monthlyStudentIncome;
 
+  let monthlyBizRevenue = 0;
+  let monthlyBizOperatingCost = 0;
+  let monthlyBizTax = 0;
   let monthlyBizProfit = 0;
+
   G.businesses.forEach(b => {
     const bType = BUSINESS_TYPES.find(t => t.id === b.typeId);
     if (bType) {
       const fleetMult = 1 + (b.fleet - 1) * 0.42 + (b.employees - 2) * 0.15;
       const stratMult = b.strategy === 'premium' ? 1.22 : (b.strategy === 'cheap' ? 0.88 : 1.0);
-      monthlyBizProfit += Math.round(c.monthlyMinWage * bType.baseProfitMult * fleetMult * stratMult);
+      const net = Math.round(c.monthlyMinWage * bType.baseProfitMult * fleetMult * stratMult);
+      const grossRev = Math.round(net * 1.85);
+      const opEx = Math.round(grossRev * 0.35);
+      const corpTax = Math.max(0, grossRev - opEx - net);
+      monthlyBizRevenue += grossRev;
+      monthlyBizOperatingCost += opEx;
+      monthlyBizTax += corpTax;
+      monthlyBizProfit += net;
     }
   });
 
@@ -513,13 +564,102 @@ function calculateFinances() {
   const monthlyNetCashflow = monthlyNetSalary + monthlyBizProfit + monthlyRentIncome + monthlySocialIncome - totalExpenses;
 
   return {
-    monthlyGrossSalary, monthlyTax, monthlyNetSalary, monthlyBizProfit, monthlyRentIncome,
-    monthlySocialIncome, monthlyLivingExpense, monthlyCarExpense, monthlyLoanPayment,
-    monthlyNetCashflow, annualNetCashflow: monthlyNetCashflow * 12
+    monthlyGrossSalary, sgkCut, incomeTaxCut, monthlyTax, monthlyNetSalary,
+    monthlyBizRevenue, monthlyBizOperatingCost, monthlyBizTax, monthlyBizProfit,
+    monthlyRentIncome, monthlySocialIncome, monthlyLivingExpense, monthlyCarExpense,
+    monthlyLoanPayment, monthlyNetCashflow, annualNetCashflow: monthlyNetCashflow * 12
   };
 }
 
-/* ---------------- 5. ANA EKRAN & ZAMAN TÜNELİ RENDER MOTORU ---------------- */
+/* ---------------- 5. DİNAMİK TEMA, BLOOMBERG BANT & KÜRESEL SIRALAMA ---------------- */
+function getGlobalWealthRankInfo() {
+  const c = getCountry();
+  const nwInMinWages = Math.max(0, getNetWorth() / Math.max(1, c.monthlyMinWage));
+  // Dünya ve ülke yüzdelik dilim hesabı
+  let globalBetterThan = 18 + Math.log10(1 + nwInMinWages) * 36;
+  if (G.age < 18 && nwInMinWages < 1) globalBetterThan = 22;
+  globalBetterThan = Math.max(1.0, Math.min(99.99, Number(globalBetterThan.toFixed(2))));
+
+  const topNatPct = Math.max(0.01, Math.min(99.0, Number((100 - globalBetterThan * 0.96).toFixed(2))));
+  const worldRank = Math.max(1450, Math.round(((100 - globalBetterThan) / 100) * 8000000000));
+
+  return { globalBetterThan, topNatPct, worldRank };
+}
+
+function updateDynamicThemeAndTicker() {
+  if (!G) return;
+  const shell = document.getElementById('appShell');
+  const header = document.querySelector('#appShell > header');
+  const avatar = document.getElementById('charAvatar');
+  const hpBar = document.getElementById('statHealthBar');
+  const c = getCountry();
+  const netWorth = getNetWorth();
+
+  // 1) Statü ve Servete Duyarlı Dinamik Tema
+  shell.classList.remove('theme-vip', 'theme-prison', 'theme-crisis');
+  let modeLabel = 'STANDART';
+  if (G.inPrison || (G.syndicate.joined && G.syndicate.rankLevel >= 3)) {
+    shell.classList.add('theme-prison');
+    modeLabel = G.inPrison ? 'CEZAEVİ REJİMİ' : 'YERALTI BARONU';
+  } else if (G.money < 0 || G.creditScore < 700) {
+    shell.classList.add('theme-crisis');
+    modeLabel = 'FİNANSAL DARBOĞAZ';
+  } else if (netWorth >= c.monthlyMinWage * 50 || G.politics.officeId === 'president') {
+    shell.classList.add('theme-vip');
+    modeLabel = 'OBSIDIAN VIP STATÜSÜ';
+  }
+
+  // 2) Klinik Portre & EKG Nabzı ve Şöhret Spot Işıkları
+  const isSickOrStressed = G.diseases.length > 0 || G.stress >= 80 || G.health <= 30;
+  if (avatar) avatar.classList.toggle('avatar-sick-stress', isSickOrStressed);
+  if (hpBar) hpBar.classList.toggle('ecg-pulse', isSickOrStressed);
+  if (header) header.classList.toggle('header-fame-spotlight', Boolean(G.social.verified || G.fame >= 60));
+
+  // 3) Bloomberg Ekonomi Bandı ve 1 in 8 Billion Küresel Sıralama Barı Enjeksiyonu
+  let subHeader = document.getElementById('dynamicSubHeader');
+  if (!subHeader && header) {
+    subHeader = document.createElement('div');
+    subHeader.id = 'dynamicSubHeader';
+    subHeader.className = 'shrink-0';
+    header.insertAdjacentElement('afterend', subHeader);
+  }
+  if (!subHeader) return;
+
+  const pGold = G.market.lastPct.gold || 0;
+  const pFx = G.market.lastPct.forex || 0;
+  const pStock = G.market.lastPct.stock || 0;
+  const pCry = G.market.lastPct.crypto || 0;
+  const rankInfo = getGlobalWealthRankInfo();
+
+  const fmtTick = (lbl, val) =>
+    `<span class="mx-2.5 text-[10px] font-mono-num"><strong class="text-slate-300">${lbl}:</strong> <span class="${val >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${val >= 0 ? '▲+' : '▼'}${val}%</span></span>`;
+
+  const tickerContent = `
+    <span class="mx-2.5 text-[10px] font-mono-num text-amber-400 font-bold">● ${c.flag} ${c.name.toUpperCase()} ENFLASYON: %${Math.round(c.inflation * 100)}</span>
+    ${fmtTick('XAU/ALTIN', pGold)}
+    ${fmtTick('FX/DÖVİZ', pFx)}
+    ${fmtTick('TECH100', pStock)}
+    ${fmtTick('BTC/AI', pCry)}
+    <span class="mx-2.5 text-[10px] font-mono-num text-sky-400">● TEMA: ${modeLabel}</span>
+  `;
+
+  subHeader.innerHTML = `
+    <div class="ticker-wrap">
+      <div class="ticker-move">${tickerContent}${tickerContent}</div>
+    </div>
+    <div class="percentile-strip flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-extrabold text-emerald-400 shrink-0">1 IN 8 BILLION</span>
+        <span class="text-[10px] text-slate-300 truncate">${c.flag} En Üst <strong class="text-white font-mono-num">%${rankInfo.topNatPct}</strong> &bull; 🌍 Dünya <strong class="text-emerald-400 font-mono-num">#${rankInfo.worldRank.toLocaleString('tr-TR')}</strong></span>
+      </div>
+      <div class="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden shrink-0">
+        <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400" style="width:${rankInfo.globalBetterThan}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- 6. ANA EKRAN & ZAMAN TÜNELİ RENDER MOTORU ---------------- */
 function getCurrentPortrait() {
   const gSet = PORTRAITS[G.gender] || PORTRAITS.M;
   if (G.age <= 3) return gSet.baby[0];
@@ -588,6 +728,7 @@ function renderAll() {
   else if (G.age < 18 || G.eduStage === 'Üniversite') { navIcon.textContent = '🎓'; navLabel.textContent = 'Okul / İş'; }
   else { navIcon.textContent = '💼'; navLabel.textContent = 'Kariyer'; }
 
+  updateDynamicThemeAndTicker();
   renderLogs();
 }
 
@@ -670,7 +811,7 @@ function renderLogs() {
   container.scrollTop = container.scrollHeight;
 }
 
-/* ---------------- 6. +1 YAŞ İLERLEME MOTORU ---------------- */
+/* ---------------- 7. +1 YAŞ İLERLEME MOTORU ---------------- */
 function advanceAge() {
   if (!G || !G.alive) { openDeathModal(); return; }
   normalizeState();
@@ -680,7 +821,6 @@ function advanceAge() {
   G.market.tradesThisYear = 0;
   const c = getCountry();
 
-  // 1) Borsa Grafik Mumlarını Güncelle
   Object.keys(MARKET_ASSETS_META).forEach(key => {
     const meta = MARKET_ASSETS_META[key];
     const infBoost = (key === 'gold' || key === 'forex') ? (c.inflation * 55) : (c.inflation * 25);
@@ -692,7 +832,6 @@ function advanceAge() {
     if (series.length > 12) series.shift();
   });
 
-  // 2) Cezaevi Kontrolü
   if (G.inPrison) {
     G.prisonYearsLeft -= 1;
     G.happy = clamp(G.happy - 6);
@@ -704,7 +843,6 @@ function advanceAge() {
     }
   }
 
-  // 3) Eğitim Kademeleri
   if (G.age === 6) { G.eduStage = 'İlkokul'; addLog(G.age, `🎒 **İlkokula** başladın.`, 'milestone'); }
   else if (G.age === 10) { G.eduStage = 'Ortaokul'; addLog(G.age, `📘 **Ortaokula** geçtin.`, 'milestone'); }
   else if (G.age === 14) { G.eduStage = 'Lise'; addLog(G.age, `🏫 **Liseye** başladın!`, 'milestone'); }
@@ -729,7 +867,6 @@ function advanceAge() {
     }
   }
 
-  // 4) İş, Spor, Sendika ve Hastalıklar
   if (!G.inPrison && G.jobId) {
     G.jobExp += 1;
     const j = JOBS.find(x => x.id === G.jobId);
@@ -776,7 +913,6 @@ function advanceAge() {
     if (d) { G.health = clamp(G.health - d.hpDrain); G.happy = clamp(G.happy - d.happyDrain); }
   });
 
-  // 5) Yıllık Nakit Akışı, Enflasyon & Portföy Getirileri
   const fin = calculateFinances();
   if (G.age >= 18 || fin.annualNetCashflow !== 0) {
     G.money += fin.annualNetCashflow;
@@ -815,7 +951,6 @@ function advanceAge() {
     addLog(G.age, `🏦 Vadeli mevduatına **+${fmtMoney(interest)}** faiz eklendi.`, 'good');
   }
 
-  // 6) İcra, Araçlar, Emlak ve Aile Yaşlanması
   if (G.money < -c.monthlyMinWage * 3 && G.cars.length > 0) {
     const seizedCar = G.cars.pop();
     G.money += Math.round(seizedCar.value * 0.7);
@@ -877,7 +1012,7 @@ function advanceAge() {
   renderAll();
 }
 
-/* ---------------- 7. YILLIK OLAY MOTORU ---------------- */
+/* ---------------- 8. YILLIK OLAY MOTORU ---------------- */
 function triggerYearlyEvents() {
   const c = getCountry();
 
@@ -962,7 +1097,6 @@ function triggerYearlyEvents() {
     return;
   }
 
-  // RANDOM_EVENTS_DB Havuzundan Rastgele Olay Çek
   if (typeof RANDOM_EVENTS_DB !== 'undefined' && Array.isArray(RANDOM_EVENTS_DB)) {
     const eligible = RANDOM_EVENTS_DB.filter(ev => {
       if (G.age < ev.minAge || G.age > ev.maxAge) return false;
@@ -995,7 +1129,80 @@ function triggerYearlyEvents() {
   }
 }
 
-/* ---------------- 8. GÖRSEL KART & GRAFİK OLUŞTURUCULAR ---------------- */
+/* ---------------- 9. GÖRSEL KART, BORDRO, MİZAN & VİZE OLUŞTURUCULAR ---------------- */
+function renderPayrollSlipHTML() {
+  const fin = calculateFinances();
+  if (fin.monthlyGrossSalary <= 0) return '';
+  const c = getCountry();
+  let jobTitle = 'Kurumsal Personel';
+  if (G.politics.officeId) jobTitle = (POLITICS_OFFICES.find(o => o.id === G.politics.officeId) || {}).title;
+  else if (G.sports.branchId) jobTitle = (SPORTS_BRANCHES.find(b => b.id === G.sports.branchId) || {}).name;
+  else if (G.jobId) jobTitle = (JOBS.find(j => j.id === G.jobId) || {}).title;
+
+  return `
+    <div class="official-doc-card mb-2.5 space-y-1.5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+        <span class="text-[9px] font-extrabold text-emerald-400 uppercase">🧾 E-BORDRO &bull; RESMİ MAAŞ PUSULASI (${c.code})</span>
+        <span class="text-[9px] font-mono-num text-slate-400">KIDEM: ${G.jobExp || 0} YIL</span>
+      </div>
+      <div class="text-[10px] font-bold text-white">${jobTitle}</div>
+      <table class="ledger-table font-mono-num">
+        <tr><td class="text-slate-400">Brüt Tahakkuk Tutarı</td><td class="text-right text-slate-200 font-bold">${fmtMoney(fin.monthlyGrossSalary)}</td></tr>
+        <tr><td class="text-slate-400">SGK İşçi &amp; İşsizlik Primi (%14)</td><td class="text-right text-rose-400">-${fmtMoney(fin.sgkCut)}</td></tr>
+        <tr><td class="text-slate-400">Gelir &amp; Damga Vergisi (%${Math.round(getEffectiveTaxRate() * 100)})</td><td class="text-right text-rose-400">-${fmtMoney(fin.incomeTaxCut)}</td></tr>
+        <tr><td class="text-emerald-400 font-extrabold">NET ÖDENEN MAAŞ</td><td class="text-right text-emerald-400 font-extrabold">${fmtMoney(fin.monthlyNetSalary)}</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function renderCorporateMizanHTML() {
+  if (!G.businesses || G.businesses.length === 0) return '';
+  const fin = calculateFinances();
+  return `
+    <div class="official-doc-card mb-2.5 space-y-1.5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+        <span class="text-[9px] font-extrabold text-amber-400 uppercase">📑 TEKDÜZEN HESAP PLANI &bull; AYLIK MİZAN &amp; GELİR TABLOSU</span>
+        <span class="text-[9px] font-mono-num text-emerald-400">${G.businesses.length} ŞİRKET</span>
+      </div>
+      <table class="ledger-table font-mono-num">
+        <thead>
+          <tr class="text-slate-400"><th class="text-left">THP Hesap Kodu / Açıklama</th><th class="text-right">Aylık Tutar</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="text-slate-300">600. Yurt İçi &amp; İhracat Brüt Satışlar</td><td class="text-right text-emerald-400">+${fmtMoney(fin.monthlyBizRevenue)}</td></tr>
+          <tr><td class="text-slate-300">740. Hizmet / Filo &amp; Personel Gideri (-)</td><td class="text-right text-rose-400">-${fmtMoney(fin.monthlyBizOperatingCost)}</td></tr>
+          <tr><td class="text-slate-300">691. Kurumlar Vergisi Karşılığı (-)</td><td class="text-right text-rose-400">-${fmtMoney(fin.monthlyBizTax)}</td></tr>
+          <tr><td class="text-white font-extrabold">692. DÖNEM NET KÂRI (NET PROFIT)</td><td class="text-right text-emerald-400 font-extrabold">+${fmtMoney(fin.monthlyBizProfit)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPassportVisaStampsHTML() {
+  if (!G.visas || G.visas.length === 0) return '';
+  return `
+    <div class="official-doc-card mb-2.5 space-y-2">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+        <span class="text-[9px] font-extrabold text-sky-400 uppercase">🛂 PASAPORT VİZE &amp; SINIR GİRİŞ MÜHÜRLERİ</span>
+        <span class="text-[9px] font-mono-num text-slate-400">${G.visas.length} MÜHÜR</span>
+      </div>
+      <div class="flex flex-wrap gap-2 pt-1">
+        ${G.visas.map(v => {
+          const cnt = getCountry(v.code);
+          return `
+            <div class="passport-visa-stamp">
+              <div>${cnt.flag} ${cnt.code} &bull; ENTRY</div>
+              <div class="text-[8px] text-slate-300">${v.type} (YAŞ ${v.age})</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderDigitalBankingHeaderHTML() {
   const c = getCountry();
   const netWorth = getNetWorth();
@@ -1236,6 +1443,8 @@ function renderOfficialIdentityAndDocumentsHTML() {
       </div>
     </div>
 
+    ${renderPassportVisaStampsHTML()}
+
     <div class="official-doc-card space-y-1.5 mb-2.5">
       <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
         <div>
@@ -1249,7 +1458,7 @@ function renderOfficialIdentityAndDocumentsHTML() {
   `;
 }
 
-/* ---------------- 9. ALT NAVBAR SEKMELERİ (TEK VE TEMİZ FONKSİYON) ---------------- */
+/* ---------------- 10. ALT NAVBAR SEKMELERİ ---------------- */
 function openNavSheet(tab) {
   normalizeState();
   const sheet = document.getElementById('bottomSheet');
@@ -1259,7 +1468,6 @@ function openNavSheet(tab) {
   const c = getCountry();
   sheet.classList.remove('hidden');
 
-  // 1) OKUL / İŞ / CEZAEVİ
   if (tab === 'career') {
     if (G.inPrison) {
       title.textContent = '⛓️ Cezaevi Koğuşu & Avlu';
@@ -1277,11 +1485,11 @@ function openNavSheet(tab) {
       return;
     }
 
-    title.textContent = '🎓 Eğitim, Meslek, Spor & Siyaset';
+    title.textContent = '🎓 Eğitim, Bordro, Spor & Siyaset';
     sub.textContent = `${G.eduStage} • OBP: ${G.obpScore} • Sicil: ${G.criminalRecord ? 'Sabıkalı ⚠️' : 'Temiz ✓'}`;
 
     const percentile = G.lastExamRank ? Math.max(0.1, Math.min(99, (G.lastExamRank / 30000))).toFixed(2) : '--';
-    let html = renderHeroBannerHTML('career') + `
+    let html = renderHeroBannerHTML('career') + renderPayrollSlipHTML() + `
       <div class="official-doc-card mb-2.5 space-y-1.5">
         <div class="flex items-center justify-between border-b border-slate-800 pb-1">
           <span class="text-[9px] font-extrabold text-sky-400 uppercase">ÖSYM &bull; ULUSAL SINAV SONUÇ BELGESİ</span>
@@ -1379,7 +1587,7 @@ function openNavSheet(tab) {
               <div class="min-w-0">
                 <div class="text-xs font-extrabold text-white truncate">${j.icon} ${j.title}</div>
                 <div class="text-[10px] text-slate-400">${reqText} ${blocked ? '<span class="text-rose-400 font-bold">• Sabıka Engeli!</span>' : ''}</div>
-                <div class="text-xs font-mono-num font-bold text-emerald-400 mt-0.5">${fmtMoney(monthlyGross)} / ay</div>
+                <div class="text-xs font-mono-num font-bold text-emerald-400 mt-0.5">Brüt: ${fmtMoney(monthlyGross)} / ay</div>
               </div>
               <button onclick="applyForJob('${j.id}')" class="px-3 py-2 rounded-xl text-xs font-extrabold shrink-0 ${isCurrent ? 'bg-emerald-500/20 text-emerald-300' : (blocked ? 'bg-rose-950 text-rose-400' : 'bg-emerald-500 text-slate-950')}">
                 ${isCurrent ? 'Çalışıyor' : (blocked ? 'Sabıkalı' : 'Başvur')}
@@ -1392,25 +1600,24 @@ function openNavSheet(tab) {
     return;
   }
 
-  // 2) FİNANS (BANKA KARTI, CANLI BORSA GRAFİĞİ VE ŞİRKET FİLOSU)
   if (tab === 'finance') {
     const fin = calculateFinances();
-    title.textContent = `🏦 Dijital Bankacılık & Borsa (${c.currency})`;
+    title.textContent = `🏦 Dijital Bankacılık, Borsa & Mizan (${c.currency})`;
     sub.textContent = `Findeks: ${G.creditScore} • Portföy: ${fmtMoney(getTotalPortfolioValue())}`;
 
     const tabBar = `
       <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5">
         <button onclick="activeFinanceTab='bank'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold ${activeFinanceTab === 'bank' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">💳 Banka & Kredi</button>
         <button onclick="activeFinanceTab='invest'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold ${activeFinanceTab === 'invest' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">📈 Borsa & Grafik</button>
-        <button onclick="activeFinanceTab='biz'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold ${activeFinanceTab === 'biz' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🚛 Şirket & Filo</button>
+        <button onclick="activeFinanceTab='biz'; openNavSheet('finance')" class="py-2 rounded-xl text-xs font-extrabold ${activeFinanceTab === 'biz' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🚛 Şirket & Mizan</button>
       </div>`;
 
     if (activeFinanceTab === 'bank') {
       body.innerHTML = renderHeroBannerHTML('finance') + renderDigitalBankingHeaderHTML() + tabBar + `
         <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5 text-xs">
           <div class="flex justify-between items-center mb-1"><span class="font-extrabold text-white">📊 Aylık Hesap Özeti</span><span class="text-[10px] text-emerald-400 font-bold">Vergi: %${Math.round(getEffectiveTaxRate() * 100)}</span></div>
-          <div class="flex justify-between text-slate-300"><span>Net Maaş / Spor / Makam:</span><span class="font-mono-num text-emerald-400">+${fmtMoney(fin.monthlyNetSalary)}</span></div>
-          <div class="flex justify-between text-slate-300"><span>Şirket Filosu & Kira Geliri:</span><span class="font-mono-num text-emerald-400">+${fmtMoney(fin.monthlyBizProfit + fin.monthlyRentIncome)}</span></div>
+          <div class="flex justify-between text-slate-300"><span>Net Maaş (Bordro Sonrası):</span><span class="font-mono-num text-emerald-400">+${fmtMoney(fin.monthlyNetSalary)}</span></div>
+          <div class="flex justify-between text-slate-300"><span>Şirket Net Kârı & Kira Geliri:</span><span class="font-mono-num text-emerald-400">+${fmtMoney(fin.monthlyBizProfit + fin.monthlyRentIncome)}</span></div>
           <div class="flex justify-between text-slate-300"><span>Sosyal Medya Geliri:</span><span class="font-mono-num text-emerald-400">+${fmtMoney(fin.monthlySocialIncome)}</span></div>
           <div class="flex justify-between text-slate-300"><span>Yaşam, Kira & Nafaka:</span><span class="font-mono-num text-rose-400">-${fmtMoney(fin.monthlyLivingExpense)}</span></div>
           <div class="flex justify-between text-slate-300"><span>Araç Yakıt, Sigorta & Kasko:</span><span class="font-mono-num text-rose-400">-${fmtMoney(fin.monthlyCarExpense)}</span></div>
@@ -1431,7 +1638,7 @@ function openNavSheet(tab) {
     } else if (activeFinanceTab === 'invest') {
       body.innerHTML = renderHeroBannerHTML('finance') + tabBar + renderInteractiveBorsaView();
     } else {
-      body.innerHTML = renderHeroBannerHTML('finance') + tabBar + `
+      body.innerHTML = renderHeroBannerHTML('finance') + tabBar + renderCorporateMizanHTML() + `
         ${G.dirtyMoney > 0 ? `
           <div class="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-between mb-2">
             <div><div class="text-xs font-extrabold text-amber-300">🧼 Paravan Şirkette Kara Para Akla</div><div class="text-[10px] text-slate-300">Kara Para: <strong>${fmtMoney(G.dirtyMoney)}</strong></div></div>
@@ -1460,14 +1667,13 @@ function openNavSheet(tab) {
           ${BUSINESS_TYPES.map(b => {
             const cost = c.monthlyMinWage * b.costMinWages;
             const profit = Math.round(c.monthlyMinWage * b.baseProfitMult);
-            return `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-white">${b.icon} ${b.name}</div><div class="text-[10px] text-slate-400">Sermaye: ${fmtMoney(cost)} • Kâr: <strong class="text-emerald-400">+${fmtMoney(profit)}/ay</strong></div></div><button onclick="createNewBusiness('${b.id}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Kur</button></div>`;
+            return `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-white">${b.icon} ${b.name}</div><div class="text-[10px] text-slate-400">Sermaye: ${fmtMoney(cost)} • Net Kâr: <strong class="text-emerald-400">+${fmtMoney(profit)}/ay</strong></div></div><button onclick="createNewBusiness('${b.id}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Kur</button></div>`;
           }).join('')}
         </div>`;
     }
     return;
   }
 
-  // 3) İLİŞKİ, EVLİLİK VE ÇOCUK ETKİLEŞİM MENÜSÜ
   if (tab === 'relations') {
     title.textContent = '❤️ Evlilik, Çocuklar & Miras';
     sub.textContent = G.partner ? `Partner: ${G.partner.name} (${G.partner.married ? 'Evli' : 'Sevgili'})` : 'Bekar';
@@ -1524,7 +1730,6 @@ function openNavSheet(tab) {
     return;
   }
 
-  // 4) MENÜ
   if (tab === 'menu') {
     title.textContent = '☰ Yaşam, İmparatorluk & Kariyer Menüsü';
     sub.textContent = `Başarımlar: ${G.achievements.length}/${ACHIEVEMENTS_DB.length} • Net Servet: ${fmtMoney(getNetWorth())}`;
@@ -1540,16 +1745,16 @@ function openNavSheet(tab) {
         <button onclick="openMenuSection('health')" class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-left"><div class="text-lg">🏥</div><div class="text-xs font-extrabold text-white">Hastane & Psikoloji</div><div class="text-[10px] text-slate-400">${G.diseases.length > 0 ? G.diseases.length + ' Hastalık ⚠️' : 'Sağlıklı • Stres %' + G.stress}</div></button>
         <button onclick="openMenuSection('trophies')" class="p-3 rounded-2xl bg-slate-900 border border-yellow-500/30 text-left"><div class="text-lg">🏆</div><div class="text-xs font-extrabold text-yellow-400">Kupa & Başarımlar</div><div class="text-[10px] text-slate-400">${G.achievements.length} / ${ACHIEVEMENTS_DB.length} Rozet</div></button>
         <button onclick="openMenuSection('casino')" class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-left"><div class="text-lg">🎰</div><div class="text-xs font-extrabold text-white">VIP Kumarhane</div><div class="text-[10px] text-slate-400">Blackjack, Rulet & Slot</div></button>
-        <button onclick="openMenuSection('license')" class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-left"><div class="text-lg">🪪</div><div class="text-xs font-extrabold text-white">Kimlik, Ehliyet & Sicil</div><div class="text-[10px] text-slate-400">Çipli Kimlik & e-Devlet</div></button>
+        <button onclick="openMenuSection('license')" class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-left"><div class="text-lg">🪪</div><div class="text-xs font-extrabold text-white">Kimlik, Vize & Sicil</div><div class="text-[10px] text-slate-400">Pasaport & e-Devlet</div></button>
       </div>
       <div class="pt-2 flex gap-2">
-        <button onclick="openMenuSection('migrate')" class="flex-1 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-200">✈️ Ülke Göçü</button>
+        <button onclick="openMenuSection('migrate')" class="flex-1 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-xs font-bold text-slate-200">✈️ Pasaport & Göç</button>
         <button onclick="resetToNewLifeScreen()" class="flex-1 py-2.5 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-xs font-bold text-rose-300">🔄 Yeni Hayat</button>
       </div>`;
   }
 }
 
-/* ---------------- 10. MENÜ ALT EKRANLARI ---------------- */
+/* ---------------- 11. MENÜ ALT EKRANLARI ---------------- */
 function openMenuSection(sec) {
   normalizeState();
   const sheet = document.getElementById('bottomSheet');
@@ -1633,7 +1838,7 @@ function openMenuSection(sec) {
   }
 
   if (sec === 'cars') {
-    title.textContent = `🏎️ Oto Galeri, Ekspertiz & Sanayi (${c.name})`;
+    title.textContent = `🏎️ Oto Galeri, İlan Vitrini & Sanayi (${c.name})`;
     sub.textContent = `Garajındaki Araçlar: ${G.cars.length}`;
     const topTabs = `
       <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2">
@@ -1675,12 +1880,23 @@ function openMenuSection(sec) {
       body.innerHTML = renderHeroBannerHTML('cars') + topTabs + CARS.map(car => {
         const zeroPrice = Math.round(c.monthlyMinWage * car.baseMinWages * c.carTaxMultiplier);
         const usedPrice = Math.round(zeroPrice * 0.55);
+        const sp = getCarClassifiedSpecs(car);
         return `
-          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
-            <div><div class="text-xs font-extrabold text-white">${car.icon} ${car.name}</div><div class="text-[10px] text-slate-400">${car.cat} • Ehliyet: ${car.reqLic} • Sıfır: <strong class="text-emerald-400">${fmtMoney(zeroPrice)}</strong></div><div class="text-[10px] text-amber-300">2. El Hasarlı Fırsat: ${fmtMoney(usedPrice)}</div></div>
-            <div class="flex flex-col gap-1 shrink-0">
-              <button onclick="buyCar('${car.id}', false)" class="px-2.5 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold">Sıfır Al</button>
-              <button onclick="buyCar('${car.id}', true)" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold">2. El Hasarlı</button>
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-white truncate">${car.icon} ${car.name}</div>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <span class="classified-tag">🛣️ ${sp.km}</span>
+                  <span class="classified-tag">⛽ ${sp.fuel}</span>
+                  <span class="classified-tag">🚘 ${sp.body}</span>
+                  <span class="classified-tag">🪪 ${car.reqLic} Ehliyet</span>
+                </div>
+              </div>
+              <div class="flex flex-col gap-1 shrink-0">
+                <button onclick="buyCar('${car.id}', false)" class="px-2.5 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold">Sıfır (${fmtMoney(zeroPrice)})</button>
+                <button onclick="buyCar('${car.id}', true)" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold">2. El Hasarlı (${fmtMoney(usedPrice)})</button>
+              </div>
             </div>
           </div>`;
       }).join('');
@@ -1689,7 +1905,7 @@ function openMenuSection(sec) {
   }
 
   if (sec === 'houses') {
-    title.textContent = `🏡 Tapu Senedi & Emlak İlanları`;
+    title.textContent = `🏡 Tapu Senedi & Emlak İlan Vitrini`;
     sub.textContent = `Tapulu Mülk: ${G.houses.length}`;
     let tapuCard = G.houses.length > 0 ? `
       <div class="tapu-card mb-2.5 space-y-1">
@@ -1716,7 +1932,22 @@ function openMenuSection(sec) {
     body.innerHTML = renderHeroBannerHTML('houses') + tapuCard + myHouses + HOUSES.map(h => {
       const price = Math.round(c.monthlyMinWage * h.baseMinWages * (c.houseMultiplier / 120));
       const rent = Math.round((price * h.rentYield) / 12);
-      return `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-white">${h.icon} ${h.name}</div><div class="text-[10px] text-slate-400">Kira Getirisi: <strong class="text-emerald-400">+${fmtMoney(rent)}/ay</strong> • Fiyat: <strong>${fmtMoney(price)}</strong></div></div><button onclick="buyHouse('${h.id}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Satın Al</button></div>`;
+      const sp = getHouseClassifiedSpecs(h);
+      const amortYears = Math.round(1 / h.rentYield);
+      return `
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-xs font-extrabold text-white truncate">${h.icon} ${h.name}</div>
+            <div class="flex flex-wrap gap-1 my-1">
+              <span class="classified-tag">📐 ${sp.m2}</span>
+              <span class="classified-tag">🚪 ${sp.rooms}</span>
+              <span class="classified-tag">🏢 ${sp.floor}</span>
+              <span class="classified-tag">⏱️ ${amortYears} Yıl Amortisman</span>
+            </div>
+            <div class="text-[10px] text-slate-400">Kira Getirisi: <strong class="text-emerald-400">+${fmtMoney(rent)}/ay</strong> • Fiyat: <strong class="text-white">${fmtMoney(price)}</strong></div>
+          </div>
+          <button onclick="buyHouse('${h.id}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Satın Al</button>
+        </div>`;
     }).join('');
     return;
   }
@@ -1789,7 +2020,7 @@ function openMenuSection(sec) {
   }
 
   if (sec === 'license' || sec === 'identity') {
-    title.textContent = '🪪 Çipli Kimlik, Ehliyet & e-Devlet';
+    title.textContent = '🪪 Çipli Kimlik, Pasaport & e-Devlet';
     sub.textContent = `Adli Sicil: ${G.criminalRecord ? 'Sabıkalı ⚠️' : 'Temiz ✓'}`;
     const costB = Math.round(c.monthlyMinWage * 0.7);
     const costCE = Math.round(c.monthlyMinWage * 1.6);
@@ -1803,16 +2034,16 @@ function openMenuSection(sec) {
   }
 
   if (sec === 'migrate') {
-    title.textContent = '✈️ Başka Ülkeye Göç Et';
-    sub.textContent = 'Tüm varlıkların yeni ülkenin para birimine dönüştürülür';
-    body.innerHTML = COUNTRIES.filter(x => x.id !== G.countryId).map(target => {
+    title.textContent = '✈️ Konsolosluk, Vize & Göç İdaresi';
+    sub.textContent = 'Göç ettiğinde pasaportuna vize mührü basılır ve varlıkların yeni kura çevrilir';
+    body.innerHTML = renderPassportVisaStampsHTML() + COUNTRIES.filter(x => x.id !== G.countryId).map(target => {
       const moveCost = Math.round(c.monthlyMinWage * 4);
-      return `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between"><div><div class="text-xs font-extrabold text-white">${target.flag} ${target.name} (${target.currency})</div><div class="text-[10px] text-slate-400">Asgari: ${target.monthlyMinWage.toLocaleString('tr-TR')} ${target.currency} • Enf: %${Math.round(target.inflation * 100)}</div></div><button onclick="migrateToCountry('${target.id}', ${moveCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">Göç Et (${fmtMoney(moveCost)})</button></div>`;
+      return `<div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between"><div><div class="text-xs font-extrabold text-white">${target.flag} ${target.name} (${target.currency})</div><div class="text-[10px] text-slate-400">Asgari: ${target.monthlyMinWage.toLocaleString('tr-TR')} ${target.currency} • Enf: %${Math.round(target.inflation * 100)}</div></div><button onclick="migrateToCountry('${target.id}', ${moveCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">Vize Al &amp; Göç (${fmtMoney(moveCost)})</button></div>`;
     }).join('');
   }
 }
 
-/* ---------------- 11. ÇOCUK ETKİLEŞİM & BORSA İŞLEM FONKSİYONLARI ---------------- */
+/* ---------------- 12. ÇOCUK ETKİLEŞİM & BORSA İŞLEM FONKSİYONLARI ---------------- */
 function openChildInteractionSheet(childIdx) {
   normalizeState();
   const ch = G.children[childIdx];
@@ -1921,7 +2152,7 @@ function simulateDayTradeTick(key) {
   saveGame(); renderAll(); openNavSheet('finance');
 }
 
-/* ---------------- 12. DİĞER TÜM OYUN AKSİYONLARI ---------------- */
+/* ---------------- 13. DİĞER TÜM OYUN AKSİYONLARI ---------------- */
 function doPoliticalRally(cost) {
   if (G.age < 18 || G.money < cost) { showToast('Yaş veya bakiye yetersiz!'); return; }
   G.money -= cost;
@@ -2352,8 +2583,10 @@ function migrateToCountry(targetId, cost) {
   G.cars.forEach(car => { car.value = Math.round(car.value * ratio); });
   G.houses.forEach(h => { h.value = Math.round(h.value * ratio); h.monthlyRent = Math.round(h.monthlyRent * ratio); });
   G.countryId = newC.id; G.politics.officeId = null;
-  addLog(G.age, `✈️ **${oldC.name}** ülkesinden **${newC.flag} ${newC.name}** ülkesine göç ettin!`, 'milestone');
-  saveGame(); renderAll(); closeBottomSheet();
+  G.visas.push({ code: newC.id, age: G.age, type: 'OTURUM & ÇALIŞMA VİZESİ' });
+  playSfx('trophy');
+  addLog(G.age, `✈️ **${oldC.name}** ülkesinden **${newC.flag} ${newC.name}** ülkesine göç ettin! Pasaportuna yeni vize mührü işlendi.`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('migrate');
 }
 function spendTimeWithFamily(idx) {
   const r = G.relations[idx];
@@ -2409,6 +2642,7 @@ function continueAsChild(childIdx, rejectInheritance) {
     sports: { branchId: null, tierIndex: 0, skill: 60, injured: false },
     syndicate: { joined: false, rankLevel: 0, respect: 10 },
     diseases: [], achievements: prevAch,
+    visas: [{ code: G.countryId, age: Math.max(18, child.age || 20), type: 'MİRASÇI VATANDAŞ' }],
     social: { activePlatforms: [], followers: Math.round(G.social.followers * 0.2), verified: false, postsThisYear: 0, annualAdIncome: 0 },
     cars: rejectInheritance ? [] : G.cars,
     houses: rejectInheritance ? [] : G.houses,
