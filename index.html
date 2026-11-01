@@ -19,7 +19,7 @@
 
 <div class="app-shell" id="appShell">
 
-  <!-- ==================== 1. BAŞLANGIÇ EKRANI ==================== -->
+  <!-- 1. BAŞLANGIÇ EKRANI -->
   <div id="startScreen" class="absolute inset-0 z-50 bg-[#090d16] flex flex-col justify-between p-5 safe-top safe-bottom overflow-y-auto no-scrollbar">
     <div>
       <div class="flex items-center justify-between mb-4">
@@ -33,13 +33,12 @@
       </div>
 
       <h1 class="text-2xl font-extrabold tracking-tight text-white mb-1">Yeni Bir Hayat Başlat</h1>
-      <p class="text-xs text-slate-400 mb-4">Siyaset, Spor/E-Spor, Yeraltı Sendikası, Evlilik Sözleşmesi, Sanayi Al-Sat, Hastalıklar ve Kuşaklararası Miras aktif.</p>
+      <p class="text-xs text-slate-400 mb-4">Gerçekçi ekonomi, YKS, canlı borsa grafiği, oto ekspertiz, siyaset, spor, sendika ve kuşaklararası miras aktif.</p>
 
-      <!-- Karakter Önizleme -->
       <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center gap-3.5 mb-3.5">
         <div class="relative shrink-0">
           <img id="startPreviewImg" src="" alt="Portre" class="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/40 bg-slate-800" />
-          <button type="button" onclick="rerollStartPortrait()" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 border border-slate-600 text-xs flex items-center justify-center active:scale-90" title="Portreyi Değiştir">🔄</button>
+          <button type="button" onclick="rerollStartPortrait()" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-800 border border-slate-600 text-xs flex items-center justify-center active:scale-90">🔄</button>
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider" id="startPreviewCountryTag">🇹🇷 Türkiye &bull; ₺ TRY</div>
@@ -48,7 +47,6 @@
         </div>
       </div>
 
-      <!-- BitLife Tarzı Açılır Ülke Seçici -->
       <div class="mb-3.5">
         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Doğacağın Ülke</label>
         <button type="button" onclick="openCountryModal()" class="w-full p-3.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 hover:border-emerald-500/50 flex items-center justify-between transition active:scale-[0.99]">
@@ -63,7 +61,6 @@
         </button>
       </div>
 
-      <!-- Cinsiyet Seçimi -->
       <div class="mb-3.5">
         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cinsiyet</label>
         <div class="grid grid-cols-2 gap-2.5">
@@ -76,7 +73,6 @@
         </div>
       </div>
 
-      <!-- İsim ve Soyisim -->
       <div class="grid grid-cols-2 gap-2.5 mb-3.5">
         <div>
           <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">İsim</label>
@@ -89,12 +85,8 @@
       </div>
 
       <div class="flex gap-2 mb-4">
-        <button type="button" onclick="fillRandomIdentity()" class="flex-1 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-200 text-xs font-bold active:scale-95 transition">
-          🎲 Rastgele İsim
-        </button>
-        <button type="button" onclick="randomizeAllStart()" class="flex-1 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-amber-300 text-xs font-bold active:scale-95 transition">
-          🌍 Tamamen Rastgele Kader
-        </button>
+        <button type="button" onclick="fillRandomIdentity()" class="flex-1 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-200 text-xs font-bold active:scale-95 transition">🎲 Rastgele İsim</button>
+        <button type="button" onclick="randomizeAllStart()" class="flex-1 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-amber-300 text-xs font-bold active:scale-95 transition">🌍 Rastgele Kader</button>
       </div>
     </div>
 
@@ -103,7 +95,7 @@
     </button>
   </div>
 
-  <!-- ==================== ÜLKE SEÇİCİ MODAL ==================== -->
+  <!-- ÜLKE SEÇİCİ MODAL -->
   <div id="countryModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
     <div class="bg-[#0f1623] border-t border-slate-800 rounded-t-3xl max-h-[82dvh] flex flex-col sheet-enter safe-bottom">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -120,7 +112,7 @@
     </div>
   </div>
 
-  <!-- ==================== 2. ANA OYUN EKRANI ==================== -->
+  <!-- 2. ANA OYUN EKRANI -->
   <header class="safe-top px-3.5 pt-2.5 pb-2.5 bg-[#0d1320] border-b border-slate-800/80 shrink-0">
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2.5 min-w-0">
@@ -143,7 +135,7 @@
 
       <div class="text-right shrink-0">
         <div class="flex items-center justify-end gap-1.5">
-          <button onclick="toggleSound()" id="soundToggleBtn" class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300" title="Ses Efektleri">🔊</button>
+          <button onclick="toggleSound()" id="soundToggleBtn" class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">🔊</button>
           <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nakit</span>
         </div>
         <div id="charBalance" class="text-sm font-extrabold font-mono-num text-emerald-400">0 ₺</div>
@@ -152,83 +144,57 @@
     </div>
   </header>
 
-  <!-- Orta Alan: Yıllık Hayat Akışı -->
-  <main id="logContainer" class="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 no-scrollbar bg-[#090d16]">
-  </main>
+  <main id="logContainer" class="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 no-scrollbar bg-[#090d16]"></main>
 
-  <!-- Alt İstatistik Barları (6 Gösterge: Sağlık, Mutluluk, Zeka, Görünüm, Şöhret, Stres) -->
   <section class="px-3.5 py-2 bg-[#0c121e] border-t border-slate-800/90 shrink-0">
     <div class="grid grid-cols-6 gap-1.5">
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-rose-400">❤️Sağ</span>
-          <span id="statHealthVal" class="font-mono-num text-slate-200">100</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-rose-400">❤️Sağ</span><span id="statHealthVal" class="font-mono-num text-slate-200">100</span></div>
         <div class="stat-track"><div id="statHealthBar" class="stat-fill bg-rose-500" style="width:100%"></div></div>
       </div>
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-amber-400">😊Mut</span>
-          <span id="statHappyVal" class="font-mono-num text-slate-200">100</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-amber-400">😊Mut</span><span id="statHappyVal" class="font-mono-num text-slate-200">100</span></div>
         <div class="stat-track"><div id="statHappyBar" class="stat-fill bg-amber-400" style="width:100%"></div></div>
       </div>
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-sky-400">🧠Zeka</span>
-          <span id="statSmartVal" class="font-mono-num text-slate-200">80</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-sky-400">🧠Zeka</span><span id="statSmartVal" class="font-mono-num text-slate-200">80</span></div>
         <div class="stat-track"><div id="statSmartBar" class="stat-fill bg-sky-400" style="width:80%"></div></div>
       </div>
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-fuchsia-400">✨Gör</span>
-          <span id="statLooksVal" class="font-mono-num text-slate-200">80</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-fuchsia-400">✨Gör</span><span id="statLooksVal" class="font-mono-num text-slate-200">80</span></div>
         <div class="stat-track"><div id="statLooksBar" class="stat-fill bg-fuchsia-400" style="width:80%"></div></div>
       </div>
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-yellow-400">⭐Ün</span>
-          <span id="statFameVal" class="font-mono-num text-slate-200">0</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-yellow-400">⭐Ün</span><span id="statFameVal" class="font-mono-num text-slate-200">0</span></div>
         <div class="stat-track"><div id="statFameBar" class="stat-fill bg-yellow-400" style="width:0%"></div></div>
       </div>
       <div>
-        <div class="flex justify-between text-[9px] font-bold mb-0.5">
-          <span class="text-orange-400">⚡Str</span>
-          <span id="statStressVal" class="font-mono-num text-slate-200">10</span>
-        </div>
+        <div class="flex justify-between text-[9px] font-bold mb-0.5"><span class="text-orange-400">⚡Str</span><span id="statStressVal" class="font-mono-num text-slate-200">10</span></div>
         <div class="stat-track"><div id="statStressBar" class="stat-fill bg-orange-500" style="width:10%"></div></div>
       </div>
     </div>
   </section>
 
-  <!-- Alt Navbar: SADECE 5 BUTON (Okul/İş, Finans, +1 Yaş, İlişki, Menü) -->
   <nav class="safe-bottom px-2 pt-1.5 pb-2 bg-[#0d1320] border-t border-slate-800/90 shrink-0">
     <div class="grid grid-cols-5 items-center">
       <button type="button" onclick="playSfx('click'); openNavSheet('career')" class="flex flex-col items-center justify-center py-1 text-slate-300 active:scale-95 transition">
         <span class="text-lg leading-none" id="navCareerIcon">🎓</span>
         <span class="text-[10px] font-bold mt-1" id="navCareerLabel">Okul / İş</span>
       </button>
-
       <button type="button" onclick="playSfx('click'); openNavSheet('finance')" class="flex flex-col items-center justify-center py-1 text-slate-300 active:scale-95 transition">
         <span class="text-lg leading-none">🏦</span>
         <span class="text-[10px] font-bold mt-1">Finans</span>
       </button>
-
       <div class="flex justify-center -mt-5">
         <button type="button" id="ageUpBtn" onclick="playSfx('age'); advanceAge()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex flex-col items-center justify-center font-extrabold age-btn-glow transition">
           <span class="text-base leading-none font-black">+1</span>
           <span class="text-[9px] uppercase tracking-wider font-extrabold mt-0.5">YAŞ</span>
         </button>
       </div>
-
       <button type="button" onclick="playSfx('click'); openNavSheet('relations')" class="flex flex-col items-center justify-center py-1 text-slate-300 active:scale-95 transition">
         <span class="text-lg leading-none">❤️</span>
         <span class="text-[10px] font-bold mt-1">İlişki</span>
       </button>
-
       <button type="button" onclick="playSfx('click'); openNavSheet('menu')" class="flex flex-col items-center justify-center py-1 text-slate-300 active:scale-95 transition">
         <span class="text-lg leading-none">☰</span>
         <span class="text-[10px] font-bold mt-1">Menü</span>
@@ -236,7 +202,7 @@
     </div>
   </nav>
 
-  <!-- ==================== 3. ALT ÇEKMECE (BOTTOM SHEET) ==================== -->
+  <!-- 3. ALT ÇEKMECE -->
   <div id="bottomSheet" class="hidden absolute inset-0 z-40 bg-black/75 backdrop-blur-sm flex flex-col justify-end">
     <div class="bg-[#0e1524] border-t border-slate-800 rounded-t-3xl max-h-[86dvh] flex flex-col sheet-enter safe-bottom">
       <div class="px-4 py-3.5 border-b border-slate-800 flex items-center justify-between shrink-0">
@@ -250,7 +216,7 @@
     </div>
   </div>
 
-  <!-- ==================== 4. OLAY / MAHKEME / SEÇİM MODALI ==================== -->
+  <!-- 4. OLAY MODALI -->
   <div id="eventModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
     <div class="w-full max-w-sm bg-[#101828] border border-slate-700/90 rounded-3xl p-5 shadow-2xl modal-pop max-h-[88dvh] overflow-y-auto no-scrollbar">
       <div class="flex items-center gap-2 mb-2">
@@ -262,14 +228,12 @@
     </div>
   </div>
 
-  <!-- Bildirim Toast -->
   <div id="toastBox" class="pointer-events-none fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-200 opacity-0 -translate-y-2">
     <div id="toastText" class="px-4 py-2 rounded-2xl bg-slate-900/95 border border-slate-700 text-xs font-bold text-white shadow-xl"></div>
   </div>
 
 </div>
 
-<!-- Modüler Veri ve Oyun Motoru Dosyaları -->
 <script src="data.js"></script>
 <script src="game.js"></script>
 </body>
