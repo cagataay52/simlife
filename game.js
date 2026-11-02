@@ -2691,3 +2691,869 @@ function showToast(msg) {
 }
 
 window.addEventListener('DOMContentLoaded', initStartScreen);
+
+/* ============================================================================
+   FUTBOL KULÜBÜ BAŞKANLIĞI, FİKSTÜR VE CANLI MAÇ MOTORU
+   ============================================================================ */
+
+let activeClubSubTab = 'fixture'; // 'fixture' | 'squad' | 'transfer' | 'stadium' | 'media'
+let selectedBrowseLeague = 'TR';
+
+function ensureClubPresidencyState() {
+  if (!G) return;
+  if (!G.club) {
+    G.club = {
+      active: false,
+      leagueId: 'TR',
+      teamId: null,
+      teamName: null,
+      roleType: 'kongre', // 'kongre' | 'sahiplik'
+      season: 1,
+      week: 1,
+      power: 82,
+      gkPow: 80,
+      defPow: 81,
+      midPow: 82,
+      attPow: 83,
+      managerId: 'mourinho',
+      tactic: '4-2-3-1 Hücum',
+      ticketTier: 'balanced', // 'cheap' | 'balanced' | 'vip'
+      stadiumCap: 50530,
+      stadiumLevel: 1,
+      academyLevel: 1,
+      sponsorTier: 1,
+      clubTreasury: 0,
+      clubDebt: 0,
+      fanTrust: 78,
+      boardTrust: 80,
+      inEurope: true,
+      europeStage: 'Lig Aşaması',
+      trophies: { league: 0, ucl: 0 },
+      roster: ['p_irfan', 'p_jayden', 'p_nesyri', 'p_livakovic'],
+      standings: [],
+      fixtures: []
+    };
+  }
+}
+
+// 12 Takımlı 22 Haftalık Çift Devreli Gerçek Lig Fikstürü Üretici (Berger Algoritması)
+function generateSeasonFixturesAndStandings(leagueId) {
+  const lg = FOOTBALL_LEAGUES_DB[leagueId] || FOOTBALL_LEAGUES_DB.TR;
+  const teams = lg.teams.map(t => Object.assign({}, t));
+
+  G.club.standings = teams.map(t => ({
+    id: t.id,
+    name: t.name,
+    short: t.short,
+    colors: t.colors,
+    power: t.id === G.club.teamId ? G.club.power : t.power,
+    p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0
+  }));
+
+  const ids = teams.map(t => t.id);
+  const n = ids.length; // 12
+  const firstHalf = [];
+  let rot = ids.slice(1);
+
+  for (let r = 0; r < n - 1; r++) {
+    const roundMatches = [];
+    const cur = [ids[0], ...rot];
+    for (let i = 0; i < n / 2; i++) {
+      const home = (r % 2 === 0 && i === 0) ? cur[n - 1 - i] : cur[i];
+      const away = (r % 2 === 0 && i === 0) ? cur[i] : cur[n - 1 - i];
+      roundMatches.push({ home, away, played: false, hScore: null, aScore: null });
+    }
+    firstHalf.push(roundMatches);
+    rot.unshift(rot.pop());
+  }
+
+  const secondHalf = firstHalf.map(round =>
+    round.map(m => ({ home: m.away, away: m.home, played: false, hScore: null, aScore: null }))
+  );
+
+  G.club.fixtures = [...firstHalf, ...secondHalf];
+  G.club.week = 1;
+}
+
+function sortStandingsTable() {
+  G.club.standings.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    const gdB = b.gf - b.ga;
+    const gdA = a.gf - a.ga;
+    if (gdB !== gdA) return gdB - gdA;
+    return b.gf - a.gf;
+  });
+}
+
+// Kongre Seçimi veya Kulüp Satın Alma İşlemi
+function acquireOrElectClub(leagueId, teamId) {
+  ensureClubPresidencyState();
+  const c = getCountry();
+  const lg = FOOTBALL_LEAGUES_DB[leagueId];
+  const tm = lg ? lg.teams.find(x => x.id === teamId) : null;
+  if (!tm) return;
+
+  if (G.age < 25) {
+    showToast('Kulüp başkanı olabilmek için en az 25 yaşında olmalısın!');
+    return;
+  }
+
+  const isKongre = tm.model === 'kongre';
+  const costMinWages = isKongre ? Math.round(tm.valueM * 0.16) : Math.round(tm.valueM * 0.75);
+  const reqCost = Math.round(c.monthlyMinWage * costMinWages);
+
+  if (G.money < reqCost) {
+    showToast(`${isKongre ? 'Kongre kampanya ve kasa teminatı' : 'Kulüp %51 hisse devri'} için ${fmtMoney(reqCost)} gerekiyor!`);
+    return;
+  }
+
+  if (isKongre) {
+    // Kongre Seçim Modalı
+    openEventModal({
+      badge: `🗳️ ${tm.colors} ${tm.name} Olağanüstü Genel Kurulu`,
+      title: 'Kongre Başkanlık Seçimi ve Vaatler',
+      desc: `${tm.name} kongre üyeleri sandık başında! Rakip adayı geçip başkan seçilmek için kongre üyelerine en güçlü vaadini açıkla (Teminat: ${fmtMoney(reqCost)}):`,
+      choices: [
+        {
+          label: '🌟 "Dünya Yıldızlarını ve Şampiyonluğu Getireceğim!"',
+          action: () => finalizeClubTakeover(leagueId, tm, reqCost, 'kongre', 84)
+        },
+        {
+          label: '🏟️ "Stadyumu Büyütecek ve Kulübü Borçsuz Yapacağım!"',
+          action: () => finalizeClubTakeover(leagueId, tm, reqCost, 'kongre', 80)
+        }
+      ]
+    });
+  } else {
+    finalizeClubTakeover(leagueId, tm, reqCost, 'sahiplik', 85);
+  }
+}
+
+function finalizeClubTakeover(leagueId, tm, reqCost, mode, startTrust) {
+  const c = getCountry();
+  G.money -= reqCost;
+
+  G.club.active = true;
+  G.club.leagueId = leagueId;
+  G.club.teamId = tm.id;
+  G.club.teamName = tm.name;
+  G.club.roleType = mode;
+  G.club.season = 1;
+  G.club.power = tm.power;
+  G.club.gkPow = tm.power - 1;
+  G.club.defPow = tm.power;
+  G.club.midPow = tm.power;
+  G.club.attPow = tm.power + 1;
+  G.club.stadiumCap = tm.capacity;
+  G.club.clubTreasury = Math.round(c.monthlyMinWage * (tm.valueM * 0.18));
+  G.club.clubDebt = Math.round(c.monthlyMinWage * (tm.valueM * 0.12));
+  G.club.fanTrust = startTrust;
+  G.club.boardTrust = startTrust;
+  G.club.inEurope = tm.power >= 80;
+  G.club.europeStage = tm.power >= 84 ? 'UEFA Şampiyonlar Ligi' : 'UEFA Avrupa Ligi';
+
+  generateSeasonFixturesAndStandings(leagueId);
+  unlockAchievement('club_president');
+  G.fame = clamp(G.fame + 28);
+  playSfx('trophy');
+
+  addLog(G.age, `🏟️ **BÜYÜK BAŞKAN!** **${tm.colors} ${tm.name}** kulübünün ${mode === 'kongre' ? 'kongrede rekor oyla yeni **Başkanı** seçildin!' : 'çoğunluk hisselerini satın alarak **Sahibi & Başkanı** oldun!'}`, 'fame');
+  saveGame();
+  renderAll();
+  activeClubSubTab = 'fixture';
+  openMenuSection('club_presidency');
+}
+
+// 1 Haftalık Maçları Hesaplama & Canlı Maç Merkezi
+function playNextClubWeek(interactive = true) {
+  ensureClubPresidencyState();
+  if (!G.club.active) return;
+  if (G.club.week > 22) {
+    finishClubSeason();
+    return;
+  }
+
+  const c = getCountry();
+  const roundIdx = G.club.week - 1;
+  const roundMatches = G.club.fixtures[roundIdx];
+  if (!roundMatches) return;
+
+  const myMatch = roundMatches.find(m => m.home === G.club.teamId || m.away === G.club.teamId);
+  if (!myMatch) return;
+
+  const isHome = myMatch.home === G.club.teamId;
+  const oppId = isHome ? myMatch.away : myMatch.home;
+  const myTeamRow = G.club.standings.find(t => t.id === G.club.teamId);
+  const oppTeamRow = G.club.standings.find(t => t.id === oppId);
+  myTeamRow.power = G.club.power;
+
+  const mgr = FOOTBALL_MANAGERS_DB.find(x => x.id === G.club.managerId) || FOOTBALL_MANAGERS_DB[0];
+  const myEffPower = G.club.power + Math.round((mgr.tac - 82) * 0.45) + (isHome ? 3 : 0);
+  const oppEffPower = oppTeamRow.power + (isHome ? 0 : 3);
+
+  // İlk Yarı Skoru Üret
+  const diff = myEffPower - oppEffPower;
+  let myHT = Math.max(0, Math.round(randInt(0, 2) + (diff > 5 ? 0.4 : 0) - (diff < -5 ? 0.4 : 0)));
+  let oppHT = Math.max(0, Math.round(randInt(0, 2) - (diff > 5 ? 0.3 : 0) + (diff < -5 ? 0.4 : 0)));
+
+  const isDerby = oppTeamRow.power >= 81;
+
+  if (interactive) {
+    const bonusCost = Math.round(c.monthlyMinWage * 1.6);
+    const hName = isHome ? `${myTeamRow.colors} ${myTeamRow.name}` : `${oppTeamRow.colors} ${oppTeamRow.name}`;
+    const aName = isHome ? `${oppTeamRow.colors} ${oppTeamRow.name}` : `${myTeamRow.colors} ${myTeamRow.name}`;
+    const hHT = isHome ? myHT : oppHT;
+    const aHT = isHome ? oppHT : myHT;
+
+    openEventModal({
+      badge: `${isDerby ? '🔥 DEV DERBİ • ' : ''}HAFTA ${G.club.week}/22 • İLK YARI SONUCU`,
+      title: `${hName} [${hHT} - ${aHT}] ${aName}`,
+      desc: `İlk 45 dakika tamamlandı. Başkan olarak devre arasında soyunma odasına veya teknik heyete nasıl bir müdahalede bulunacaksın?`,
+      choices: [
+        {
+          label: `💰 Soyunma Odasına İn ve Galibiyet Primi Açıkla (${fmtMoney(bonusCost)})`,
+          action: () => resolveWeekMatches(roundMatches, myMatch, isHome, myHT, oppHT, 'bonus', bonusCost)
+        },
+        {
+          label: '⚡ Teknik Heyete "Tam Saha Hücum & Pres" Talimatı Ver',
+          action: () => resolveWeekMatches(roundMatches, myMatch, isHome, myHT, oppHT, 'attack', 0)
+        },
+        {
+          label: '🛡️ Teknik Direktörün Taktik Planına Güven (Dengeli)',
+          action: () => resolveWeekMatches(roundMatches, myMatch, isHome, myHT, oppHT, 'steady', 0)
+        }
+      ]
+    });
+  } else {
+    resolveWeekMatches(roundMatches, myMatch, isHome, myHT, oppHT, 'steady', 0);
+  }
+}
+
+function resolveWeekMatches(roundMatches, myMatch, isHome, myHT, oppHT, approach, bonusCost) {
+  const c = getCountry();
+  const lg = FOOTBALL_LEAGUES_DB[G.club.leagueId] || FOOTBALL_LEAGUES_DB.TR;
+  const myTeamRow = G.club.standings.find(t => t.id === G.club.teamId);
+  const oppId = isHome ? myMatch.away : myMatch.home;
+  const oppTeamRow = G.club.standings.find(t => t.id === oppId);
+
+  let my2nd = randInt(0, 2);
+  let opp2nd = randInt(0, 1);
+
+  if (approach === 'bonus') {
+    G.club.clubTreasury -= bonusCost;
+    if (Math.random() < 0.72) my2nd += 1;
+  } else if (approach === 'attack') {
+    if (Math.random() < 0.60) my2nd += 1;
+    else opp2nd += 1;
+  }
+
+  if (G.club.power > oppTeamRow.power + 4 && Math.random() < 0.5) my2nd += 1;
+  if (oppTeamRow.power > G.club.power + 4 && Math.random() < 0.5) opp2nd += 1;
+
+  const myFT = myHT + my2nd;
+  const oppFT = oppHT + opp2nd;
+
+  // Diğer tüm maçları simüle et
+  roundMatches.forEach(m => {
+    m.played = true;
+    const hRow = G.club.standings.find(t => t.id === m.home);
+    const aRow = G.club.standings.find(t => t.id === m.away);
+    if (m === myMatch) {
+      m.hScore = isHome ? myFT : oppFT;
+      m.aScore = isHome ? oppFT : myFT;
+    } else {
+      const pDiff = (hRow.power + 2) - aRow.power;
+      m.hScore = Math.max(0, randInt(0, 3) + (pDiff > 5 ? 1 : 0));
+      m.aScore = Math.max(0, randInt(0, 2) + (pDiff < -5 ? 1 : 0));
+    }
+    applyMatchToStandings(hRow, aRow, m.hScore, m.aScore);
+  });
+
+  // Gişe, Sponsor ve Yayın Geliri (Ev sahibi maçlarda stadyum gişesi)
+  const ticketMult = G.club.ticketTier === 'vip' ? 1.35 : (G.club.ticketTier === 'cheap' ? 0.8 : 1.0);
+  const matchGateIncome = isHome ? Math.round(c.monthlyMinWage * (G.club.stadiumCap / 12000) * ticketMult * lg.uefaCoeff) : 0;
+  const tvBonus = myFT > oppFT ? Math.round(c.monthlyMinWage * 1.4 * lg.uefaCoeff) : (myFT === oppFT ? Math.round(c.monthlyMinWage * 0.6 * lg.uefaCoeff) : 0);
+
+  G.club.clubTreasury += (matchGateIncome + tvBonus);
+
+  // Taraftar ve Yönetim Güvenoyu Güncellemesi
+  if (myFT > oppFT) {
+    G.club.fanTrust = clamp(G.club.fanTrust + 5);
+    G.club.boardTrust = clamp(G.club.boardTrust + 4);
+    playSfx('coin');
+  } else if (myFT === oppFT) {
+    G.club.fanTrust = clamp(G.club.fanTrust - 1);
+  } else {
+    G.club.fanTrust = clamp(G.club.fanTrust - 6);
+    G.club.boardTrust = clamp(G.club.boardTrust - 4);
+    playSfx('bad');
+  }
+
+  sortStandingsTable();
+  const myRank = G.club.standings.findIndex(t => t.id === G.club.teamId) + 1;
+  const resIcon = myFT > oppFT ? '🟢 GALİBİYET' : (myFT === oppFT ? '🟡 BERABERLİK' : '🔴 MAĞLUBİYET');
+  addLog(G.age, `⚽ **Hafta ${G.club.week} (${resIcon}):** ${myTeamRow.name} **${myFT} - ${oppFT}** ${oppTeamRow.name} • Lig Sırası: **#${myRank}** • Gişe/Yayın: **+${fmtMoney(matchGateIncome + tvBonus)}**.`, myFT >= oppFT ? 'good' : 'bad');
+
+  G.club.week += 1;
+  saveGame();
+  renderAll();
+  openMenuSection('club_presidency');
+}
+
+function applyMatchToStandings(hRow, aRow, hGoals, aGoals) {
+  hRow.p += 1; aRow.p += 1;
+  hRow.gf += hGoals; hRow.ga += aGoals;
+  aRow.gf += aGoals; aRow.ga += hGoals;
+  if (hGoals > aGoals) { hRow.w += 1; hRow.pts += 3; aRow.l += 1; }
+  else if (hGoals < aGoals) { aRow.w += 1; aRow.pts += 3; hRow.l += 1; }
+  else { hRow.d += 1; aRow.d += 1; hRow.pts += 1; aRow.pts += 1; }
+}
+
+function simulateMultipleClubWeeks(count) {
+  for (let i = 0; i < count; i++) {
+    if (G.club.week > 22) break;
+    playNextClubWeek(false);
+  }
+}
+
+function finishClubSeason() {
+  sortStandingsTable();
+  const c = getCountry();
+  const lg = FOOTBALL_LEAGUES_DB[G.club.leagueId] || FOOTBALL_LEAGUES_DB.TR;
+  const myRank = G.club.standings.findIndex(t => t.id === G.club.teamId) + 1;
+  const champ = G.club.standings[0];
+
+  let prizeMult = Math.max(4, (14 - myRank) * 3.2) * lg.uefaCoeff;
+  let uclWon = false;
+
+  if (myRank === 1) {
+    G.club.trophies.league += 1;
+    prizeMult += 25 * lg.uefaCoeff;
+    G.fame = clamp(G.fame + 25);
+    unlockAchievement('super_lig_champ');
+  }
+
+  // Avrupa Kupası Sezon Sonu Hesabı
+  if (G.club.inEurope && G.club.power >= 86 && Math.random() < 0.38) {
+    uclWon = true;
+    G.club.trophies.ucl += 1;
+    prizeMult += 45 * lg.uefaCoeff;
+    unlockAchievement('ucl_winner');
+  }
+
+  const totalPrize = Math.round(c.monthlyMinWage * prizeMult);
+  G.club.clubTreasury += totalPrize;
+
+  openEventModal({
+    badge: `🏆 ${lg.flag} ${lg.name} • SEZON #${G.club.season} SONU`,
+    title: myRank === 1 ? `🎉 ŞAMPİYON ${G.club.teamName.toUpperCase()}!` : `Sezonu ${myRank}. Sırada Tamamladın`,
+    desc: `Lig Şampiyonu: ${champ.name} (${champ.pts} Puan). ${uclWon ? '🌍 Ayrıca AVRUPA KUPASINI KAZANDIN!' : ''} Kulüp kasasına sezon sonu yayın ve başarı ödülü olarak +${fmtMoney(totalPrize)} aktarıldı.`,
+    choices: [
+      {
+        label: '🚀 Yeni Sezon Fikstürünü Çek ve Devam Et',
+        action: () => {
+          G.club.season += 1;
+          G.club.inEurope = myRank <= 4;
+          G.club.europeStage = myRank <= 2 ? 'UEFA Şampiyonlar Ligi' : (myRank <= 4 ? 'UEFA Avrupa Ligi' : 'Avrupa Dışı');
+          generateSeasonFixturesAndStandings(G.club.leagueId);
+          saveGame();
+          renderAll();
+          openMenuSection('club_presidency');
+        }
+      }
+    ]
+  });
+}
+
+// Kulüp Başkanlığı Ana Ekranı (5 Alt Sekmeli)
+function renderClubPresidencyView() {
+  ensureClubPresidencyState();
+  const c = getCountry();
+
+  // Henüz bir kulübün başkanı değilse: Lig ve Kulüp Seçim Ekranı
+  if (!G.club.active) {
+    const lg = FOOTBALL_LEAGUES_DB[selectedBrowseLeague] || FOOTBALL_LEAGUES_DB.TR;
+    return `
+      <div class="club-broadcast-card mb-3">
+        <div class="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest">⚽ FUTBOL KULÜBÜ BAŞKANLIĞI &amp; SAHİPLİK SİSTEMİ</div>
+        <div class="text-sm font-extrabold text-white mt-0.5">Gerçek Bir Kulübün Başkanı Ol</div>
+        <p class="text-[11px] text-slate-300 mt-1">Dernek statüsündeki kulüplerde (Fenerbahçe, Galatasaray, Beşiktaş, Real Madrid, Bayern vb.) <strong>Kongre Seçimine</strong> girebilir; şirket statüsündeki kulüplerde ise <strong>%51 Hisse Satın Alarak</strong> doğrudan kulüp sahibi olabilirsin.</p>
+      </div>
+
+      <!-- 5 Büyük Lig Seçici -->
+      <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2">
+        ${Object.values(FOOTBALL_LEAGUES_DB).map(l => `
+          <button onclick="selectedBrowseLeague='${l.id}'; openMenuSection('club_presidency');" class="px-3 py-2 rounded-xl border text-xs font-extrabold shrink-0 transition ${selectedBrowseLeague === l.id ? 'border-orange-500 bg-orange-500/20 text-white' : 'border-slate-800 bg-slate-900 text-slate-400'}">
+            ${l.flag} ${l.name}
+          </button>
+        `).join('')}
+      </div>
+
+      <div class="space-y-2 pt-1">
+        ${lg.teams.map(tm => {
+          const isKongre = tm.model === 'kongre';
+          const costMinWages = isKongre ? Math.round(tm.valueM * 0.16) : Math.round(tm.valueM * 0.75);
+          const reqCost = Math.round(c.monthlyMinWage * costMinWages);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-white truncate">${tm.colors} ${tm.name} <span class="text-[10px] text-emerald-400 font-mono-num">(Güç: ${tm.power})</span></div>
+                <div class="flex flex-wrap gap-1 my-1">
+                  <span class="classified-tag">🏟️ ${tm.stadium} (${tm.capacity.toLocaleString('tr-TR')})</span>
+                  <span class="classified-tag">${isKongre ? '🗳️ Kongre & Seçim Modeli' : '💼 %51 Hisse Satın Alma'}</span>
+                </div>
+                <div class="text-[10px] text-orange-300 font-mono-num">${isKongre ? 'Kongre Teminatı:' : 'Satın Alma Bedeli:'} <strong>${fmtMoney(reqCost)}</strong></div>
+              </div>
+              <button onclick="acquireOrElectClub('${lg.id}', '${tm.id}')" class="px-3 py-2 rounded-xl text-xs font-extrabold shrink-0 ${isKongre ? 'bg-orange-500 text-slate-950' : 'bg-emerald-500 text-slate-950'}">
+                ${isKongre ? 'Aday Ol' : 'Satın Al'}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // Aktif Başkanlık Gösterge Paneli
+  const lg = FOOTBALL_LEAGUES_DB[G.club.leagueId] || FOOTBALL_LEAGUES_DB.TR;
+  const myTeam = lg.teams.find(t => t.id === G.club.teamId) || lg.teams[0];
+  sortStandingsTable();
+  const myRank = G.club.standings.findIndex(t => t.id === G.club.teamId) + 1;
+
+  const headerCard = `
+    <div class="club-broadcast-card mb-2.5 space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-orange-400 uppercase tracking-widest">${lg.flag} ${lg.name} &bull; SEZON #${G.club.season}</div>
+          <div class="text-sm font-extrabold text-white">${myTeam.colors} ${G.club.teamName} Başkanlığı</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-400 uppercase">KULÜP KASASI</div>
+          <div class="text-xs font-extrabold font-mono-num text-emerald-400">${fmtMoney(G.club.clubTreasury)}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-1.5 text-center pt-1">
+        <div class="p-1.5 rounded-lg bg-slate-950/90 border border-slate-800">
+          <div class="text-[8px] text-slate-400">LİG SIRASI</div>
+          <div class="text-xs font-extrabold font-mono-num text-orange-400">#${myRank} / 12</div>
+        </div>
+        <div class="p-1.5 rounded-lg bg-slate-950/90 border border-slate-800">
+          <div class="text-[8px] text-slate-400">KADRO GÜCÜ</div>
+          <div class="text-xs font-extrabold font-mono-num text-emerald-400">${G.club.power} OVR</div>
+        </div>
+        <div class="p-1.5 rounded-lg bg-slate-950/90 border border-slate-800">
+          <div class="text-[8px] text-slate-400">TARAFTAR</div>
+          <div class="text-xs font-extrabold font-mono-num text-sky-400">%${G.club.fanTrust}</div>
+        </div>
+        <div class="p-1.5 rounded-lg bg-slate-950/90 border border-slate-800">
+          <div class="text-[8px] text-slate-400">KUPALAR</div>
+          <div class="text-xs font-extrabold font-mono-num text-yellow-400">🏆 ${G.club.trophies.league + G.club.trophies.ucl}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 Alt Sekme Menüsü -->
+    <div class="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[10px] font-extrabold">
+      <button onclick="activeClubSubTab='fixture'; openMenuSection('club_presidency')" class="py-2 rounded-xl ${activeClubSubTab === 'fixture' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">📊 Fikstür</button>
+      <button onclick="activeClubSubTab='squad'; openMenuSection('club_presidency')" class="py-2 rounded-xl ${activeClubSubTab === 'squad' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🧠 Taktik</button>
+      <button onclick="activeClubSubTab='transfer'; openMenuSection('club_presidency')" class="py-2 rounded-xl ${activeClubSubTab === 'transfer' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🔄 Transfer</button>
+      <button onclick="activeClubSubTab='stadium'; openMenuSection('club_presidency')" class="py-2 rounded-xl ${activeClubSubTab === 'stadium' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🏟️ Stadyum</button>
+      <button onclick="activeClubSubTab='media'; openMenuSection('club_presidency')" class="py-2 rounded-xl ${activeClubSubTab === 'media' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🎙️ Medya</button>
+    </div>
+  `;
+
+  // SEKME 1: FİKSTÜR VE CANLI PUAN DURUMU PANOSU
+  if (activeClubSubTab === 'fixture') {
+    let nextMatchBanner = '';
+    if (G.club.week <= 22) {
+      const roundMatches = G.club.fixtures[G.club.week - 1] || [];
+      const myMatch = roundMatches.find(m => m.home === G.club.teamId || m.away === G.club.teamId);
+      if (myMatch) {
+        const hTeam = G.club.standings.find(t => t.id === myMatch.home);
+        const aTeam = G.club.standings.find(t => t.id === myMatch.away);
+        nextMatchBanner = `
+          <div class="scoreboard-box mb-3 space-y-2.5">
+            <div class="flex items-center justify-between text-[10px] font-extrabold text-orange-400">
+              <span>📅 HAFTA ${G.club.week} / 22 FİKSTÜRÜ</span>
+              <span>🏟️ ${myMatch.home === G.club.teamId ? G.club.stadiumCap.toLocaleString('tr-TR') + ' Taraftar' : 'Deplasman'}</span>
+            </div>
+            <div class="flex items-center justify-between text-center py-1">
+              <div class="flex-1">
+                <div class="text-xs font-extrabold text-white">${hTeam.colors} ${hTeam.name}</div>
+                <div class="text-[10px] text-slate-400">Güç: ${hTeam.power} • ${hTeam.pts} Puan</div>
+              </div>
+              <div class="px-3 py-1 rounded-xl bg-slate-900 border border-orange-500/40 text-xs font-black text-orange-400">VS</div>
+              <div class="flex-1">
+                <div class="text-xs font-extrabold text-white">${aTeam.colors} ${aTeam.name}</div>
+                <div class="text-[10px] text-slate-400">Güç: ${aTeam.power} • ${aTeam.pts} Puan</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="playNextClubWeek(true)" class="py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-slate-950 text-xs font-extrabold">
+                ▶️ Maçı Canlı Yönet
+              </button>
+              <button onclick="simulateMultipleClubWeeks(5)" class="py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold">
+                ⏩ 5 Hafta Hızlı Simüle Et
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    } else {
+      nextMatchBanner = `
+        <div class="scoreboard-box mb-3 text-center space-y-2">
+          <div class="text-xs font-extrabold text-emerald-400">🏁 22 HAFTALIK LİG MARATONU TAMAMLANDI!</div>
+          <button onclick="finishClubSeason()" class="w-full py-3 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">🏆 Sezon Ödüllerini Al &amp; Yeni Sezona Geç</button>
+        </div>
+      `;
+    }
+
+    const tableRows = G.club.standings.map((row, idx) => {
+      const rank = idx + 1;
+      const isMine = row.id === G.club.teamId;
+      const zoneCls = rank <= 2 ? 'standings-zone-ucl' : (rank <= 4 ? 'standings-zone-uel' : (rank >= 11 ? 'standings-zone-rel' : ''));
+      const gd = row.gf - row.ga;
+      return `
+        <tr class="${isMine ? 'standings-row-myclub' : ''} ${zoneCls}">
+          <td class="font-mono-num text-center text-slate-400">${rank}</td>
+          <td class="text-white truncate max-w-[115px]">${row.colors} ${row.name}</td>
+          <td class="font-mono-num text-center">${row.p}</td>
+          <td class="font-mono-num text-center text-emerald-400">${row.w}</td>
+          <td class="font-mono-num text-center text-amber-300">${row.d}</td>
+          <td class="font-mono-num text-center text-rose-400">${row.l}</td>
+          <td class="font-mono-num text-center text-slate-300">${gd >= 0 ? '+' + gd : gd}</td>
+          <td class="font-mono-num text-right font-extrabold text-white pr-2">${row.pts}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return headerCard + nextMatchBanner + `
+      <div class="official-doc-card overflow-hidden p-0">
+        <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+          <span class="text-[10px] font-extrabold text-white uppercase">${lg.flag} ${lg.name} Puan Durumu</span>
+          <span class="text-[9px] text-slate-400">🟢 Şamp. Ligi &bull; 🔵 Avrupa &bull; 🔴 Küme</span>
+        </div>
+        <table class="standings-table">
+          <thead>
+            <tr><th>#</th><th class="text-left">Kulüp</th><th>O</th><th>G</th><th>B</th><th>M</th><th>AV</th><th class="text-right pr-2">P</th></tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // SEKME 2: KADRO, TAKTİK & TEKNİK DİREKTÖR
+  if (activeClubSubTab === 'squad') {
+    const curMgr = FOOTBALL_MANAGERS_DB.find(m => m.id === G.club.managerId) || FOOTBALL_MANAGERS_DB[0];
+    const tactics = ['4-2-3-1 Hücum', '4-3-3 Gegenpress', '3-5-2 Kanat Organizasyonu', '4-1-4-1 Kontrollü Pas'];
+
+    return headerCard + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-extrabold text-orange-400 uppercase">👔 MEVCUT TEKNİK DİREKTÖR</div>
+            <div class="text-xs font-extrabold text-white">${curMgr.name} <span class="text-emerald-400">(${curMgr.tac} Taktik)</span></div>
+            <div class="text-[10px] text-slate-400">${curMgr.style}</div>
+          </div>
+          <span class="px-2 py-1 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">Görevde ✓</span>
+        </div>
+
+        <div class="text-[10px] font-bold text-slate-400 pt-1">📋 Sahaya Diziliş &amp; Oyun Felsefesi:</div>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${tactics.map(t => `
+            <button onclick="G.club.tactic='${t}'; saveGame(); openMenuSection('club_presidency');" class="p-2 rounded-xl border text-[10px] font-bold ${G.club.tactic === t ? 'border-orange-500 bg-orange-500/20 text-white' : 'border-slate-800 bg-slate-950 text-slate-400'}">${t}</button>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Mevki Güç Dağılımı -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 grid grid-cols-4 gap-2 text-center">
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800"><div class="text-[9px] text-amber-400 font-bold">🧤 KALECİ</div><div class="text-xs font-extrabold font-mono-num text-white">${G.club.gkPow}</div></div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800"><div class="text-[9px] text-sky-400 font-bold">🛡️ DEFANS</div><div class="text-xs font-extrabold font-mono-num text-white">${G.club.defPow}</div></div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800"><div class="text-[9px] text-emerald-400 font-bold">⚙️ ORTA SAHA</div><div class="text-xs font-extrabold font-mono-num text-white">${G.club.midPow}</div></div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800"><div class="text-[9px] text-rose-400 font-bold">🎯 HÜCUM</div><div class="text-xs font-extrabold font-mono-num text-white">${G.club.attPow}</div></div>
+      </div>
+
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">👔 Teknik Direktör Değişikliği</h4>
+      <div class="space-y-2">
+        ${FOOTBALL_MANAGERS_DB.map(m => {
+          const cost = Math.round(c.monthlyMinWage * m.wageMult * 2);
+          const isCur = G.club.managerId === m.id;
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border ${isCur ? 'border-orange-500' : 'border-slate-800'} flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${m.name} <span class="text-emerald-400 font-mono-num">(Taktik: ${m.tac})</span></div>
+                <div class="text-[10px] text-slate-400">${m.style} • İmza Maliyeti: ${fmtMoney(cost)}</div>
+              </div>
+              <button onclick="hireClubManager('${m.id}', ${cost})" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold ${isCur ? 'bg-orange-500/20 text-orange-300' : 'bg-emerald-500 text-slate-950'}">${isCur ? 'Görevde' : 'İmzala'}</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 3: TRANSFER PAZARI VE YILDIZ OYUNCULAR
+  if (activeClubSubTab === 'transfer') {
+    const sellRevenue = Math.round(c.monthlyMinWage * 14);
+    return headerCard + `
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between mb-2">
+        <div>
+          <div class="text-xs font-extrabold text-white">📤 Kadrodan Oyuncu Satışı (Avrupa Teklifi)</div>
+          <div class="text-[10px] text-slate-400">Kadro gücünden -1 düşer, kulüp kasasına anında +${fmtMoney(sellRevenue)} bonservis girer</div>
+        </div>
+        <button onclick="sellClubPlayer(${sellRevenue})" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">Oyuncu Sat</button>
+      </div>
+
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">🌟 Transfer Listesi (Kulüp Kasasından Ödenir)</h4>
+      <div class="space-y-2">
+        ${TRANSFER_PLAYERS_DB.map(pl => {
+          const fee = Math.round(c.monthlyMinWage * pl.costMult);
+          const owned = G.club.roster.includes(pl.id);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border ${owned ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">⚽ ${pl.name} <span class="text-emerald-400 font-mono-num">(${pl.ovr} OVR)</span></div>
+                <div class="flex gap-1 my-1">
+                  <span class="classified-tag">📍 ${pl.pos}</span>
+                  <span class="classified-tag">🎂 ${pl.age} Yaş</span>
+                  <span class="classified-tag">💰 Bonservis: ${fmtMoney(fee)}</span>
+                </div>
+              </div>
+              <button onclick="signTransferPlayer('${pl.id}', ${fee})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${owned ? 'bg-slate-800 text-emerald-400' : 'bg-orange-500 text-slate-950'}">
+                ${owned ? 'Kadroda ✓' : 'Transfer Et'}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 4: STADYUM, BİLET, SPONSORLUK & FFP KASA YÖNETİMİ
+  if (activeClubSubTab === 'stadium') {
+    const stadExpandCost = Math.round(c.monthlyMinWage * 22);
+    const acadCost = Math.round(c.monthlyMinWage * 10);
+    const injectAmt = Math.round(c.monthlyMinWage * 10);
+
+    return headerCard + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="text-xs font-extrabold text-white">🏟️ ${myTeam.stadium}</div>
+            <div class="text-[10px] text-slate-400">Kapasite: <strong>${G.club.stadiumCap.toLocaleString('tr-TR')} Kişi</strong> • Altyapı: <strong>Seviye ${G.club.academyLevel}</strong></div>
+          </div>
+          <span class="px-2 py-1 rounded bg-orange-500/15 text-orange-400 text-[10px] font-bold">Stadyum Lvl ${G.club.stadiumLevel}</span>
+        </div>
+
+        <div class="text-[10px] font-bold text-slate-400">🎫 Kombine &amp; Maç Günü Bilet Fiyat Politikası:</div>
+        <div class="grid grid-cols-3 gap-1.5 text-[10px]">
+          <button onclick="setClubTicketTier('cheap')" class="py-1.5 rounded-lg border font-bold ${G.club.ticketTier === 'cheap' ? 'border-emerald-500 bg-emerald-500/20 text-white' : 'border-slate-800 text-slate-400'}">Halk Bileti (+Taraftar)</button>
+          <button onclick="setClubTicketTier('balanced')" class="py-1.5 rounded-lg border font-bold ${G.club.ticketTier === 'balanced' ? 'border-emerald-500 bg-emerald-500/20 text-white' : 'border-slate-800 text-slate-400'}">Dengeli Gişe</button>
+          <button onclick="setClubTicketTier('vip')" class="py-1.5 rounded-lg border font-bold ${G.club.ticketTier === 'vip' ? 'border-emerald-500 bg-emerald-500/20 text-white' : 'border-slate-800 text-slate-400'}">VIP Loca (+%35 Gelir)</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="upgradeClubFacility('stadium', ${stadExpandCost})" class="p-2.5 rounded-xl bg-emerald-500 text-slate-950 text-[11px] font-extrabold">🏟️ +8.500 Kapasite (${fmtMoney(stadExpandCost)})</button>
+          <button onclick="upgradeClubFacility('academy', ${acadCost})" class="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[11px] font-bold">🌱 Altyapı Akademisi (${fmtMoney(acadCost)})</button>
+        </div>
+      </div>
+
+      <!-- Başkan Kişisel Servet <-> Kulüp Kasası Transferi -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-2">
+        <div class="text-xs font-extrabold text-amber-300">🏦 Finansal Fair Play (FFP) &amp; Başkan Sermayesi</div>
+        <div class="text-[10px] text-slate-300">Kişisel Bakiyen: <strong>${fmtMoney(G.money)}</strong> • Kulüp Kasası: <strong class="text-emerald-400">${fmtMoney(G.club.clubTreasury)}</strong></div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="transferClubFunds('inject', ${injectAmt})" class="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">📥 Cebinden Kulübe Aktar (${fmtMoney(injectAmt)})</button>
+          <button onclick="transferClubFunds('withdraw', ${injectAmt})" class="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">📤 Kulüpten Temettü Çek (${fmtMoney(injectAmt)})</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 5: MEDYA, BASIN TOPLANTISI & TFF/MHK İLİŞKİLERİ
+  return headerCard + `
+    <div class="space-y-2">
+      <button onclick="doClubMediaAction('referee')" class="w-full p-3.5 rounded-2xl bg-slate-900 border border-rose-500/40 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">🔥 Hakem ve Federasyon Kararlarına Sert Basın Toplantısı</div>
+          <div class="text-[10px] text-slate-400">Taraftar güvenoyu coşar (+%12), ancak PFDK para cezası riski vardır</div>
+        </div>
+        <span class="text-xs font-bold text-rose-400">Konuş &rarr;</span>
+      </button>
+
+      <button onclick="doClubMediaAction('sponsor_gala')" class="w-full p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 flex items-center justify-between text-left">
+        <div>
+          <div class="text-xs font-extrabold text-white">🤝 Global Forma &amp; Stadyum Sponsorluk Lansmanı</div>
+          <div class="text-[10px] text-slate-400">Kulüp kasasına anında sponsorluk geliri sağlar</div>
+        </div>
+        <span class="text-xs font-bold text-emerald-400">İmzala &rarr;</span>
+      </button>
+
+      <button onclick="resignClubPresidency()" class="w-full py-2.5 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs font-bold mt-3">
+        🚪 Kulüp Başkanlığından İstifa Et / Hisseleri Devret
+      </button>
+    </div>
+  `;
+}
+
+// Kulüp Aksiyon Fonksiyonları
+function hireClubManager(mgrId, cost) {
+  if (G.club.managerId === mgrId) return;
+  if (G.club.clubTreasury < cost) { showToast('Kulüp kasasında yeterli bütçe yok! Stadyum sekmesinden sermaye aktarabilirsin.'); return; }
+  G.club.clubTreasury -= cost;
+  G.club.managerId = mgrId;
+  const m = FOOTBALL_MANAGERS_DB.find(x => x.id === mgrId);
+  G.club.fanTrust = clamp(G.club.fanTrust + 8);
+  playSfx('trophy');
+  addLog(G.age, `👔 **${G.club.teamName}** teknik direktörlük görevine **${m.name}** getirildi!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function signTransferPlayer(playerId, fee) {
+  if (G.club.roster.includes(playerId)) { showToast('Bu oyuncu zaten kadroda!'); return; }
+  if (G.club.clubTreasury < fee) { showToast('Kulüp kasası bonservis için yetersiz! Cebinden kulübe sermaye aktarabilirsin.'); return; }
+  const pl = TRANSFER_PLAYERS_DB.find(x => x.id === playerId);
+  if (!pl) return;
+
+  G.club.clubTreasury -= fee;
+  G.club.roster.push(pl.id);
+  G.club.power = clamp(G.club.power + 2, 60, 99);
+  if (pl.pos.includes('KL')) G.club.gkPow = clamp(G.club.gkPow + 4, 60, 99);
+  else if (pl.pos.includes('STP') || pl.pos.includes('SLB')) G.club.defPow = clamp(G.club.defPow + 3, 60, 99);
+  else if (pl.pos.includes('MO') || pl.pos.includes('OOS')) G.club.midPow = clamp(G.club.midPow + 3, 60, 99);
+  else G.club.attPow = clamp(G.club.attPow + 3, 60, 99);
+
+  G.club.fanTrust = clamp(G.club.fanTrust + 10);
+  playSfx('trophy');
+  addLog(G.age, `🚨 **TRANSFER BOMBASI!** **${G.club.teamName}**, yıldız futbolcu **${pl.name}** (${pl.ovr} OVR) ile sözleşme imzaladı!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function sellClubPlayer(rev) {
+  G.club.clubTreasury += rev;
+  G.club.power = clamp(G.club.power - 1, 65, 99);
+  playSfx('coin');
+  addLog(G.age, `📤 Kulüp kadrosundan bir oyuncuyu Avrupa'ya satarak kasaya **+${fmtMoney(rev)}** bonservis geliri koydun.`, 'good');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function setClubTicketTier(tier) {
+  G.club.ticketTier = tier;
+  if (tier === 'cheap') G.club.fanTrust = clamp(G.club.fanTrust + 6);
+  if (tier === 'vip') G.club.fanTrust = clamp(G.club.fanTrust - 4);
+  saveGame(); openMenuSection('club_presidency');
+}
+
+function upgradeClubFacility(type, cost) {
+  if (G.club.clubTreasury < cost) { showToast('Kulüp kasası yetersiz!'); return; }
+  G.club.clubTreasury -= cost;
+  if (type === 'stadium') {
+    G.club.stadiumCap += 8500;
+    G.club.stadiumLevel += 1;
+    addLog(G.age, `🏟️ Stadyum kapasitesi **${G.club.stadiumCap.toLocaleString('tr-TR')}** kişiye yükseltildi!`, 'milestone');
+  } else {
+    G.club.academyLevel += 1;
+    G.club.power = clamp(G.club.power + 1, 60, 99);
+    addLog(G.age, `🌱 Kulüp altyapı akademisi Seviye ${G.club.academyLevel} oldu (+1 Kadro Gücü).`, 'good');
+  }
+  playSfx('coin');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function transferClubFunds(mode, amt) {
+  if (mode === 'inject') {
+    if (G.money < amt) { showToast('Kişisel nakit bakiyen yetersiz!'); return; }
+    G.money -= amt;
+    G.club.clubTreasury += amt;
+    G.club.fanTrust = clamp(G.club.fanTrust + 7);
+    playSfx('coin');
+    addLog(G.age, `💳 Kişisel servetinden **${G.club.teamName}** kasasına **+${fmtMoney(amt)}** sermaye aktardın!`, 'good');
+  } else {
+    if (G.club.clubTreasury < amt) { showToast('Kulüp kasasında bu kadar nakit yok!'); return; }
+    G.club.clubTreasury -= amt;
+    G.money += amt;
+    G.club.fanTrust = clamp(G.club.fanTrust - 12);
+    playSfx('coin');
+    addLog(G.age, `🏦 Kulüp kasasından kişisel hesabına **+${fmtMoney(amt)}** temettü/huzur hakkı çektin.`, 'normal');
+  }
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function doClubMediaAction(type) {
+  const c = getCountry();
+  if (type === 'referee') {
+    G.club.fanTrust = clamp(G.club.fanTrust + 12);
+    G.fame = clamp(G.fame + 6);
+    if (Math.random() < 0.45) {
+      const fine = Math.round(c.monthlyMinWage * 1.2);
+      G.club.clubTreasury -= fine;
+      addLog(G.age, `🎙️ Sert basın açıklaman taraftarı ayağa kaldırdı (+12 Güven) ama PFDK **${fmtMoney(fine)}** para cezası kesti.`, 'fame');
+    } else {
+      addLog(G.age, `🎙️ Basın toplantısında kulübün haklarını savundun, taraftar desteği **%${G.club.fanTrust}** oldu!`, 'fame');
+    }
+  } else {
+    const deal = Math.round(c.monthlyMinWage * 4.5);
+    G.club.clubTreasury += deal;
+    playSfx('coin');
+    addLog(G.age, `🤝 Yeni sponsorluk anlaşmasıyla kulüp kasasına **+${fmtMoney(deal)}** girdi.`, 'good');
+  }
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+function resignClubPresidency() {
+  const oldClub = G.club.teamName;
+  G.club.active = false;
+  G.club.teamId = null;
+  addLog(G.age, `🚪 **${oldClub}** kulüp başkanlığı görevinden ayrıldın.`, 'normal');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+// Mevcut Menü ve Yaş Motoruna Çakışmasız Köprü
+(function attachClubPresidencyModule() {
+  if (window._clubPresidencyLoaded) return;
+  window._clubPresidencyLoaded = true;
+
+  const _origOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureClubPresidencyState();
+    _origOpenNav(tab);
+    if (tab === 'menu') {
+      const body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('clubMenuHeroBtn')) {
+        const subText = G.club.active
+          ? `${G.club.teamName} Başkanı • Hafta ${G.club.week}/22 • Kasa: ${fmtMoney(G.club.clubTreasury)}`
+          : 'Süper Lig, Premier Lig, La Liga, Serie A & Bundesliga';
+        const heroBtn = `
+          <button id="clubMenuHeroBtn" onclick="openMenuSection('club_presidency')" class="w-full p-3.5 rounded-2xl bg-gradient-to-r from-orange-500/25 via-amber-500/15 to-emerald-500/20 border border-orange-500/50 flex items-center justify-between text-left mb-2.5 shadow-lg">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🏟️</span>
+              <div>
+                <div class="text-xs font-extrabold text-white">Futbol Kulübü Başkanlığı &amp; Fikstür Panosu</div>
+                <div class="text-[10px] text-orange-300 font-semibold">${subText}</div>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-orange-500 text-slate-950 text-[10px] font-extrabold shrink-0">Yönet &rarr;</span>
+          </button>
+        `;
+        body.insertAdjacentHTML('afterbegin', heroBtn);
+      }
+    }
+  };
+
+  const _origOpenSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureClubPresidencyState();
+    if (sec === 'club_presidency') {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = G.club.active ? `🏟️ ${G.club.teamName} Başkanlık Makamı` : '🏟️ Futbol Kulübü Başkanlığı & Fikstür';
+      document.getElementById('sheetSubtitle').textContent = G.club.active ? `Sezon #${G.club.season} • Hafta ${G.club.week}/22 • ${G.club.europeStage}` : 'Kongre Seçimi veya Kulüp Hissesi Satın Alma';
+      document.getElementById('sheetBody').innerHTML = renderClubPresidencyView();
+      return;
+    }
+    _origOpenSec(sec);
+  };
+})();
