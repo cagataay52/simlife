@@ -233,3 +233,60 @@ html, body {
 .log-card-tebligat { background: linear-gradient(90deg, rgba(127, 29, 29, 0.32) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(244, 63, 94, 0.35); border-left: 3.5px solid #f43f5e; }
 .log-card-manset { background: linear-gradient(90deg, rgba(120, 53, 15, 0.3) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(245, 158, 11, 0.38); border-left: 3.5px solid #f59e0b; }
 .log-card-social { background: linear-gradient(90deg, rgba(112, 26, 117, 0.28) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(217, 70, 239, 0.35); border-left: 3.5px solid #d946ef; }
+
+/* ============================================================================
+   FUTBOL KULÜBÜ BAŞKANLIĞI, FİKSTÜR VE CANLI MAÇ MERKEZİ STİLLERİ
+   ============================================================================ */
+.club-broadcast-card {
+  background: linear-gradient(135deg, #18181b 0%, #090d16 65%, #1c1917 100%);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 18px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+.club-broadcast-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f97316 0%, #facc15 50%, #10b981 100%);
+}
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.standings-table th {
+  background: #060911;
+  color: #94a3b8;
+  font-weight: 800;
+  padding: 6px 4px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+.standings-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.65);
+}
+.standings-row-myclub {
+  background: rgba(249, 115, 22, 0.16) !important;
+  font-weight: 800;
+}
+.standings-zone-ucl { border-left: 3px solid #10b981; }
+.standings-zone-uel { border-left: 3px solid #38bdf8; }
+.standings-zone-rel { border-left: 3px solid #f43f5e; }
+
+.scoreboard-box {
+  background: radial-gradient(circle at center, #111827 0%, #05080f 100%);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-radius: 20px;
+  padding: 14px;
+}
+.pitch- tactical-box {
+  background: linear-gradient(180deg, #064e3b 0%, #065f46 50%, #064e3b 100%);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  padding: 10px;
+}
