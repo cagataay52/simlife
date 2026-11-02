@@ -248,3 +248,135 @@ const RANDOM_EVENTS_DB = [
     { label: '📚 "Önce Takdir Belgesi Getir" De (+Zeka)', effect: (G, c) => { G.children.forEach(ch => { ch.smart = Math.min(100, (ch.smart || 70) + 6); ch.obp = Math.min(100, (ch.obp || 75) + 4); }); return { text: '📚 Şartlı sözün çocuğunu hırslandırdı, derslerine daha sıkı sarıldı!', type: 'good' }; } }
   ]}
 ];
+
+/* ============================================================================
+   GERÇEK LİGLER, TAKIMLAR, TEKNİK DİREKTÖRLER VE TRANSFER VERİTABANI
+   ============================================================================ */
+
+const FOOTBALL_LEAGUES_DB = {
+  TR: {
+    id: 'TR', name: 'Trendyol Süper Lig', flag: '🇹🇷', uefaCoeff: 1.0,
+    teams: [
+      { id: 'fb', name: 'Fenerbahçe', short: 'FB', power: 88, valueM: 245, stadium: 'Ülker Stadyumu', capacity: 50530, model: 'kongre', colors: '🟡🔵' },
+      { id: 'gs', name: 'Galatasaray', short: 'GS', power: 87, valueM: 240, stadium: 'RAMS Park', capacity: 52600, model: 'kongre', colors: '🟡🔴' },
+      { id: 'bjk', name: 'Beşiktaş', short: 'BJK', power: 84, valueM: 165, stadium: 'Tüpraş Stadyumu', capacity: 42590, model: 'kongre', colors: '⚫⚪' },
+      { id: 'ts', name: 'Trabzonspor', short: 'TS', power: 81, valueM: 115, stadium: 'Papara Park', capacity: 40780, model: 'kongre', colors: '🔴🔵' },
+      { id: 'ibfk', name: 'Başakşehir', short: 'İBFK', power: 78, valueM: 68, stadium: 'Fatih Terim Stadı', capacity: 17150, model: 'sahiplik', colors: '🟠🔵' },
+      { id: 'sam', name: 'Samsunspor', short: 'SAM', power: 77, valueM: 54, stadium: 'Samsun 19 Mayıs', capacity: 33919, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'goz', name: 'Göztepe', short: 'GÖZ', power: 76, valueM: 52, stadium: 'Gürsel Aksel Stadı', capacity: 20040, model: 'sahiplik', colors: '🟡🔴' },
+      { id: 'eyp', name: 'Eyüpspor', short: 'EYP', power: 75, valueM: 42, stadium: 'R.T. Erdoğan Stadı', capacity: 14230, model: 'kongre', colors: '🟣🟡' },
+      { id: 'kon', name: 'Konyaspor', short: 'KON', power: 73, valueM: 36, stadium: 'Konya Büyükşehir', capacity: 42000, model: 'kongre', colors: '🟢⚪' },
+      { id: 'siv', name: 'Sivasspor', short: 'SİV', power: 73, valueM: 34, stadium: 'BG Grup 4 Eylül', capacity: 27530, model: 'kongre', colors: '🔴⚪' },
+      { id: 'ant', name: 'Antalyaspor', short: 'ANT', power: 72, valueM: 33, stadium: 'Corendon Park', capacity: 32530, model: 'kongre', colors: '🔴⚪' },
+      { id: 'riz', name: 'Çaykur Rizespor', short: 'RİZ', power: 72, valueM: 32, stadium: 'Çaykur Didi Stadı', capacity: 15330, model: 'kongre', colors: '🟢🔵' }
+    ]
+  },
+  GB: {
+    id: 'GB', name: 'Premier League', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', uefaCoeff: 2.4,
+    teams: [
+      { id: 'mci', name: 'Manchester City', short: 'MCI', power: 94, valueM: 1150, stadium: 'Etihad Stadium', capacity: 53400, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'ars', name: 'Arsenal', short: 'ARS', power: 91, valueM: 980, stadium: 'Emirates Stadium', capacity: 60700, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'liv', name: 'Liverpool', short: 'LIV', power: 91, valueM: 960, stadium: 'Anfield', capacity: 61270, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'che', name: 'Chelsea', short: 'CHE', power: 86, valueM: 850, stadium: 'Stamford Bridge', capacity: 40340, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'mun', name: 'Manchester United', short: 'MUN', power: 85, valueM: 890, stadium: 'Old Trafford', capacity: 74310, model: 'sahiplik', colors: '🔴⚫' },
+      { id: 'tot', name: 'Tottenham', short: 'TOT', power: 84, valueM: 760, stadium: 'Tottenham Hotspur', capacity: 62850, model: 'sahiplik', colors: '⚪🔵' },
+      { id: 'new', name: 'Newcastle United', short: 'NEW', power: 84, valueM: 640, stadium: 'St James Park', capacity: 52300, model: 'sahiplik', colors: '⚫⚪' },
+      { id: 'avl', name: 'Aston Villa', short: 'AVL', power: 83, valueM: 580, stadium: 'Villa Park', capacity: 42650, model: 'sahiplik', colors: '🟣🔵' },
+      { id: 'bha', name: 'Brighton', short: 'BHA', power: 80, valueM: 460, stadium: 'Amex Stadium', capacity: 31800, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'whu', name: 'West Ham United', short: 'WHU', power: 79, valueM: 440, stadium: 'London Stadium', capacity: 62500, model: 'sahiplik', colors: '🟣🔵' },
+      { id: 'eve', name: 'Everton', short: 'EVE', power: 76, valueM: 350, stadium: 'Goodison Park', capacity: 39570, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'ful', name: 'Fulham', short: 'FUL', power: 76, valueM: 330, stadium: 'Craven Cottage', capacity: 25700, model: 'sahiplik', colors: '⚪⚫' }
+    ]
+  },
+  ES: {
+    id: 'ES', name: 'La Liga EA Sports', flag: '🇪🇸', uefaCoeff: 2.0,
+    teams: [
+      { id: 'rma', name: 'Real Madrid', short: 'RMA', power: 95, valueM: 1200, stadium: 'Santiago Bernabéu', capacity: 81040, model: 'kongre', colors: '⚪🟣' },
+      { id: 'bar', name: 'FC Barcelona', short: 'BAR', power: 91, valueM: 980, stadium: 'Spotify Camp Nou', capacity: 99350, model: 'kongre', colors: '🔵🔴' },
+      { id: 'atm', name: 'Atlético Madrid', short: 'ATM', power: 87, valueM: 620, stadium: 'Riyadh Air Metropolitano', capacity: 70460, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'ath', name: 'Athletic Bilbao', short: 'ATH', power: 83, valueM: 380, stadium: 'San Mamés', capacity: 53280, model: 'kongre', colors: '🔴⚪' },
+      { id: 'rso', name: 'Real Sociedad', short: 'RSO', power: 82, valueM: 390, stadium: 'Reale Arena', capacity: 39500, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'vil', name: 'Villarreal', short: 'VIL', power: 80, valueM: 290, stadium: 'Estadio de la Cerámica', capacity: 23000, model: 'sahiplik', colors: '🟡🔵' },
+      { id: 'bet', name: 'Real Betis', short: 'BET', power: 79, valueM: 260, stadium: 'Benito Villamarín', capacity: 60720, model: 'sahiplik', colors: '🟢⚪' },
+      { id: 'gir', name: 'Girona FC', short: 'GIR', power: 79, valueM: 240, stadium: 'Montilivi', capacity: 14620, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'sev', name: 'Sevilla FC', short: 'SEV', power: 78, valueM: 230, stadium: 'Ramón Sánchez Pizjuán', capacity: 43880, model: 'sahiplik', colors: '⚪🔴' },
+      { id: 'val', name: 'Valencia CF', short: 'VAL', power: 76, valueM: 210, stadium: 'Mestalla', capacity: 49430, model: 'sahiplik', colors: '⚪⚫' },
+      { id: 'cel', name: 'Celta Vigo', short: 'CEL', power: 75, valueM: 150, stadium: 'Balaídos', capacity: 29000, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'osa', name: 'Osasuna', short: 'OSA', power: 75, valueM: 135, stadium: 'El Sadar', capacity: 23570, model: 'kongre', colors: '🔴🔵' }
+    ]
+  },
+  IT: {
+    id: 'IT', name: 'Serie A Enilive', flag: '🇮🇹', uefaCoeff: 1.8,
+    teams: [
+      { id: 'int', name: 'Inter Milan', short: 'INT', power: 91, valueM: 780, stadium: 'Giuseppe Meazza', capacity: 75810, model: 'sahiplik', colors: '🔵⚫' },
+      { id: 'mil', name: 'AC Milan', short: 'MIL', power: 87, valueM: 660, stadium: 'San Siro', capacity: 75810, model: 'sahiplik', colors: '🔴⚫' },
+      { id: 'juv', name: 'Juventus', short: 'JUV', power: 87, valueM: 690, stadium: 'Allianz Stadium', capacity: 41500, model: 'sahiplik', colors: '⚫⚪' },
+      { id: 'nap', name: 'Napoli', short: 'NAP', power: 86, valueM: 560, stadium: 'Diego Armando Maradona', capacity: 54720, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'ata', name: 'Atalanta', short: 'ATA', power: 85, valueM: 480, stadium: 'Gewiss Stadium', capacity: 24950, model: 'sahiplik', colors: '🔵⚫' },
+      { id: 'rom', name: 'AS Roma', short: 'ROM', power: 83, valueM: 410, stadium: 'Stadio Olimpico', capacity: 70630, model: 'sahiplik', colors: '🟡🔴' },
+      { id: 'laz', name: 'Lazio', short: 'LAZ', power: 82, valueM: 340, stadium: 'Stadio Olimpico', capacity: 70630, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'fio', name: 'Fiorentina', short: 'FIO', power: 80, valueM: 290, stadium: 'Artemio Franchi', capacity: 43140, model: 'sahiplik', colors: '🟣⚪' },
+      { id: 'bol', name: 'Bologna', short: 'BOL', power: 78, valueM: 250, stadium: 'Renato Dall’Ara', capacity: 36460, model: 'sahiplik', colors: '🔴🔵' },
+      { id: 'tor', name: 'Torino', short: 'TOR', power: 77, valueM: 200, stadium: 'Olimpico Grande Torino', capacity: 28170, model: 'sahiplik', colors: '🟤⚪' },
+      { id: 'com', name: 'Como 1907', short: 'COM', power: 75, valueM: 160, stadium: 'Giuseppe Sinigaglia', capacity: 13600, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'udi', name: 'Udinese', short: 'UDI', power: 75, valueM: 150, stadium: 'Bluenergy Stadium', capacity: 25140, model: 'sahiplik', colors: '⚫⚪' }
+    ]
+  },
+  DE: {
+    id: 'DE', name: 'Bundesliga', flag: '🇩🇪', uefaCoeff: 1.9,
+    teams: [
+      { id: 'bay', name: 'Bayern Münih', short: 'BAY', power: 93, valueM: 1050, stadium: 'Allianz Arena', capacity: 75020, model: 'kongre', colors: '🔴⚪' },
+      { id: 'b04', name: 'Bayer Leverkusen', short: 'B04', power: 89, valueM: 680, stadium: 'BayArena', capacity: 30210, model: 'sahiplik', colors: '🔴⚫' },
+      { id: 'bvb', name: 'Borussia Dortmund', short: 'BVB', power: 87, valueM: 610, stadium: 'Signal Iduna Park', capacity: 81365, model: 'kongre', colors: '🟡⚫' },
+      { id: 'rbl', name: 'RB Leipzig', short: 'RBL', power: 85, valueM: 540, stadium: 'Red Bull Arena', capacity: 47060, model: 'sahiplik', colors: '🔴⚪' },
+      { id: 'vfb', name: 'VfB Stuttgart', short: 'VFB', power: 82, valueM: 340, stadium: 'MHPArena', capacity: 60050, model: 'kongre', colors: '⚪🔴' },
+      { id: 'sge', name: 'Eintracht Frankfurt', short: 'SGE', power: 81, valueM: 320, stadium: 'Deutsche Bank Park', capacity: 58000, model: 'kongre', colors: '🔴⚫' },
+      { id: 'wol', name: 'VfL Wolfsburg', short: 'WOL', power: 78, valueM: 240, stadium: 'Volkswagen Arena', capacity: 30000, model: 'sahiplik', colors: '🟢⚪' },
+      { id: 'scf', name: 'SC Freiburg', short: 'SCF', power: 78, valueM: 220, stadium: 'Europa-Park Stadion', capacity: 34700, model: 'kongre', colors: '🔴⚫' },
+      { id: 'svw', name: 'Werder Bremen', short: 'SVW', power: 76, valueM: 175, stadium: 'Weserstadion', capacity: 42100, model: 'kongre', colors: '🟢⚪' },
+      { id: 'tsg', name: 'Hoffenheim', short: 'TSG', power: 76, valueM: 170, stadium: 'PreZero Arena', capacity: 30150, model: 'sahiplik', colors: '🔵⚪' },
+      { id: 'fca', name: 'FC Augsburg', short: 'FCA', power: 74, valueM: 130, stadium: 'WWK Arena', capacity: 30660, model: 'kongre', colors: '🔴🟢' },
+      { id: 'm05', name: 'Mainz 05', short: 'M05', power: 74, valueM: 135, stadium: 'Mewa Arena', capacity: 33305, model: 'kongre', colors: '🔴⚪' }
+    ]
+  }
+};
+
+const FOOTBALL_MANAGERS_DB = [
+  { id: 'mourinho', name: 'José Mourinho', tac: 91, wageMult: 3.5, style: '4-2-3-1 • Büyük Maç & Kupa Ustası' },
+  { id: 'guardiola', name: 'Pep Guardiola', tac: 95, wageMult: 5.5, style: '4-3-3 • Tiki-Taka & Topa Sahip Olma' },
+  { id: 'ancelotti', name: 'Carlo Ancelotti', tac: 94, wageMult: 5.0, style: '4-3-1-2 • Şampiyonlar Ligi Efsanesi' },
+  { id: 'klopp', name: 'Jürgen Klopp', tac: 93, wageMult: 4.8, style: '4-3-3 • Gegenpress & Yüksek Tempo' },
+  { id: 'xabi', name: 'Xabi Alonso', tac: 90, wageMult: 3.2, style: '3-4-2-1 • Modern Dinamik Hücum' },
+  { id: 'okan', name: 'Okan Buruk', tac: 85, wageMult: 1.8, style: '4-2-3-1 • Önde Baskı & Hızlı Geçiş' },
+  { id: 'ismail', name: 'İsmail Kartal', tac: 84, wageMult: 1.4, style: '4-2-3-1 • Dengeli & Yüksek Puan Ort.' },
+  { id: 'terim', name: 'Fatih Terim', tac: 85, wageMult: 2.1, style: '4-1-4-1 • Yüksek Motivasyon & Hücum' },
+  { id: 'sergen', name: 'Sergen Yalçın', tac: 83, wageMult: 1.5, style: '4-2-3-1 • Yaratıcı Oyun & Analiz' },
+  { id: 'arda_t', name: 'Arda Turan', tac: 81, wageMult: 1.1, style: '4-3-3 • Genç & Modern Taktisyen' }
+];
+
+const TRANSFER_PLAYERS_DB = [
+  { id: 'p_arda', name: 'Arda Güler', pos: 'OOS/SĞK', age: 21, ovr: 87, costMult: 42, wageMult: 2.2 },
+  { id: 'p_kenan', name: 'Kenan Yıldız', pos: 'SLK/FV', age: 21, ovr: 85, costMult: 36, wageMult: 1.9 },
+  { id: 'p_ferdi', name: 'Ferdi Kadıoğlu', pos: 'SLB/SĞB', age: 26, ovr: 85, costMult: 34, wageMult: 1.8 },
+  { id: 'p_hakan', name: 'Hakan Çalhanoğlu', pos: 'MO/MDO', age: 32, ovr: 88, costMult: 38, wageMult: 2.5 },
+  { id: 'p_irfan', name: 'İrfan Can Kahveci', pos: 'SĞK/OOS', age: 30, ovr: 83, costMult: 16, wageMult: 1.3 },
+  { id: 'p_jayden', name: 'Jayden Oosterwolde', pos: 'STP/SLB', age: 25, ovr: 82, costMult: 18, wageMult: 1.2 },
+  { id: 'p_nesyri', name: 'Youssef En-Nesyri', pos: 'SNT', age: 29, ovr: 84, costMult: 22, wageMult: 1.6 },
+  { id: 'p_amrabat', name: 'Sofyan Amrabat', pos: 'MDO', age: 29, ovr: 83, costMult: 18, wageMult: 1.4 },
+  { id: 'p_osimhen', name: 'Victor Osimhen', pos: 'SNT', age: 27, ovr: 90, costMult: 65, wageMult: 3.4 },
+  { id: 'p_rafa', name: 'Rafa Silva', pos: 'OOS/SS', age: 32, ovr: 84, costMult: 18, wageMult: 1.7 },
+  { id: 'p_semih', name: 'Semih Kılıçsoy', pos: 'SNT/SLK', age: 20, ovr: 81, costMult: 19, wageMult: 1.0 },
+  { id: 'p_baris', name: 'Barış Alper Yılmaz', pos: 'SĞK/SLK', age: 26, ovr: 82, costMult: 20, wageMult: 1.2 },
+  { id: 'p_livakovic', name: 'Dominik Livaković', pos: 'KL', age: 31, ovr: 84, costMult: 15, wageMult: 1.3 },
+  { id: 'p_haaland', name: 'Erling Haaland', pos: 'SNT', age: 26, ovr: 93, costMult: 115, wageMult: 5.2 },
+  { id: 'p_mbappe', name: 'Kylian Mbappé', pos: 'SNT/SLK', age: 27, ovr: 93, costMult: 120, wageMult: 5.5 },
+  { id: 'p_yamal', name: 'Lamine Yamal', pos: 'SĞK', age: 19, ovr: 90, costMult: 95, wageMult: 3.8 },
+  { id: 'p_bellingham', name: 'Jude Bellingham', pos: 'OOS/MO', age: 23, ovr: 91, costMult: 105, wageMult: 4.5 },
+  { id: 'p_gyokeres', name: 'Viktor Gyökeres', pos: 'SNT', age: 28, ovr: 88, costMult: 55, wageMult: 2.6 }
+];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'club_president', title: 'Büyük Başkan', desc: 'Bir futbol kulübünün başkanı veya sahibi oldun.', icon: '🏟️' },
+  { id: 'super_lig_champ', title: 'Lig Şampiyonu Başkan', desc: 'Başkanı olduğun kulübü lig şampiyonluğuna taşıdın.', icon: '🏆' },
+  { id: 'ucl_winner', title: 'Avrupa Fatihi Başkan', desc: 'Kulübünle UEFA Şampiyonlar Ligi kupasını kazandın!', icon: '🌍' }
+);
