@@ -380,3 +380,84 @@ ACHIEVEMENTS_DB.push(
   { id: 'super_lig_champ', title: 'Lig Şampiyonu Başkan', desc: 'Başkanı olduğun kulübü lig şampiyonluğuna taşıdın.', icon: '🏆' },
   { id: 'ucl_winner', title: 'Avrupa Fatihi Başkan', desc: 'Kulübünle UEFA Şampiyonlar Ligi kupasını kazandın!', icon: '🌍' }
 );
+
+/* ============================================================================
+   MEGA FUTBOL VERİTABANI: ALT LİG, AVRUPA DEVLERİ, TARAFTAR & WONDERKID HAVUZU
+   ============================================================================ */
+
+// 1. Küme Düşme / Çıkma İçin Alt Lig Takımları
+const SECOND_DIVISION_TEAMS_DB = {
+  TR: [
+    { id: 'koc', name: 'Kocaelispor', short: 'KOC', power: 74, valueM: 35, stadium: 'Yıldız Entegre Kocaeli', capacity: 34712, model: 'kongre', colors: '🟢⚫' },
+    { id: 'fkg', name: 'Fatih Karagümrük', short: 'FKG', power: 73, valueM: 32, stadium: 'Atatürk Olimpiyat', capacity: 74750, model: 'sahiplik', colors: '🔴⚫' },
+    { id: 'gen', name: 'Gençlerbirliği', short: 'GEN', power: 72, valueM: 30, stadium: 'Eryaman Stadyumu', capacity: 20560, model: 'kongre', colors: '🔴⚫' },
+    { id: 'ank', name: 'MKE Ankaragücü', short: 'ANK', power: 74, valueM: 34, stadium: 'Eryaman Stadyumu', capacity: 20560, model: 'kongre', colors: '🟡🔵' }
+  ],
+  GB: [
+    { id: 'lee', name: 'Leeds United', short: 'LEE', power: 78, valueM: 310, stadium: 'Elland Road', capacity: 37608, model: 'sahiplik', colors: '⚪🟡' },
+    { id: 'bur', name: 'Burnley FC', short: 'BUR', power: 76, valueM: 280, stadium: 'Turf Moor', capacity: 21944, model: 'sahiplik', colors: '🟣🔵' }
+  ],
+  ES: [
+    { id: 'esp', name: 'Espanyol', short: 'ESP', power: 76, valueM: 140, stadium: 'RCDE Stadium', capacity: 40000, model: 'sahiplik', colors: '🔵⚪' },
+    { id: 'vld', name: 'Real Valladolid', short: 'VLD', power: 74, valueM: 120, stadium: 'José Zorrilla', capacity: 27618, model: 'sahiplik', colors: '🟣⚪' }
+  ],
+  IT: [
+    { id: 'par', name: 'Parma Calcio', short: 'PAR', power: 76, valueM: 165, stadium: 'Ennio Tardini', capacity: 22352, model: 'sahiplik', colors: '🟡🔵' },
+    { id: 'pal', name: 'Palermo FC', short: 'PAL', power: 75, valueM: 145, stadium: 'Renzo Barbera', capacity: 36365, model: 'sahiplik', colors: '🩷⚫' }
+  ],
+  DE: [
+    { id: 'kol', name: '1. FC Köln', short: 'KÖL', power: 76, valueM: 185, stadium: 'RheinEnergieStadion', capacity: 50000, model: 'kongre', colors: '🔴⚪' },
+    { id: 'hsv', name: 'Hamburger SV', short: 'HSV', power: 76, valueM: 175, stadium: 'Volksparkstadion', capacity: 57000, model: 'kongre', colors: '🔵⚪' }
+  ]
+};
+
+// 2. Kulüplere Özel Gerçek Taraftar Grupları
+const ULTRAS_GROUPS_DB = {
+  fb: 'Genç Fenerbahçeliler (GFB)',
+  gs: 'ultrAslan',
+  bjk: 'Çarşı',
+  ts: 'Vira & Gurbetçi Gençler',
+  goz: 'Yalı',
+  sam: 'Şirinler',
+  rma: 'Grada Fans RMCF',
+  bar: 'Boixos Nois',
+  bvb: 'The Yellow Wall (Südtribüne)',
+  int: 'Curva Nord 69',
+  mil: 'Curva Sud Milano',
+  nap: 'Curva A & B Ultras',
+  default: 'Kale Arkası Ultras Grubu'
+};
+
+// 3. UEFA Şampiyonlar Ligi / Avrupa Ligi Rakipleri
+const EUROPEAN_OPPONENTS_DB = [
+  { name: 'Real Madrid', flag: '🇪🇸', power: 95 },
+  { name: 'Manchester City', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', power: 94 },
+  { name: 'Bayern Münih', flag: '🇩🇪', power: 93 },
+  { name: 'Paris Saint-Germain', flag: '🇫🇷', power: 91 },
+  { name: 'Inter Milan', flag: '🇮🇹', power: 91 },
+  { name: 'Arsenal', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', power: 90 },
+  { name: 'Liverpool', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', power: 91 },
+  { name: 'Bayer Leverkusen', flag: '🇩🇪', power: 89 },
+  { name: 'Sporting CP', flag: '🇵🇹', power: 85 },
+  { name: 'Benfica', flag: '🇵🇹', power: 84 },
+  { name: 'Ajax', flag: '🇳🇱', power: 82 },
+  { name: 'Olympiacos', flag: '🇬🇷', power: 80 }
+];
+
+// 4. Serbest Statüdeki (Bonservissiz) Yıldızlar
+const FREE_AGENT_PLAYERS_DB = [
+  { id: 'fa_degea', name: 'David de Gea (Serbest)', pos: 'KL', age: 34, ovr: 84, signBonusMult: 5.5 },
+  { id: 'fa_rabiot', name: 'Adrien Rabiot (Serbest)', pos: 'MO', age: 30, ovr: 84, signBonusMult: 6.5 },
+  { id: 'fa_depay', name: 'Memphis Depay (Serbest)', pos: 'SNT/SLK', age: 31, ovr: 83, signBonusMult: 5.0 },
+  { id: 'fa_hummels', name: 'Mats Hummels (Serbest)', pos: 'STP', age: 35, ovr: 83, signBonusMult: 4.2 },
+  { id: 'fa_martial', name: 'Anthony Martial (Serbest)', pos: 'SNT', age: 29, ovr: 81, signBonusMult: 4.0 }
+];
+
+const WONDERKID_FIRST_NAMES = ['Arda', 'Semih', 'Kenan', 'Can', 'Emirhan', 'Efe', 'Yusuf', 'Mustafa', 'Poyraz', 'Yiğit'];
+const WONDERKID_LAST_NAMES = ['Yıldırım', 'Demirbag', 'Akman', 'Sarı', 'Vural', 'Güneş', 'Soylu', 'K석', 'Karaman', 'Uzun'];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'ballon_dor_winner', title: 'Altın Top (Ballon d’Or)', desc: 'Futbolcu kariyerinde dünyanın en iyi oyuncusu seçildin!', icon: '🌕' },
+  { id: 'national_hero', title: 'Milli Kahraman', desc: 'A Milli Takım formasıyla 25 maç barajını geçtin.', icon: '🇹🇷' },
+  { id: 'wonderkid_factory', title: 'Wonderkid Fabrikası', desc: 'Kulüp altyapısından 3 genç yeteneği A takıma çıkardın.', icon: '🌱' }
+);
