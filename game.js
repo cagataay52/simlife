@@ -3557,3 +3557,720 @@ function resignClubPresidency() {
     _origOpenSec(sec);
   };
 })();
+
+/* ============================================================================
+   MEGA FUTBOL MOTORU: SOKAKTAN BALLON D'OR'A & DERİN KULÜP/AVRUPA YÖNETİMİ
+   ============================================================================ */
+
+let activeProPlayerTab = 'overview'; // 'overview' | 'train' | 'transfer' | 'national'
+
+function ensureMegaFootballState() {
+  if (!G) return;
+  ensureClubPresidencyState();
+
+  // Kulüp Başkanlığı için yeni tesis, lobi, Avrupa ve altyapı alanları
+  if (typeof G.club.trainingLvl !== 'number') G.club.trainingLvl = 1;
+  if (typeof G.club.scoutLvl !== 'number') G.club.scoutLvl = 1;
+  if (typeof G.club.medicalLvl !== 'number') G.club.medicalLvl = 1;
+  if (typeof G.club.tffLobby !== 'number') G.club.tffLobby = 50;
+  if (typeof G.club.ultrasMood !== 'number') G.club.ultrasMood = 80;
+  if (typeof G.club.wonderkidsCount !== 'number') G.club.wonderkidsCount = 0;
+  if (typeof G.club.euroRound !== 'number') G.club.euroRound = 1; // 1: Lig Aşaması, 2: Son 16, 3: Çeyrek, 4: Yarı, 5: Final, 6: Şampiyon
+  if (typeof G.club.euroOpponent !== 'string') G.club.euroOpponent = 'Bayern Münih';
+  if (!G.club.incomingOffer) G.club.incomingOffer = null;
+
+  // Futbolcu Olma Kariyeri (Sokaktan Ballon d'Or'a)
+  if (!G.proPlayer) {
+    G.proPlayer = {
+      active: false,
+      position: 'OOS / 10 Numara',
+      clubName: 'Sokak Akademisi',
+      leagueId: 'TR',
+      tier: 0, // 0: Sokak/Altyapı, 1: Ulusal Lig, 2: Avrupa Devi
+      pace: 62,
+      shooting: 64,
+      passing: 65,
+      dribbling: 66,
+      physical: 60,
+      ovr: 63,
+      marketValueM: 0.4,
+      goals: 0,
+      assists: 0,
+      seasonGoals: 0,
+      seasonAssists: 0,
+      apps: 0,
+      caps: 0,
+      intlGoals: 0,
+      ballonDors: 0,
+      goldenBoots: 0,
+      injured: false,
+      trainsThisYear: 0,
+      matchesThisYear: 0
+    };
+  }
+}
+
+function recalcProPlayerOvr() {
+  const p = G.proPlayer;
+  p.ovr = Math.round((p.pace + p.shooting + p.passing + p.dribbling + p.physical) / 5);
+  const ageFactor = G.age <= 24 ? 1.35 : (G.age <= 29 ? 1.15 : 0.75);
+  p.marketValueM = Number((Math.pow(Math.max(1, p.ovr - 55), 2.15) * 0.045 * ageFactor).toFixed(1));
+}
+
+/* ============================================================================
+   BÖLÜM 1: ⚽ FUTBOLCU OLMA KARİYERİ (SOKAKTAN BALLON D'OR'A)
+   ============================================================================ */
+function renderProFootballerCareerView() {
+  ensureMegaFootballState();
+  const c = getCountry();
+  const p = G.proPlayer;
+  recalcProPlayerOvr();
+
+  if (!p.active) {
+    return `
+      <div class="fut-player-card mb-3 space-y-2">
+        <div class="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest">⚽ SOKAKTAN ALTIN TOP'A (BALLON D'OR)</div>
+        <div class="text-sm font-extrabold text-white">Profesyonel Futbolcu Kariyerine Başla</div>
+        <p class="text-[11px] text-slate-300">12 yaşından itibaren mahalle aralarında ve altyapı seçmelerinde keşfedilip A Takıma yükselebilir, 5 farklı yeteneğini geliştirerek Avrupa devlerine transfer olabilir ve <strong>Ballon d'Or</strong> kazanabilirsin!</p>
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">🎯 Mevkini Seç ve Seçmelere Katıl (12-34 Yaş)</h4>
+        ${[
+          { pos: 'SNT / Santrafor (9 Numara)', desc: 'Yüksek bitiricilik, ceza sahası golcüsü ve Altın Ayakkabı adayı' },
+          { pos: 'OOS / Oyun Kurucu (10 Numara)', desc: 'Frikik ustası, kilit paslar, uzaktan şutlar ve yüksek asist' },
+          { pos: 'SLK-SĞK / Kanat Forvet (7 Numara)', desc: 'Patlayıcı hız, bire bir çalım ve içeri kat ederek gol' },
+          { pos: 'MO / Dinamik Orta Saha (8 Numara)', desc: 'Çift yönlü oyun, yüksek kondisyon ve takım liderliği' }
+        ].map(item => `
+          <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">⚽ ${item.pos}</div>
+              <div class="text-[10px] text-slate-400">${item.desc}</div>
+            </div>
+            <button onclick="startProFootballerCareer('${item.pos}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold shrink-0">Başla &rarr;</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Aktif Futbolcu FUT Kartı
+  const monthlySalary = Math.round(c.monthlyMinWage * (p.tier === 0 ? 1.8 : (p.tier === 1 ? 10.5 : 34.0)) * (p.ovr / 70));
+
+  const futHeader = `
+    <div class="fut-player-card mb-2.5 space-y-2.5">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-16 rounded-2xl bg-amber-400/20 border-2 border-amber-400 flex flex-col items-center justify-center shrink-0">
+            <span class="text-lg font-black font-mono-num text-amber-300 leading-none">${p.ovr}</span>
+            <span class="text-[8px] font-extrabold text-white uppercase mt-0.5">${p.position.split(' ')[0]}</span>
+          </div>
+          <div>
+            <div class="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider">🏟️ ${p.clubName} &bull; PİYASA DEĞERİ: €${p.marketValueM}M</div>
+            <div class="text-sm font-extrabold text-white">${G.firstName} ${G.lastName}</div>
+            <div class="text-[10px] text-emerald-400 font-mono-num">Kontrat Maaşı: +${fmtMoney(monthlySalary)} / ay</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="px-2 py-0.5 rounded bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold">🌕 ${p.ballonDors} Ballon d'Or</span>
+        </div>
+      </div>
+
+      <!-- 5'li Yetenek Barı -->
+      <div class="grid grid-cols-5 gap-1.5 text-center pt-1">
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">⚡ HIZ</div><div class="text-xs font-extrabold font-mono-num text-white">${p.pace}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🎯 ŞUT</div><div class="text-xs font-extrabold font-mono-num text-white">${p.shooting}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🧭 PAS</div><div class="text-xs font-extrabold font-mono-num text-white">${p.passing}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🪄 TEKNİK</div><div class="text-xs font-extrabold font-mono-num text-white">${p.dribbling}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">💪 FİZİK</div><div class="text-xs font-extrabold font-mono-num text-white">${p.physical}</div></div>
+      </div>
+
+      <!-- İstatistik Şeridi -->
+      <div class="grid grid-cols-4 gap-1.5 text-center text-[10px] font-mono-num bg-slate-950/80 p-2 rounded-xl border border-slate-800/80">
+        <div><span class="text-slate-400 block text-[8px]">KARİYER MAÇ</span><strong class="text-white">${p.apps}</strong></div>
+        <div><span class="text-slate-400 block text-[8px]">TOPLAM GOL</span><strong class="text-emerald-400">${p.goals} (${p.seasonGoals})</strong></div>
+        <div><span class="text-slate-400 block text-[8px]">ASİST</span><strong class="text-sky-400">${p.assists} (${p.seasonAssists})</strong></div>
+        <div><span class="text-slate-400 block text-[8px]">MİLLİ FORMA</span><strong class="text-amber-400">${p.caps} (${p.intlGoals}G)</strong></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[10px] font-extrabold">
+      <button onclick="activeProPlayerTab='overview'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'overview' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🏟️ Maç & Saha</button>
+      <button onclick="activeProPlayerTab='train'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'train' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🏋️ Yetenek</button>
+      <button onclick="activeProPlayerTab='transfer'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'transfer' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">✈️ Transfer</button>
+      <button onclick="activeProPlayerTab='national'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'national' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🇹🇷 Milli & Ödül</button>
+    </div>
+  `;
+
+  if (activeProPlayerTab === 'overview') {
+    return futHeader + `
+      <div class="space-y-2">
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-white">⚽ Haftanın Kritik Maçına Çık</span>
+            <span class="text-[10px] font-mono-num text-emerald-400">Bu Yıl: ${p.matchesThisYear}/4 Maç</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Sahada kritik pozisyonda kararı sen verirsin (Frikik, çalım, uzaktan şut veya kilit pas). Attığın her gol piyasa değerini ve Ballon d'Or şansını artırır!</p>
+          <button onclick="playInteractivePlayerMatch()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-extrabold">
+            ▶️ Sahaya İlk 11 Çık ve Pozisyonu Yönet
+          </button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+          <div class="text-xs font-extrabold text-white">🌟 Saha Dışı Yaşam &amp; Sponsorluk</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="proPlayerLifestyle('boot_deal')" class="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">👟 Krampon Sponsorluğu Al</button>
+            <button onclick="proPlayerLifestyle('nightclub')" class="p-2.5 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-[11px] font-bold">🍾 VIP Gece Kulübü Partisi</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (activeProPlayerTab === 'train') {
+    const trainCost = Math.round(c.monthlyMinWage * 0.45);
+    const attrs = [
+      { key: 'pace', name: '⚡ Patlayıcı Sprint & Hız Antrenmanı', val: p.pace },
+      { key: 'shooting', name: '🎯 Bitiricilik & Uzaktan Şut Çalışması', val: p.shooting },
+      { key: 'passing', name: '🧭 Vizyon & Kilit Pas İstasyonu', val: p.passing },
+      { key: 'dribbling', name: '🪄 Bire Bir Çalım & Frikik Özel İdmanı', val: p.dribbling },
+      { key: 'physical', name: '💪 Core Kuvvet & Dayanıklılık Kampı', val: p.physical }
+    ];
+    return futHeader + `
+      <div class="text-[11px] text-slate-400 mb-1">Yıllık Özel Antrenman Hakkı: <strong class="text-emerald-400">${3 - p.trainsThisYear}/3</strong></div>
+      <div class="space-y-2">
+        ${attrs.map(a => `
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">${a.name}</div>
+              <div class="text-[10px] text-slate-400">Mevcut Seviye: <strong class="text-amber-400">${a.val} / 99</strong></div>
+            </div>
+            <button onclick="trainProPlayerAttribute('${a.key}', ${trainCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold">Geliştir (${fmtMoney(trainCost)})</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (activeProPlayerTab === 'transfer') {
+    const targetClubs = [
+      { name: '🟡🔵 Fenerbahçe', tier: 1, reqOvr: 74, signMult: 15 },
+      { name: '🟡🔴 Galatasaray', tier: 1, reqOvr: 74, signMult: 15 },
+      { name: '⚫⚪ Beşiktaş', tier: 1, reqOvr: 73, signMult: 13 },
+      { name: '🔴⚫ AC Milan', tier: 2, reqOvr: 81, signMult: 38 },
+      { name: '🔴⚪ Arsenal', tier: 2, reqOvr: 84, signMult: 52 },
+      { name: '🔵🔴 FC Barcelona', tier: 2, reqOvr: 86, signMult: 65 },
+      { name: '⚪🟣 Real Madrid', tier: 2, reqOvr: 88, signMult: 80 },
+      { name: '🔵⚪ Manchester City', tier: 2, reqOvr: 88, signMult: 80 }
+    ];
+    return futHeader + `
+      <div class="space-y-2">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">✈️ Menajer Transfer Teklifleri (OVR: ${p.ovr})</h4>
+        ${targetClubs.map(tc => {
+          const signBonus = Math.round(c.monthlyMinWage * tc.signMult);
+          const canJoin = p.ovr >= tc.reqOvr;
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${tc.name}</div>
+                <div class="text-[10px] text-slate-400">Gereken Güç: <strong>${tc.reqOvr} OVR</strong> • İmza Parası: <strong class="text-emerald-400">+${fmtMoney(signBonus)}</strong></div>
+              </div>
+              <button onclick="transferProPlayerToClub('${tc.name}', ${tc.tier}, ${tc.reqOvr}, ${signBonus})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold ${canJoin ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500'}">İmzala</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  return futHeader + `
+    <div class="space-y-2.5">
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-rose-500/40 space-y-2">
+        <div class="text-xs font-extrabold text-white">${c.flag} A Milli Futbol Takımı Kampı (75+ OVR)</div>
+        <div class="text-[11px] text-slate-300">Milli Maç: <strong>${p.caps}</strong> • Milli Gol: <strong>${p.intlGoals}</strong></div>
+        <button onclick="playNationalTeamTournament()" class="w-full py-2.5 rounded-xl bg-rose-500 text-white text-xs font-extrabold">🌍 Milli Maça / Turnuvaya Çık</button>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-400/40 space-y-2">
+        <div class="text-xs font-extrabold text-amber-300">🌕 France Football Ballon d'Or Ödül Galası</div>
+        <div class="text-[11px] text-slate-300">Bu sezon <strong>${p.seasonGoals} gol, ${p.seasonAssists} asist</strong> ürettin. (85+ OVR ve sezonluk 15+ gol katkısı Ballon d'Or şansı verir).</div>
+        <button onclick="attendBallonDorGala()" class="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold">🏆 Paris Ballon d'Or Törenine Katıl</button>
+      </div>
+    </div>
+  `;
+}
+
+function startProFootballerCareer(pos) {
+  if (G.age < 12 || G.age > 34) { showToast('Futbolcu kariyerine başlamak için 12-34 yaş arasında olmalısın!'); return; }
+  ensureMegaFootballState();
+  const p = G.proPlayer;
+  p.active = true;
+  p.position = pos;
+  p.clubName = G.countryId === 'TR' ? 'Altyapı Akademi SK' : 'Youth Academy FC';
+  p.tier = 0;
+  p.pace = randInt(64, 72);
+  p.shooting = pos.includes('SNT') ? randInt(70, 76) : randInt(62, 70);
+  p.passing = pos.includes('OOS') ? randInt(70, 76) : randInt(62, 70);
+  p.dribbling = pos.includes('SLK') ? randInt(70, 76) : randInt(64, 72);
+  p.physical = randInt(60, 68);
+  recalcProPlayerOvr();
+
+  G.sports.branchId = 'football';
+  G.sports.tierIndex = 0;
+  playSfx('trophy');
+  addLog(G.age, `⚽ **FUTBOLCU KARİYERİ BAŞLADI!** Sokak futbolunda yeteneğinle keşfedildin ve **${pos}** mevkisinde akademiye katıldın (${p.ovr} OVR)!`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function playInteractivePlayerMatch() {
+  const p = G.proPlayer;
+  if (p.matchesThisYear >= 4) { showToast('Bu sezonki 4 kritik maç hakkını oynadın! +1 Yaş ilerle.'); return; }
+  p.matchesThisYear += 1;
+  p.apps += 1;
+
+  openEventModal({
+    badge: `⚽ ${p.clubName} • DAKİKA 86 (SKOR 1-1)`,
+    title: 'Ceza Sahası Önünde Topla Buluştun!',
+    desc: `Rakip savunma üstüne geliyor. Yetenek puanlarına göre (Şut: ${p.shooting}, Teknik: ${p.dribbling}, Pas: ${p.passing}) nasıl bir karar vereceksin?`,
+    choices: [
+      {
+        label: `🚀 Kalecinin Soluna Sert Plase Şut Çek (Şut: ${p.shooting})`,
+        action: () => {
+          if (Math.random() < (p.shooting / 115)) {
+            p.goals += 2; p.seasonGoals += 2;
+            p.shooting = clamp(p.shooting + 1, 40, 99);
+            G.fame = clamp(G.fame + 5);
+            playSfx('trophy');
+            addLog(G.age, `⚽ **MAÇIN ADAMI (9.4 Reyting)!** 86. dakikada topu doksana astın, maçta **2 gol** atarak takımını sırtladın!`, 'fame');
+          } else {
+            addLog(G.age, `🧤 Kaleci son anda parmaklarının ucuyla kornere çeldi, maç 1-1 bitti.`, 'normal');
+          }
+          recalcProPlayerOvr(); saveGame(); renderAll(); openMenuSection('pro_footballer');
+        }
+      },
+      {
+        label: `🪄 İki Stoperi Çalımlayıp Kaleciyle Karşı Karşıya Kal (Teknik: ${p.dribbling})`,
+        action: () => {
+          if (Math.random() < (p.dribbling / 115)) {
+            p.goals += 1; p.assists += 1;
+            p.seasonGoals += 1; p.seasonAssists += 1;
+            p.dribbling = clamp(p.dribbling + 1, 40, 99);
+            playSfx('coin');
+            addLog(G.age, `🪄 **RESİTAL!** İki oyuncuyu ipe dizip **1 gol ve 1 asist** ile yıldızlaştın!`, 'good');
+          } else {
+            addLog(G.age, `🦵 Stoper kayarak müdahale etti, pozisyonu değerlendiremedin.`, 'normal');
+          }
+          recalcProPlayerOvr(); saveGame(); renderAll(); openMenuSection('pro_footballer');
+        }
+      },
+      {
+        label: `🧭 Arka Direkteki Boş Arkadaşına "Al da At" Pası Ver (Pas: ${p.passing})`,
+        action: () => {
+          p.assists += 2; p.seasonAssists += 2;
+          p.passing = clamp(p.passing + 1, 40, 99);
+          playSfx('coin');
+          addLog(G.age, `🎯 **MÜKEMMEL VİZYON!** İğne deliğinden geçirdiğin paslarla maçı **2 asistle** tamamladın!`, 'good');
+          recalcProPlayerOvr(); saveGame(); renderAll(); openMenuSection('pro_footballer');
+        }
+      }
+    ]
+  });
+}
+
+function trainProPlayerAttribute(attrKey, cost) {
+  const p = G.proPlayer;
+  if (p.trainsThisYear >= 3) { showToast('Bu yılki 3 özel idman hakkın doldu!'); return; }
+  if (G.money < cost) { showToast('Özel antrenör ücreti için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  p.trainsThisYear += 1;
+  p[attrKey] = clamp(p[attrKey] + randInt(2, 4), 40, 99);
+  recalcProPlayerOvr();
+  playSfx('coin');
+  showToast(`Yetenek gelişti! Yeni OVR: ${p.ovr}`);
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function transferProPlayerToClub(clubName, tier, reqOvr, signBonus) {
+  const p = G.proPlayer;
+  if (p.ovr < reqOvr) { showToast(`Bu kulüp için en az ${reqOvr} OVR gücünde olmalısın!`); return; }
+  p.clubName = clubName;
+  p.tier = tier;
+  G.sports.branchId = 'football';
+  G.sports.tierIndex = tier;
+  G.money += signBonus;
+  G.fame = clamp(G.fame + 18);
+  if (tier === 2) unlockAchievement('pro_champ');
+  playSfx('trophy');
+  addLog(G.age, `✈️ **DEV TRANSFER!** **${clubName}** ile sözleşme imzaladın ve **+${fmtMoney(signBonus)}** imza parası aldın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function playNationalTeamTournament() {
+  const p = G.proPlayer;
+  if (p.ovr < 75) { showToast('A Milli Takım daveti için en az 75 OVR olmalısın!'); return; }
+  const c = getCountry();
+  p.caps += 4;
+  const g = randInt(1, 4);
+  p.intlGoals += g;
+  p.goals += g;
+  p.seasonGoals += g;
+  const bonus = Math.round(c.monthlyMinWage * 4.5);
+  G.money += bonus;
+  G.fame = clamp(G.fame + 10);
+  if (p.caps >= 25) unlockAchievement('national_hero');
+  playSfx('trophy');
+  addLog(G.age, `${c.flag} **MİLLİ FORMA GURURU!** Uluslararası turnuvada 4 maçta **${g} gol** attın ve **+${fmtMoney(bonus)}** milli prim aldın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function attendBallonDorGala() {
+  const p = G.proPlayer;
+  const c = getCountry();
+  const score = p.ovr + (p.seasonGoals + p.seasonAssists) * 1.8;
+  if (score >= 102) {
+    p.ballonDors += 1;
+    const prize = Math.round(c.monthlyMinWage * 35);
+    G.money += prize;
+    G.fame = 100;
+    unlockAchievement('ballon_dor_winner');
+    playSfx('trophy');
+    addLog(G.age, `🌕 **BALLON D'OR KAZANDIN!** Paris'teki törende dünyanın en iyi futbolcusu seçildin (+${fmtMoney(prize)} sponsor ödülü)!`, 'fame');
+  } else {
+    showToast(`Ballon d'Or'u bu yıl kazanamadın! (85+ OVR ve sezonluk 10+ gol/asist hedefle)`);
+  }
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function proPlayerLifestyle(type) {
+  const c = getCountry();
+  const p = G.proPlayer;
+  if (type === 'boot_deal') {
+    const deal = Math.round(c.monthlyMinWage * (p.ovr / 18));
+    G.money += deal;
+    playSfx('coin');
+    addLog(G.age, `👟 Küresel spor markasıyla krampon reklamı çekip **+${fmtMoney(deal)}** kazandın.`, 'good');
+  } else {
+    G.happy = clamp(G.happy + 15);
+    if (Math.random() < 0.35) {
+      const fine = Math.round(c.monthlyMinWage * 1.2);
+      G.money -= fine;
+      addLog(G.age, `📸 Gece kulübü çıkışında paparazzilere yakalandın! Kulüp yönetimi **-${fmtMoney(fine)}** disiplin cezası kesti.`, 'bad');
+    } else {
+      addLog(G.age, `🍾 Takım arkadaşlarınla VIP kutlama yaptın, moralin yükseldi.`, 'good');
+    }
+  }
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+/* ============================================================================
+   BÖLÜM 2 & 3: 🏟️ DERİN KULÜP BAŞKANLIĞI, ŞAMPİYONLAR LİGİ, KÜME DÜŞME & LOBİ
+   ============================================================================ */
+
+// Küme Düşme ve Alt Ligden Yükselme (Promotion / Relegation) Motoru
+function processPromotionAndRelegation() {
+  sortStandingsTable();
+  const lgId = G.club.leagueId;
+  const lg = FOOTBALL_LEAGUES_DB[lgId];
+  const secondPool = SECOND_DIVISION_TEAMS_DB[lgId];
+  if (!lg || !secondPool || secondPool.length === 0) return '';
+
+  const relegated1 = G.club.standings[G.club.standings.length - 1];
+  const relegated2 = G.club.standings[G.club.standings.length - 2];
+
+  // Alt ligden mevcut ligde olmayan 2 takım seç
+  const currentIds = lg.teams.map(t => t.id);
+  const candidates = secondPool.filter(t => !currentIds.includes(t.id));
+  if (candidates.length === 0) return '';
+
+  const promoted = candidates.slice(0, 2);
+  let logMsg = `📉 **Küme Düşenler:** ${relegated2.name}, ${relegated1.name}`;
+
+  promoted.forEach((pTeam, idx) => {
+    const relTarget = idx === 0 ? relegated1 : relegated2;
+    // Eğer oyuncunun kendi kulübü son 2'deyse düşmekten son anda kurtulur ama ağır taraftar tepkisi alır
+    if (relTarget.id === G.club.teamId) {
+      G.club.fanTrust = clamp(G.club.fanTrust - 25);
+      return;
+    }
+    const replaceIdx = lg.teams.findIndex(t => t.id === relTarget.id);
+    if (replaceIdx !== -1) {
+      secondPool.push(lg.teams[replaceIdx]);
+      lg.teams[replaceIdx] = pTeam;
+    }
+  });
+
+  logMsg += ` • 📈 **Üst Lige Çıkanlar:** ${promoted.map(x => x.name).join(', ')}`;
+  return logMsg;
+}
+
+// UEFA Şampiyonlar Ligi / Avrupa Kupası Maç Simülasyonu
+function playEuropeanCupRound() {
+  ensureMegaFootballState();
+  if (!G.club.active || !G.club.inEurope) {
+    showToast('Kulübün bu sezon Avrupa kupalarında yer almıyor! Ligi ilk 4 sırada bitirmelisin.');
+    return;
+  }
+  const c = getCountry();
+  const stageNames = ['Lig Aşaması', 'Son 16 Turu', 'Çeyrek Final', 'Yarı Final', 'UEFA DEV FİNALİ'];
+  const curStage = stageNames[Math.min(4, G.club.euroRound - 1)];
+  const opp = pickRandom(EUROPEAN_OPPONENTS_DB);
+  G.club.euroOpponent = `${opp.flag} ${opp.name}`;
+
+  const uefaWinPrize = Math.round(c.monthlyMinWage * (G.club.euroRound * 8.5));
+  const diff = (G.club.power + Math.round((G.club.tffLobby - 50) * 0.05)) - opp.power;
+  const myGoals = Math.max(0, randInt(0, 3) + (diff >= 0 ? 1 : 0));
+  const oppGoals = Math.max(0, randInt(0, 3) + (diff < -3 ? 1 : 0));
+
+  if (myGoals >= oppGoals) {
+    G.club.clubTreasury += uefaWinPrize;
+    G.club.fanTrust = clamp(G.club.fanTrust + 10);
+    playSfx('trophy');
+
+    if (G.club.euroRound >= 5) {
+      G.club.trophies.ucl += 1;
+      G.club.euroRound = 1;
+      unlockAchievement('ucl_winner');
+      addLog(G.age, `🌍🏆 **AVRUPA ŞAMPİYONU ${G.club.teamName.toUpperCase()}!** Finalde **${opp.flag} ${opp.name}** takımını **${myGoals}-${oppGoals}** devirerek Avrupa Kupasını müzeye götürdün! (+${fmtMoney(uefaWinPrize)} UEFA Ödülü)`, 'fame');
+    } else {
+      G.club.euroRound += 1;
+      addLog(G.age, `🌍 **AVRUPA ZAFERİ (${curStage}):** **${opp.flag} ${opp.name}** karşısında **${myGoals}-${oppGoals}** kazanarak üst tura yükseldin! Kasaya **+${fmtMoney(uefaWinPrize)}** UEFA primi girdi.`, 'fame');
+    }
+  } else {
+    const consolation = Math.round(uefaWinPrize * 0.3);
+    G.club.clubTreasury += consolation;
+    G.club.inEurope = false;
+    G.club.euroRound = 1;
+    playSfx('bad');
+    addLog(G.age, `🌍 **Avrupa'ya Veda (${curStage}):** **${opp.flag} ${opp.name}** takımına **${myGoals}-${oppGoals}** mağlup olarak elendin (+${fmtMoney(consolation)} ayak bastı parası).`, 'bad');
+  }
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+// Altyapıdan Wonderkid Çıkarma
+function promoteAcademyWonderkid() {
+  ensureMegaFootballState();
+  const c = getCountry();
+  const cost = Math.round(c.monthlyMinWage * 3.5);
+  if (G.club.clubTreasury < cost) { showToast('Scout taraması ve profesyonel lisans için kulüp kasası yetersiz!'); return; }
+  G.club.clubTreasury -= cost;
+
+  const wkName = pickRandom(WONDERKID_FIRST_NAMES) + ' ' + pickRandom(WONDERKID_LAST_NAMES);
+  const wkOvr = clamp(74 + G.club.scoutLvl * 3 + randInt(0, 4), 75, 92);
+  G.club.power = clamp(G.club.power + 1, 60, 99);
+  G.club.attPow = clamp(G.club.attPow + 2, 60, 99);
+  G.club.wonderkidsCount += 1;
+  if (G.club.wonderkidsCount >= 3) unlockAchievement('wonderkid_factory');
+
+  playSfx('trophy');
+  addLog(G.age, `🌱 **WONDERKID KEŞFİ!** Altyapı akademisinden 17 yaşındaki **${wkName}** (${wkOvr} Potansiyel) A Takım kadrosuna yükseltildi!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+// Taraftar Grubu (GFB, ultrAslan, Çarşı) ve TFF/MHK Lobisi Aksiyonları
+function doClubPoliticsAction(actType) {
+  ensureMegaFootballState();
+  const c = getCountry();
+  const ultrasName = ULTRAS_GROUPS_DB[G.club.teamId] || ULTRAS_GROUPS_DB.default;
+
+  if (actType === 'ultras_meeting') {
+    const cost = Math.round(c.monthlyMinWage * 2.0);
+    if (G.club.clubTreasury < cost) { showToast('Koreografi ve deplasman bütçesi için kasa yetersiz!'); return; }
+    G.club.clubTreasury -= cost;
+    G.club.ultrasMood = clamp(G.club.ultrasMood + 18);
+    G.club.fanTrust = clamp(G.club.fanTrust + 12);
+    playSfx('coin');
+    addLog(G.age, `🔥 **${ultrasName}** tribün liderleriyle bir araya gelip dev koreografi ve deplasman otobüslerini finanse ettin! Tribün desteği **%${G.club.ultrasMood}** oldu.`, 'good');
+  } else if (actType === 'tff_lobby') {
+    const lobbyCost = Math.round(c.monthlyMinWage * 5.0);
+    if (G.club.clubTreasury < lobbyCost) { showToast('Kulis bütçesi yetersiz!'); return; }
+    G.club.clubTreasury -= lobbyCost;
+    G.club.tffLobby = clamp(G.club.tffLobby + 16);
+    G.club.power = clamp(G.club.power + 1, 60, 99);
+    playSfx('coin');
+    addLog(G.age, `🏛️ Federasyon ve MHK koridorlarında yoğun kulis yürüttün! Kulübün kurul ağırlığı **%${G.club.tffLobby}** seviyesine çıktı.`, 'good');
+  } else if (actType === 'ffp_audit') {
+    const sponsorBoost = Math.round(c.monthlyMinWage * 12);
+    G.club.clubTreasury += sponsorBoost;
+    playSfx('coin');
+    addLog(G.age, `📑 Şirketlerin üzerinden yaptığın sponsorluk ve locayla UEFA FFP denetimini başarıyla geçtin! Kasaya **+${fmtMoney(sponsorBoost)}** girdi.`, 'good');
+  }
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+// Serbest Oyuncu İmzalama & Gelen Astronomik Teklifi Kabul Etme
+function signFreeAgentPlayer(faId, bonusCost) {
+  if (G.club.roster.includes(faId)) { showToast('Bu oyuncu zaten kadroda!'); return; }
+  if (G.club.clubTreasury < bonusCost) { showToast('İmza parası için kulüp kasası yetersiz!'); return; }
+  const fa = FREE_AGENT_PLAYERS_DB.find(x => x.id === faId);
+  if (!fa) return;
+
+  G.club.clubTreasury -= bonusCost;
+  G.club.roster.push(faId);
+  G.club.power = clamp(G.club.power + 1, 60, 99);
+  playSfx('trophy');
+  addLog(G.age, `✍️ Bonservisi elinde olan yıldız **${fa.name}** (${fa.ovr} OVR), sadece imza parasıyla kadroya katıldı!`, 'good');
+  saveGame(); renderAll(); openMenuSection('club_presidency');
+}
+
+// Mevcut Kulüp Başkanlığı Görünümünü Genişleten Hook
+(function attachMegaFootballPack() {
+  if (window._megaFootballPackLoaded) return;
+  window._megaFootballPackLoaded = true;
+
+  // 1. Sezon Sonuna Küme Düşme / Çıkma Ekle
+  const _baseFinishClubSeason = finishClubSeason;
+  finishClubSeason = function () {
+    const promoMsg = processPromotionAndRelegation();
+    if (promoMsg) addLog(G.age, promoMsg, 'milestone');
+    G.club.euroRound = 1;
+    _baseFinishClubSeason();
+  };
+
+  // 2. Yaş İlerlediğinde Futbolcu Kariyeri Maaşını ve İdman Haklarını Güncelle
+  const _baseAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureMegaFootballState();
+    if (G && G.proPlayer && G.proPlayer.active) {
+      const c = getCountry();
+      const p = G.proPlayer;
+      p.trainsThisYear = 0;
+      p.matchesThisYear = 0;
+      const annualWage = Math.round(c.monthlyMinWage * (p.tier === 0 ? 1.8 : (p.tier === 1 ? 10.5 : 34.0)) * (p.ovr / 70)) * 12;
+      G.money += annualWage;
+      addLog(G.age + 1, `⚽ **${p.clubName}** futbolcu kontratından yıllık **+${fmtMoney(annualWage)}** maaş ve maç başı prim kazandın.`, 'good');
+    }
+    _baseAdvanceAge();
+  };
+
+  // 3. Kulüp Başkanlığı Ekranına Avrupa Kupası, Taraftar Grupları, TFF Lobisi ve Serbest Transferleri Ekle
+  const _baseRenderClubView = renderClubPresidencyView;
+  renderClubPresidencyView = function () {
+    ensureMegaFootballState();
+    const baseHtml = _baseRenderClubView();
+    if (!G.club.active) return baseHtml;
+
+    const c = getCountry();
+    const ultrasName = ULTRAS_GROUPS_DB[G.club.teamId] || ULTRAS_GROUPS_DB.default;
+    const stageNames = ['Lig Aşaması', 'Son 16 Turu', 'Çeyrek Final', 'Yarı Final', 'UEFA DEV FİNALİ'];
+    const curEuroStage = stageNames[Math.min(4, G.club.euroRound - 1)];
+
+    // Fikstür Sekmesine UEFA Şampiyonlar Ligi Kura & Maç Kartı Ekle
+    if (activeClubSubTab === 'fixture') {
+      const uclCard = `
+        <div class="ucl-stage-card mb-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[9px] font-extrabold text-indigo-300 uppercase tracking-widest">🌍 ${G.club.europeStage} &bull; ${curEuroStage}</div>
+              <div class="text-xs font-extrabold text-white">${G.club.inEurope ? `Sıradaki Avrupa Maçı: ${G.club.teamName} vs Avrupa Devi` : 'Bu Sezon Avrupa Kupalarından Elendin'}</div>
+            </div>
+            <span class="px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">Tur #${G.club.euroRound}/5</span>
+          </div>
+          ${G.club.inEurope ? `
+            <button onclick="playEuropeanCupRound()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-400 text-slate-950 text-xs font-extrabold">
+              🌍 UEFA Avrupa Kupası Tur Maçını Oyna (Yüksek Euro Primi)
+            </button>
+          ` : ''}
+        </div>
+      `;
+      return uclCard + baseHtml;
+    }
+
+    // Taktik Sekmesine Wonderkid Akademisi Ekle
+    if (activeClubSubTab === 'squad') {
+      const wkCost = Math.round(c.monthlyMinWage * 3.5);
+      const wkCard = `
+        <div class="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 flex items-center justify-between mb-2.5">
+          <div>
+            <div class="text-xs font-extrabold text-emerald-300">🌱 Scout &amp; Wonderkid Akademisi (Üretilen: ${G.club.wonderkidsCount})</div>
+            <div class="text-[10px] text-slate-300">Altyapıdan 17 yaşında üstün yetenekli genç yıldız çıkarıp A Takım gücünü artır</div>
+          </div>
+          <button onclick="promoteAcademyWonderkid()" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">Keşfet (${fmtMoney(wkCost)})</button>
+        </div>
+      `;
+      return wkCard + baseHtml;
+    }
+
+    // Transfer Sekmesine Serbest (Bonservissiz) Yıldızlar Ekle
+    if (activeClubSubTab === 'transfer') {
+      const faHtml = `
+        <div class="p-3 rounded-2xl bg-indigo-950/30 border border-indigo-500/40 space-y-2 mb-2.5">
+          <div class="text-xs font-extrabold text-indigo-300">✍️ Serbest Statüdeki (Bonservissiz) Yıldızlar</div>
+          ${FREE_AGENT_PLAYERS_DB.map(fa => {
+            const bonus = Math.round(c.monthlyMinWage * fa.signBonusMult);
+            const has = G.club.roster.includes(fa.id);
+            return `
+              <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-white">${fa.name} <span class="text-emerald-400">(${fa.ovr} OVR)</span></div>
+                  <div class="text-[10px] text-slate-400">Mevki: ${fa.pos} • İmza Parası: ${fmtMoney(bonus)}</div>
+                </div>
+                <button onclick="signFreeAgentPlayer('${fa.id}', ${bonus})" class="px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold ${has ? 'bg-slate-800 text-emerald-400' : 'bg-indigo-500 text-white'}">${has ? 'Kadroda ✓' : 'İmzala'}</button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      return baseHtml + faHtml;
+    }
+
+    // Medya Sekmesine Taraftar Grubu (GFB/ultrAslan/Çarşı), TFF/MHK Lobisi ve FFP Ekle
+    if (activeClubSubTab === 'media') {
+      const lobbyPanel = `
+        <div class="ultras-banner-card mb-2.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-orange-400">🔥 ${ultrasName} Tribün İlişkileri</span>
+            <span class="text-xs font-mono-num font-bold text-white">Sadakat: %${G.club.ultrasMood}</span>
+          </div>
+          <div class="text-[10px] text-slate-300">TFF/MHK Lobi Gücü: <strong>%${G.club.tffLobby}</strong> • Tribün koreografisi ve federasyon kulis faaliyetlerini buradan yönetebilirsin.</div>
+          <div class="grid grid-cols-1 gap-1.5 pt-1">
+            <button onclick="doClubPoliticsAction('ultras_meeting')" class="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-300 text-xs font-bold text-left">🥁 ${ultrasName} Liderleriyle Toplan &amp; Koreografi Destekle</button>
+            <button onclick="doClubPoliticsAction('tff_lobby')" class="p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-bold text-left">🏛️ TFF &amp; MHK Koridorlarında Hakem Lobisi Yürüt</button>
+            <button onclick="doClubPoliticsAction('ffp_audit')" class="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold text-left">📑 UEFA Finansal Fair Play (FFP) Sponsorluk Operasyonu Yap</button>
+          </div>
+        </div>
+      `;
+      return lobbyPanel + baseHtml;
+    }
+
+    return baseHtml;
+  };
+
+  // 4. Menüye ve Spor Sekmesine "⚽ Futbolcu Kariyeri (Sokaktan Ballon d'Or'a)" Butonu Ekle
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureMegaFootballState();
+    if (sec === 'pro_footballer') {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '⚽ Futbolcu Kariyeri: Sokaktan Ballon d’Or’a';
+      document.getElementById('sheetSubtitle').textContent = G.proPlayer.active
+        ? `${G.proPlayer.clubName} • ${G.proPlayer.ovr} OVR • €${G.proPlayer.marketValueM}M Değer`
+        : 'Altyapı Seçmeleri, Yetenek Ağacı, Milli Takım & Altın Top';
+      document.getElementById('sheetBody').innerHTML = renderProFootballerCareerView();
+      return;
+    }
+    _prevOpenMenuSec(sec);
+
+    if (sec === 'sports') {
+      const body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('proFootballerHeroBtn')) {
+        const subLbl = G.proPlayer.active
+          ? `${G.proPlayer.clubName} (${G.proPlayer.ovr} OVR) • ${G.proPlayer.goals} Gol / ${G.proPlayer.assists} Asist`
+          : '12+ Yaş Sokak Futbolu, 5’li Yetenek Ağacı, Milli Takım & Ballon d’Or';
+        const btnHtml = `
+          <button id="proFootballerHeroBtn" onclick="openMenuSection('pro_footballer')" class="w-full p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/25 via-yellow-500/15 to-emerald-500/20 border border-amber-400/50 flex items-center justify-between text-left mb-3 shadow-lg">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🌕</span>
+              <div>
+                <div class="text-xs font-extrabold text-white">Sokaktan Ballon d’Or’a: Pro Futbolcu Kariyeri</div>
+                <div class="text-[10px] text-amber-300 font-semibold">${subLbl}</div>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">Kariyer &rarr;</span>
+          </button>
+        `;
+        body.insertAdjacentHTML('afterbegin', btnHtml);
+      }
+    }
+  };
+})();
