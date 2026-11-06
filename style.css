@@ -290,3 +290,38 @@ html, body {
   border-radius: 14px;
   padding: 10px;
 }
+
+/* ============================================================================
+   MEGA FUTBOL PAKETİ: FUT KARTI, ŞAMPİYONLAR LİGİ VE TRİBÜN STİLLERİ
+   ============================================================================ */
+.fut-player-card {
+  background: linear-gradient(145deg, #2e230a 0%, #141824 55%, #090d16 100%);
+  border: 1.5px solid rgba(250, 204, 21, 0.55);
+  border-radius: 20px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+}
+.fut-player-card::after {
+  content: '';
+  position: absolute;
+  top: -50%; right: -25%;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.16) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ucl-stage-card {
+  background: radial-gradient(circle at top right, #1e1b4b 0%, #090d16 70%);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 8px 25px rgba(30, 27, 75, 0.6);
+}
+.ultras-banner-card {
+  background: linear-gradient(90deg, rgba(127, 29, 29, 0.35) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-left: 4px solid #f97316;
+  border-radius: 16px;
+  padding: 12px;
+}
