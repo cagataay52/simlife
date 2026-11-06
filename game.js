@@ -4274,3 +4274,619 @@ function signFreeAgentPlayer(faId, bonusCost) {
     }
   };
 })();
+
+/* ============================================================================
+   GERÇEKÇİ FUTBOLCU KEŞİF SİSTEMİ: OKUL TAKIMI -> SCOUT -> ALTYAPI -> PRO
+   ============================================================================ */
+
+// Durum başlatıcıyı yeni Okul Takımı, Scout Radarı, Altyapı Teklifleri ve Menajer sistemiyle genişlet
+function upgradeProPlayerState() {
+  if (!G) return;
+  if (typeof ensureMegaFootballState === 'function') ensureMegaFootballState();
+
+  const p = G.proPlayer;
+  if (!p.stage) p.stage = p.active ? (p.tier >= 1 ? 'pro_star' : 'school_team') : 'none';
+  // Aşamalar: 'none' | 'street' | 'school_team' | 'u19_academy' | 'pro_reserve' | 'pro_star'
+  if (typeof p.scoutRadar !== 'number') p.scoutRadar = 15;
+  if (!Array.isArray(p.pendingOffers)) p.pendingOffers = [];
+  if (!p.academyId) p.academyId = null;
+  if (!p.agentId) p.agentId = 'family';
+  if (typeof p.coachTrust !== 'number') p.coachTrust = 55;
+  if (typeof p.onLoan !== 'boolean') p.onLoan = false;
+}
+
+// Gözlemci (Scout) Radarına Göre Gerçek Kulüp Altyapı Teklifi Üretici
+function generateYouthScoutOffers(count = 2) {
+  upgradeProPlayerState();
+  const p = G.proPlayer;
+  const ag = FOOTBALL_AGENTS_DB.find(a => a.id === p.agentId) || FOOTBALL_AGENTS_DB[0];
+  const effectiveRadar = p.scoutRadar + ag.radarBonus;
+
+  const pool = YOUTH_ACADEMIES_DB.filter(ac => effectiveRadar >= ac.minRadar);
+  const sourcePool = pool.length > 0 ? pool : [YOUTH_ACADEMIES_DB[0], YOUTH_ACADEMIES_DB[3]];
+
+  for (let i = 0; i < count; i++) {
+    const picked = pickRandom(sourcePool);
+    if (!p.pendingOffers.some(o => o.id === picked.id)) {
+      p.pendingOffers.push(picked);
+    }
+  }
+}
+
+// Yenilenmiş Gerçekçi Futbolcu Kariyer Ekranı
+renderProFootballerCareerView = function () {
+  upgradeProPlayerState();
+  const c = getCountry();
+  const p = G.proPlayer;
+  recalcProPlayerOvr();
+
+  const stageLabels = {
+    none: 'Henüz Başlamadı',
+    street: '👟 Sokak & Mahalle Futbolcusu',
+    school_team: '🏫 Okul Takımı & İl Turnuvası Oyuncusu',
+    u19_academy: '🌱 Kulüp Altyapı Akademisi (U19 Elit Lig)',
+    pro_reserve: '📋 Profesyonel A Takım (Rotasyon / Kiralık)',
+    pro_star: '🌟 A Takım Yıldızı & Uluslararası Profesyonel'
+  };
+
+  // AŞAMA 0: Henüz Başlamamışsa (Sokak / Okul Takımı Seçmeleri)
+  if (!p.active || p.stage === 'none') {
+    return `
+      <div class="fut-player-card mb-3 space-y-2">
+        <div class="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest">⚽ GERÇEKÇİ FUTBOLCU YOLCULUĞU</div>
+        <div class="text-sm font-extrabold text-white">Okul Takımından Keşfedilip Kulüp Altyapısına Gir!</div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Gerçek hayattaki gibi önce <strong>Okul Takımı</strong> seçmelerine katılır, okul sonrası antrenmanlara çıkar ve <strong>Okullararası Turnuvalarda</strong> oynarsın. Tribündeki kulüp gözlemcileri (Scout) seni beğendiğinde <strong>Fenerbahçe, Galatasaray, Beşiktaş, Trabzonspor veya Avrupa</strong> altyapılarından resmi teklif alırsın!
+        </p>
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">🎯 Mevkini Seç ve Okul / Sokak Seçmelerine Gir (7-20 Yaş)</h4>
+        ${[
+          { pos: 'SNT / Santrafor (9 Numara)', desc: 'Ceza sahası golcüsü, hava topları ve soğukkanlı bitiricilik' },
+          { pos: 'OOS / 10 Numara Oyun Kurucu', desc: 'Kilit paslar, frikik ustası ve uzaktan sert şutlar' },
+          { pos: 'SLK-SĞK / Çizgi Kanat Forvet', desc: 'Patlayıcı sprint, bire bir çalım ve orta/şut tehdidi' },
+          { pos: 'MO / Merkez Orta Saha (8 Numara)', desc: 'Oyun kurulumu, yüksek kondisyon ve saha içi liderlik' }
+        ].map(item => `
+          <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">⚽ ${item.pos}</div>
+              <div class="text-[10px] text-slate-400">${item.desc}</div>
+            </div>
+            <button onclick="beginGrassrootsFootball('${item.pos}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Seçmeye Gir &rarr;</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Maaş / Burs Hesabı (Aşamaya Göre)
+  let monthlyIncome = 0;
+  if (p.stage === 'u19_academy') {
+    const ac = YOUTH_ACADEMIES_DB.find(x => x.id === p.academyId);
+    monthlyIncome = Math.round(c.monthlyMinWage * (ac ? ac.stipendMult : 0.45));
+  } else if (p.stage === 'pro_reserve') {
+    monthlyIncome = Math.round(c.monthlyMinWage * (p.onLoan ? 2.4 : 3.2) * (p.ovr / 70));
+  } else if (p.stage === 'pro_star') {
+    monthlyIncome = Math.round(c.monthlyMinWage * (p.tier >= 2 ? 32.0 : 11.5) * (p.ovr / 72));
+  }
+
+  const futHeader = `
+    <div class="fut-player-card mb-2.5 space-y-2.5">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-16 rounded-2xl bg-amber-400/20 border-2 border-amber-400 flex flex-col items-center justify-center shrink-0">
+            <span class="text-lg font-black font-mono-num text-amber-300 leading-none">${p.ovr}</span>
+            <span class="text-[8px] font-extrabold text-white uppercase mt-0.5">${p.position.split(' ')[0]}</span>
+          </div>
+          <div>
+            <div class="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider">${stageLabels[p.stage] || p.stage}</div>
+            <div class="text-sm font-extrabold text-white">${G.firstName} ${G.lastName} <span class="text-xs text-slate-300 font-normal">(${p.clubName})</span></div>
+            <div class="text-[10px] text-emerald-400 font-mono-num">
+              ${monthlyIncome > 0 ? `Gelir: +${fmtMoney(monthlyIncome)}/ay` : 'Amatör / Okul Lisansı'} &bull; Değer: €${p.marketValueM}M
+            </div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold">🌕 ${p.ballonDors}</span>
+      </div>
+
+      <!-- Scout Radarı & Teknik Direktör Güveni Barı -->
+      <div class="grid grid-cols-2 gap-2 bg-slate-950/85 p-2 rounded-xl border border-slate-800">
+        <div>
+          <div class="flex justify-between text-[9px] font-bold mb-0.5">
+            <span class="text-sky-400">🕵️‍♂️ Kulüp Scout Radarı</span>
+            <span class="font-mono-num text-white">%${clamp(p.scoutRadar)}</span>
+          </div>
+          <div class="stat-track"><div class="stat-fill bg-sky-400" style="width:${clamp(p.scoutRadar)}%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-[9px] font-bold mb-0.5">
+            <span class="text-emerald-400">👔 Hoca Forma Güveni</span>
+            <span class="font-mono-num text-white">%${clamp(p.coachTrust)}</span>
+          </div>
+          <div class="stat-track"><div class="stat-fill bg-emerald-400" style="width:${clamp(p.coachTrust)}%"></div></div>
+        </div>
+      </div>
+
+      <!-- 5'li Yetenek Puanları -->
+      <div class="grid grid-cols-5 gap-1.5 text-center">
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">⚡ HIZ</div><div class="text-xs font-extrabold font-mono-num text-white">${p.pace}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🎯 ŞUT</div><div class="text-xs font-extrabold font-mono-num text-white">${p.shooting}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🧭 PAS</div><div class="text-xs font-extrabold font-mono-num text-white">${p.passing}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">🪄 TEKNİK</div><div class="text-xs font-extrabold font-mono-num text-white">${p.dribbling}</div></div>
+        <div class="p-1.5 rounded-xl bg-slate-950/90 border border-slate-800"><div class="text-[8px] text-slate-400">💪 FİZİK</div><div class="text-xs font-extrabold font-mono-num text-white">${p.physical}</div></div>
+      </div>
+    </div>
+
+    <!-- 4 Alt Sekme -->
+    <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[10px] font-extrabold">
+      <button onclick="activeProPlayerTab='overview'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'overview' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🏟️ Kariyer &amp; Maç</button>
+      <button onclick="activeProPlayerTab='train'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'train' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🏋️ Antrenman</button>
+      <button onclick="activeProPlayerTab='transfer'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'transfer' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">📩 Teklifler ${p.pendingOffers.length > 0 ? `(${p.pendingOffers.length})` : ''}</button>
+      <button onclick="activeProPlayerTab='national'; openMenuSection('pro_footballer')" class="py-2 rounded-xl ${activeProPlayerTab === 'national' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🇹🇷 Milli &amp; Ödül</button>
+    </div>
+  `;
+
+  // SEKME 1: AŞAMAYA GÖRE MAÇ, OKUL TURNUVASI, U19 VEYA A TAKIM SAHNESİ
+  if (activeProPlayerTab === 'overview') {
+    let stageBoxHtml = '';
+
+    // 1) Okul Takımı & Sokak Aşaması
+    if (p.stage === 'street' || p.stage === 'school_team') {
+      stageBoxHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/40 space-y-2.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-sky-400">🏫 Okul Takımı &amp; Gözlemci (Scout) Vitrini</span>
+            <span class="text-[10px] font-mono-num text-slate-300">Maç Hakkı: ${4 - p.matchesThisYear}/4</span>
+          </div>
+          <p class="text-[11px] text-slate-300">Okul çıkışlarında antrenman yaparak ve <strong>Okullararası İl Turnuvası</strong> maçlarına çıkarak kulüp scoutlarının dikkatini çek! Radar <strong>%45+</strong> olduğunda kulüpler altyapı teklifi gönderir.</p>
+          <div class="grid grid-cols-1 gap-2">
+            <button onclick="doGrassrootsAction('school_train')" class="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold text-left">
+              👟 Okul Çıkışı Takımla Çift Kale Antrenman Yap (+Yetenek &amp; +%12 Scout Radarı)
+            </button>
+            <button onclick="doGrassrootsAction('school_cup_match')" class="p-3 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-400 text-slate-950 text-xs font-extrabold text-center">
+              🏆 Okullararası İl Şampiyonası Maçına Çık (Tribünde Scoutlar Var!)
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    // 2) Kulüp Altyapı Akademisi (U19 Elit Lig) Aşaması
+    else if (p.stage === 'u19_academy') {
+      stageBoxHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-emerald-400">🌱 ${p.clubName} (U19 Elit Lig)</span>
+            <span class="text-[10px] font-mono-num text-white">Hoca Güveni: %${p.coachTrust}</span>
+          </div>
+          <p class="text-[11px] text-slate-300">Altyapıda U19 maçlarında yıldızlaşıp A Takım hocasının güvenini <strong>%75+</strong> seviyesine çıkardığında (veya 68+ OVR olduğunda) <strong>Profesyonel A Takım Sözleşmesi</strong> imzalayabilirsin!</p>
+          <div class="grid grid-cols-1 gap-2">
+            <button onclick="doGrassrootsAction('u19_match')" class="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-extrabold">
+              ⚽ U19 Elit Lig Derbisine İlk 11 Çık (+OVR &amp; +A Takım Hoca Güveni)
+            </button>
+            <button onclick="doGrassrootsAction('sign_first_pro')" class="p-2.5 rounded-xl ${p.ovr >= 68 || p.coachTrust >= 75 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'} text-xs font-extrabold">
+              ✍️ Profesyonel A Takım Sözleşmesi İmzala (68+ OVR veya %75 Güven)
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    // 3) Profesyonel A Takım Rotasyon / Kiralık (Loan) Aşaması
+    else if (p.stage === 'pro_reserve') {
+      stageBoxHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2.5">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-amber-400">📋 A Takım Kadrosu ${p.onLoan ? '(Kiralık İlk 11)' : '(Genç Rotasyon)'}</span>
+            <span class="text-[10px] font-mono-num text-white">Hoca Güveni: %${p.coachTrust}</span>
+          </div>
+          <p class="text-[11px] text-slate-300">A Takımda sonradan oyuna girerek kendini kanıtlayabilir ya da banko ilk 11 oynamak için <strong>1 sezonluğuna kiralık (Loan)</strong> giderek OVR puanını hızla patlatabilirsin!</p>
+          <div class="grid grid-cols-1 gap-2">
+            <button onclick="playInteractivePlayerMatch()" class="p-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 text-xs font-extrabold">
+              ▶️ Süper Lig / Avrupa Maçında Sahaya Çık (${4 - p.matchesThisYear}/4 Hak)
+            </button>
+            <button onclick="doGrassrootsAction(' become_starter')" class="p-2.5 rounded-xl ${p.ovr >= 74 || p.coachTrust >= 85 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'} text-xs font-extrabold">
+              🌟 Takımın Değişilmez İlk 11 Yıldızı Ol (74+ OVR veya %85 Güven)
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    // 4) A Takım Yıldızı
+    else {
+      stageBoxHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-white">🌟 İlk 11 Süperstarı • Haftanın Maçı</span>
+            <span class="text-[10px] font-mono-num text-emerald-400">Kalan Hak: ${4 - p.matchesThisYear}/4</span>
+          </div>
+          <button onclick="playInteractivePlayerMatch()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-extrabold">
+            ▶️ Sahaya İlk 11 Çık ve Kritik Pozisyonu Yönet
+          </button>
+        </div>
+      `;
+    }
+
+    return futHeader + stageBoxHtml + `
+      ${p.pendingOffers.length > 0 ? `
+        <div onclick="activeProPlayerTab='transfer'; openMenuSection('pro_footballer')" class="cursor-pointer p-3 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-between animate-pulse mt-2">
+          <div class="text-xs font-extrabold text-amber-300">📩 ${p.pendingOffers.length} Kulüp Gözlemcisinden Resmi Altyapı Teklifin Var!</div>
+          <span class="text-xs font-extrabold text-white">İncele &rarr;</span>
+        </div>
+      ` : ''}
+
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 mt-2">
+        <div class="text-xs font-extrabold text-white">🌟 Saha Dışı Yaşam &amp; Sponsorluk</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="proPlayerLifestyle('boot_deal')" class="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">👟 Krampon Sponsorluğu</button>
+          <button onclick="proPlayerLifestyle('nightclub')" class="p-2.5 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-[11px] font-bold">🍾 VIP Kutlama Partisi</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 2: ANTRENMAN & BİREYSEL GELİŞİM
+  if (activeProPlayerTab === 'train') {
+    const trainCost = Math.round(c.monthlyMinWage * (p.stage === 'school_team' ? 0.15 : 0.45));
+    const attrs = [
+      { key: 'pace', name: '⚡ Patlayıcı Sprint & Çeviklik İdmanı', val: p.pace },
+      { key: 'shooting', name: '🎯 Bitiricilik & Ceza Sahası Şut İdmanı', val: p.shooting },
+      { key: 'passing', name: '🧭 Vizyon & Uzun Pas İstasyonu', val: p.passing },
+      { key: 'dribbling', name: '🪄 Dar Alan Çalım & Frikik Çalışması', val: p.dribbling },
+      { key: 'physical', name: '💪 Core Kuvvet & İkili Mücadele', val: p.physical }
+    ];
+    return futHeader + `
+      <div class="text-[11px] text-slate-400 mb-1">Bu Yıl Kalan Özel Antrenman Hakkı: <strong class="text-emerald-400">${3 - p.trainsThisYear}/3</strong></div>
+      <div class="space-y-2">
+        ${attrs.map(a => `
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">${a.name}</div>
+              <div class="text-[10px] text-slate-400">Seviye: <strong class="text-amber-400">${a.val} / 99</strong></div>
+            </div>
+            <button onclick="trainProPlayerAttribute('${a.key}', ${trainCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold">Çalış (${fmtMoney(trainCost)})</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 3: SCOUT ALTYAPI TEKLİFLERİ, KİRALIK (LOAN) KULÜPLER, MENAJER VE DEV TRANSFERLER
+  if (activeProPlayerTab === 'transfer') {
+    const curAgent = FOOTBALL_AGENTS_DB.find(a => a.id === p.agentId) || FOOTBALL_AGENTS_DB[0];
+
+    // 1. Gelen Altyapı Scout Teklifleri
+    let scoutOffersHtml = '';
+    if (p.stage === 'street' || p.stage === 'school_team') {
+      scoutOffersHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/40 space-y-2 mb-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-sky-400">🕵️‍♂️ Kulüp Gözlemcilerinden (Scout) Gelen Altyapı Teklifleri</span>
+            <button onclick="requestManualScoutTrial()" class="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 text-[10px] font-extrabold">Kulüp Seçmesine Git</button>
+          </div>
+          ${p.pendingOffers.length === 0 ? `<div class="text-[11px] text-slate-400">Henüz resmi teklif yok. Okul takımında maçlara çıkıp Scout Radarını (%${p.scoutRadar}) yükselt veya sağ üstten seçmelere katıl!</div>` : `
+            <div class="space-y-2 pt-1">
+              ${p.pendingOffers.map(ac => {
+                const stip = Math.round(c.monthlyMinWage * ac.stipendMult);
+                return `
+                  <div class="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between gap-2">
+                    <div>
+                      <div class="text-xs font-extrabold text-white">${ac.flag} ${ac.name}</div>
+                      <div class="text-[10px] text-slate-400">${ac.desc}</div>
+                      <div class="text-[10px] text-emerald-400 font-mono-num mt-0.5">Altyapı Bursu: +${fmtMoney(stip)}/ay • Gelişim: +${ac.devBoost} OVR</div>
+                    </div>
+                    <button onclick="acceptYouthAcademyOffer('${ac.id}')" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">İmzala</button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // 2. Kiralık (Loan) Gidilebilecek Kulüpler (U19 veya A Takım Rotasyondayken)
+    let loanHtml = '';
+    if (p.stage === 'u19_academy' || p.stage === 'pro_reserve') {
+      loanHtml = `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2 mb-3">
+          <div class="text-xs font-extrabold text-amber-300">🔄 1 Yıllık Kiralık (Loan) Transfer Teklifleri (İlk 11 Garantili)</div>
+          <div class="space-y-1.5">
+            ${LOAN_CLUBS_DB.map((lc, idx) => `
+              <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-bold text-white">⚽ ${lc.name} <span class="text-emerald-400">(+${lc.boostOvr} OVR Gelişim)</span></div>
+                  <div class="text-[10px] text-slate-400">${lc.desc}</div>
+                </div>
+                <button onclick="goOutOnLoan(${idx})" class="px-2.5 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">Kiralık Git</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Menajer (Agent) Seçimi
+    const agentHtml = `
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 mb-3">
+        <div class="text-xs font-extrabold text-white">💼 Futbolcu Menajerin: <span class="text-amber-400">${curAgent.name}</span></div>
+        <div class="grid grid-cols-3 gap-1.5">
+          ${FOOTBALL_AGENTS_DB.map(ag => `
+            <button onclick="G.proPlayer.agentId='${ag.id}'; saveGame(); openMenuSection('pro_footballer');" class="p-2 rounded-xl border text-left ${p.agentId === ag.id ? 'border-amber-400 bg-amber-400/15 text-white' : 'border-slate-800 bg-slate-950 text-slate-400'}">
+              <div class="text-[10px] font-extrabold truncate">${ag.name.split(' ')[0]}</div>
+              <div class="text-[9px] text-emerald-400">+%${Math.round((ag.bonusMult - 1) * 100)} İmza</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // 4. Profesyonel Kulüp Transfer Teklifleri
+    const targetClubs = [
+      { name: '🟡🔵 Fenerbahçe', tier: 1, reqOvr: 73, signMult: 15 },
+      { name: '🟡🔴 Galatasaray', tier: 1, reqOvr: 73, signMult: 15 },
+      { name: '⚫⚪ Beşiktaş', tier: 1, reqOvr: 72, signMult: 13 },
+      { name: '🔴⚫ AC Milan', tier: 2, reqOvr: 80, signMult: 38 },
+      { name: '🔴⚪ Arsenal', tier: 2, reqOvr: 83, signMult: 52 },
+      { name: '🔵🔴 FC Barcelona', tier: 2, reqOvr: 85, signMult: 65 },
+      { name: '⚪🟣 Real Madrid', tier: 2, reqOvr: 87, signMult: 80 },
+      { name: '🔵⚪ Manchester City', tier: 2, reqOvr: 87, signMult: 80 }
+    ];
+
+    return futHeader + scoutOffersHtml + loanHtml + agentHtml + `
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">✈️ A Takım Bonservisli Transfer Masası</h4>
+      <div class="space-y-2">
+        ${targetClubs.map(tc => {
+          const signBonus = Math.round(c.monthlyMinWage * tc.signMult * curAgent.bonusMult);
+          const canJoin = p.ovr >= tc.reqOvr && (p.stage === 'pro_reserve' || p.stage === 'pro_star' || p.ovr >= 75);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${tc.name}</div>
+                <div class="text-[10px] text-slate-400">Şart: <strong>${tc.reqOvr}+ OVR</strong> • Net İmza Parası: <strong class="text-emerald-400">+${fmtMoney(signBonus)}</strong></div>
+              </div>
+              <button onclick="transferProPlayerToClub('${tc.name}', ${tc.tier}, ${tc.reqOvr}, ${signBonus})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold ${canJoin ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500'}">Transfer Ol</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 4: MİLLİ TAKIM & BALLON D'OR
+  return futHeader + `
+    <div class="space-y-2.5">
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-rose-500/40 space-y-2">
+        <div class="text-xs font-extrabold text-white">${c.flag} Milli Futbol Takımı (74+ OVR)</div>
+        <div class="text-[11px] text-slate-300">Milli Maç: <strong>${p.caps}</strong> • Milli Gol: <strong>${p.intlGoals}</strong></div>
+        <button onclick="playNationalTeamTournament()" class="w-full py-2.5 rounded-xl bg-rose-500 text-white text-xs font-extrabold">🌍 Milli Maça / Turnuvaya Çık</button>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-400/40 space-y-2">
+        <div class="text-xs font-extrabold text-amber-300">🌕 France Football Ballon d'Or Ödül Galası</div>
+        <div class="text-[11px] text-slate-300">Bu sezon <strong>${p.seasonGoals} gol, ${p.seasonAssists} asist</strong> ürettin.</div>
+        <button onclick="attendBallonDorGala()" class="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold">🏆 Paris Ballon d'Or Törenine Katıl</button>
+      </div>
+    </div>
+  `;
+};
+
+// Okul Takımı Başlangıç Fonksiyonu
+function beginGrassrootsFootball(pos) {
+  if (G.age < 7 || G.age > 22) {
+    showToast('Okul takımı ve altyapı seçmeleri için 7–22 yaş arasında olmalısın!');
+    return;
+  }
+  upgradeProPlayerState();
+  const p = G.proPlayer;
+  p.active = true;
+  p.stage = 'school_team';
+  p.position = pos;
+  p.clubName = 'Okul Futbol Takımı';
+  p.tier = 0;
+  p.scoutRadar = 25;
+  p.coachTrust = 60;
+  p.pace = randInt(58, 66);
+  p.shooting = pos.includes('SNT') ? randInt(64, 70) : randInt(56, 64);
+  p.passing = pos.includes('OOS') ? randInt(64, 70) : randInt(56, 64);
+  p.dribbling = pos.includes('SLK') ? randInt(64, 70) : randInt(58, 66);
+  p.physical = randInt(55, 63);
+  recalcProPlayerOvr();
+
+  playSfx('trophy');
+  addLog(G.age, `🏫 **OKUL TAKIMI SEÇMELERİ:** Beden eğitimi öğretmeninin yaptığı seçmeleri kazanarak **${pos}** mevkisinde Okul Takımı formasını giydin (${p.ovr} OVR)!`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+// Okul Takımı, U19 ve A Takıma Geçiş Aksiyonları
+function doGrassrootsAction(act) {
+  upgradeProPlayerState();
+  const p = G.proPlayer;
+  const c = getCountry();
+
+  if (act === 'school_train') {
+    if (p.trainsThisYear >= 3) { showToast('Bu yılki 3 okul idmanı hakkını tamamladın! Maça çık veya +1 Yaş ilerle.'); return; }
+    p.trainsThisYear += 1;
+    p.dribbling = clamp(p.dribbling + 2, 40, 99);
+    p.passing = clamp(p.passing + 2, 40, 99);
+    p.scoutRadar = clamp(p.scoutRadar + 12);
+    recalcProPlayerOvr();
+    playSfx('coin');
+    addLog(G.age, `👟 Okul çıkışı takımla ekstra antrenman yaptın! Scout radarın **%${p.scoutRadar}** seviyesine yükseldi.`, 'good');
+  } else if (act === 'school_cup_match') {
+    if (p.matchesThisYear >= 4) { showToast('Bu sezonki 4 turnuva maçı hakkın doldu! +1 Yaş ilerle.'); return; }
+    p.matchesThisYear += 1;
+    p.apps += 1;
+    const g = randInt(1, 3);
+    p.goals += g; p.seasonGoals += g;
+    p.shooting = clamp(p.shooting + 2, 40, 99);
+    p.pace = clamp(p.pace + 1, 40, 99);
+    p.scoutRadar = clamp(p.scoutRadar + 22);
+    recalcProPlayerOvr();
+
+    if (p.scoutRadar >= 45) {
+      generateYouthScoutOffers(2);
+      playSfx('trophy');
+      addLog(G.age, `🕵️‍♂️ **KEŞFEDİLDİN!** Okullararası turnuva maçında **${g} gol** attın! Tribündeki kulüp gözlemcileri (Scout) sana **Resmi Altyapı Teklifi** gönderdi!`, 'fame');
+      activeProPlayerTab = 'transfer';
+    } else {
+      playSfx('coin');
+      addLog(G.age, `⚽ Okul turnuvasında **${g} gol** attın! Gözlemci radarın **%${p.scoutRadar}** oldu.`, 'good');
+    }
+  } else if (act === 'u19_match') {
+    if (p.matchesThisYear >= 4) { showToast('Bu sezonki 4 U19 maç hakkın doldu! +1 Yaş ilerle.'); return; }
+    p.matchesThisYear += 1;
+    p.apps += 1;
+    const g = randInt(1, 2);
+    p.goals += g; p.seasonGoals += g;
+    p.coachTrust = clamp(p.coachTrust + 14);
+    p.shooting = clamp(p.shooting + 2, 40, 99);
+    p.physical = clamp(p.physical + 2, 40, 99);
+    recalcProPlayerOvr();
+    playSfx('coin');
+    addLog(G.age, `🌱 **U19 Elit Lig:** Maçı **${g} golle** tamamladın! A Takım hocasının sana olan güveni **%${p.coachTrust}** oldu.`, 'good');
+  } else if (act === 'sign_first_pro') {
+    if (p.ovr < 68 && p.coachTrust < 75) {
+      showToast('A Takım profesyonel sözleşmesi için en az 68 OVR veya %75 Hoca Güveni gerekir!');
+      return;
+    }
+    p.stage = 'pro_reserve';
+    p.tier = 1;
+    G.sports.branchId = 'football';
+    G.sports.tierIndex = 1;
+    const firstSignBonus = Math.round(c.monthlyMinWage * 6.5);
+    G.money += firstSignBonus;
+    G.fame = clamp(G.fame + 15);
+    playSfx('trophy');
+    addLog(G.age, `✍️ **İLK PROFESYONEL KONTRAT!** **${p.clubName}** seninle resmi A Takım sözleşmesi imzaladı ve **+${fmtMoney(firstSignBonus)}** imza parası ödedi!`, 'fame');
+  } else if (act.trim() === 'become_starter') {
+    if (p.ovr < 74 && p.coachTrust < 85) {
+      showToast('Değişilmez ilk 11 yıldızı olmak için en az 74 OVR veya %85 Hoca Güveni gerekir!');
+      return;
+    }
+    p.stage = 'pro_star';
+    p.onLoan = false;
+    G.fame = clamp(G.fame + 15);
+    playSfx('trophy');
+    addLog(G.age, `🌟 **A TAKIM İLK 11 YILDIZI!** Artık **${p.clubName}** kadrosunun değişilmez 1 numaralı yıldızısın!`, 'fame');
+  }
+
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function requestManualScoutTrial() {
+  generateYouthScoutOffers(2);
+  playSfx('coin');
+  showToast('Kulüp altyapı seçmelerinde gözlemcilerin dikkatini çektin!');
+  saveGame(); openMenuSection('pro_footballer');
+}
+
+function acceptYouthAcademyOffer(academyId) {
+  upgradeProPlayerState();
+  const ac = YOUTH_ACADEMIES_DB.find(x => x.id === academyId);
+  if (!ac) return;
+  const p = G.proPlayer;
+
+  p.stage = 'u19_academy';
+  p.academyId = ac.id;
+  p.clubName = ac.name.replace(' Akademisi', '').replace(' Futbol', '') + ' U19';
+  p.pendingOffers = [];
+  p.coachTrust = 55;
+
+  p.pace = clamp(p.pace + ac.devBoost, 40, 99);
+  p.shooting = clamp(p.shooting + ac.devBoost, 40, 99);
+  p.passing = clamp(p.passing + ac.devBoost, 40, 99);
+  p.dribbling = clamp(p.dribbling + ac.devBoost, 40, 99);
+  p.physical = clamp(p.physical + ac.devBoost, 40, 99);
+  recalcProPlayerOvr();
+
+  activeProPlayerTab = 'overview';
+  playSfx('trophy');
+  addLog(G.age, `${ac.flag} **ALTYAPIYA TRANSFER OLDUN!** **${ac.name}** gözlemcilerinin teklifini kabul edip kulüp tesislerine yerleştin! (+${ac.devBoost} OVR Gelişim)`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+function goOutOnLoan(loanIdx) {
+  upgradeProPlayerState();
+  const lc = LOAN_CLUBS_DB[loanIdx];
+  if (!lc) return;
+  const p = G.proPlayer;
+  const c = getCountry();
+
+  p.stage = 'pro_reserve';
+  p.onLoan = true;
+  p.clubName = lc.name;
+  p.pace = clamp(p.pace + lc.boostOvr, 40, 99);
+  p.shooting = clamp(p.shooting + lc.boostOvr, 40, 99);
+  p.passing = clamp(p.passing + lc.boostOvr, 40, 99);
+  p.dribbling = clamp(p.dribbling + lc.boostOvr, 40, 99);
+  p.physical = clamp(p.physical + lc.boostOvr, 40, 99);
+  p.coachTrust = clamp(p.coachTrust + 22);
+  recalcProPlayerOvr();
+
+  const loanWage = Math.round(c.monthlyMinWage * lc.wageMult * 4);
+  G.money += loanWage;
+  activeProPlayerTab = 'overview';
+  playSfx('trophy');
+  addLog(G.age, `🔄 **KİRALIK PATLAMA!** Düzenli ilk 11 oynamak için **${lc.name}** kadrosuna kiralandın! Banko oynayarak **+${lc.boostOvr} OVR** geliştin ve **+${fmtMoney(loanWage)}** kazandın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+}
+
+// Transfer fonksiyonunu yeni aşama sistemiyle uyumlu hale getir
+transferProPlayerToClub = function (clubName, tier, reqOvr, signBonus) {
+  upgradeProPlayerState();
+  const p = G.proPlayer;
+  if (p.ovr < reqOvr) { showToast(`Bu kulüp için en az ${reqOvr} OVR gücünde olmalısın!`); return; }
+  p.clubName = clubName;
+  p.tier = tier;
+  p.stage = 'pro_star';
+  p.onLoan = false;
+  G.sports.branchId = 'football';
+  G.sports.tierIndex = tier;
+  G.money += signBonus;
+  G.fame = clamp(G.fame + 18);
+  if (tier === 2) unlockAchievement('pro_champ');
+  activeProPlayerTab = 'overview';
+  playSfx('trophy');
+  addLog(G.age, `✈️ **DEV TRANSFER!** Menajerin aracılığıyla **${clubName}** ile sözleşme imzaladın ve **+${fmtMoney(signBonus)}** imza parası aldın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('pro_footballer');
+};
+
+// Her yıl (+1 Yaş) Okul Takımı veya U19'dayken Otomatik Scout Keşif Pop-up Kontrolü
+(function attachGrassrootsYearlyHook() {
+  if (window._grassrootsYearlyHookLoaded) return;
+  window._grassrootsYearlyHookLoaded = true;
+
+  const _prevTriggerEvents = triggerYearlyEvents;
+  triggerYearlyEvents = function () {
+    upgradeProPlayerState();
+    _prevTriggerEvents();
+
+    const modal = document.getElementById('eventModal');
+    if (!G || !G.alive || G.inPrison) return;
+    if (modal && !modal.classList.contains('hidden')) return;
+
+    const p = G.proPlayer;
+    if (p && p.active && (p.stage === 'school_team' || p.stage === 'street') && p.scoutRadar >= 45 && Math.random() < 0.65) {
+      generateYouthScoutOffers(2);
+      const topOffer = p.pendingOffers[0] || YOUTH_ACADEMIES_DB[1];
+      openEventModal({
+        badge: `🕵️‍♂️ KULÜP ALTYAPI SCOUT RAPORU`,
+        title: `${topOffer.flag} ${topOffer.name} Seni İstiyor!`,
+        desc: `Okul takımıyla çıktığın maçlarda gösterdiğin performans kulüp gözlemcilerini büyüledi! ${topOffer.name} altyapı koordinatörü ailenle görüşüp seni akademiye davet etti.`,
+        choices: [
+          {
+            label: `✍️ Teklifi Kabul Et ve ${topOffer.name} Altyapısına Katıl`,
+            action: () => acceptYouthAcademyOffer(topOffer.id)
+          },
+          {
+            label: '📋 Diğer Kulüplerin Tekliflerini de Gör',
+            action: () => {
+              activeProPlayerTab = 'transfer';
+              openMenuSection('pro_footballer');
+            }
+          }
+        ]
+      });
+    }
+  };
+})();
