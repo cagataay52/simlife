@@ -461,3 +461,334 @@ ACHIEVEMENTS_DB.push(
   { id: 'national_hero', title: 'Milli Kahraman', desc: 'A Milli Takım formasıyla 25 maç barajını geçtin.', icon: '🇹🇷' },
   { id: 'wonderkid_factory', title: 'Wonderkid Fabrikası', desc: 'Kulüp altyapısından 3 genç yeteneği A takıma çıkardın.', icon: '🌱' }
 );
+
+/* ============================================================================
+   GERÇEKÇİ ALTYAPI AKADEMİLERİ, KİRALIK KULÜPLER, MENAJERLER VE YENİ YILLIK OLAYLAR
+   ============================================================================ */
+
+// 1. Kulüp Altyapı Akademileri (Scout Teklifleri İçin)
+const YOUTH_ACADEMIES_DB = [
+  { id: 'aca_altinordu', name: 'Altınordu Futbol Akademisi', country: 'TR', flag: '🇹🇷', minRadar: 35, devBoost: 4, stipendMult: 0.35, desc: 'Öz kaynak düzeni, genç yaşta yüksek gelişim ve Avrupa vitrini.' },
+  { id: 'aca_fb', name: 'Fenerbahçe Dereağzı Lefter Küçükandonyadis Akademisi', country: 'TR', flag: '🟡🔵', minRadar: 50, devBoost: 5, stipendMult: 0.55, desc: 'Yüksek prestij, elit tesisler ve A Takım yıldızlarıyla idman şansı.' },
+  { id: 'aca_gs', name: 'Galatasaray Florya Metin Oktay Akademisi', country: 'TR', flag: '🟡🔴', minRadar: 50, devBoost: 5, stipendMult: 0.55, desc: 'Şampiyonluk kültürü, UEFA Gençlik Ligi vitrini ve güçlü altyapı.' },
+  { id: 'aca_bjk', name: 'Beşiktaş Fulya Özlüce Akademisi', country: 'TR', flag: '⚫⚪', minRadar: 48, devBoost: 5, stipendMult: 0.50, desc: 'Gençlere A Takımda doğrudan forma şansı veren kolej havası.' },
+  { id: 'aca_ts', name: 'Trabzonspor Özkan Sümer Futbol Akademisi', country: 'TR', flag: '🔴🔵', minRadar: 45, devBoost: 4, stipendMult: 0.45, desc: 'Karadeniz fırtınası, yüksek fizik güç ve A Takıma hızlı geçiş.' },
+  { id: 'aca_ajax', name: 'Ajax De Toekomst Academy', country: 'EU', flag: '🇳🇱', minRadar: 75, devBoost: 7, stipendMult: 1.10, desc: 'Dünyanın en ünlü futbolcu fabrikası. Üstün teknik ve pas eğitimi.' },
+  { id: 'aca_lamasia', name: 'FC Barcelona La Masia', country: 'EU', flag: '🇪🇸', minRadar: 82, devBoost: 8, stipendMult: 1.35, desc: 'Tiki-taka felsefesi ve dünya futbolunun zirvesine doğrudan bilet.' },
+  { id: 'aca_castilla', name: 'Real Madrid La Fábrica (Valdebebas)', country: 'EU', flag: '🇪🇸', minRadar: 82, devBoost: 8, stipendMult: 1.40, desc: 'Galácticos disiplini, elit kondisyon ve dev piyasa değeri.' }
+];
+
+// 2. Tecrübe Kazanmak İçin Kiralık (Loan) Gidilebilecek Kulüpler
+const LOAN_CLUBS_DB = [
+  { name: 'Samsunspor (Kiralık)', boostOvr: 4, wageMult: 2.2, desc: 'Süper Ligde 34 maç banko ilk 11 garantisi.' },
+  { name: 'Göztepe (Kiralık)', boostOvr: 4, wageMult: 2.1, desc: 'Ateşli taraftar önünde gelişim ve hücum futbolu.' },
+  { name: 'Eyüpspor (Kiralık)', boostOvr: 3, wageMult: 2.0, desc: 'Modern taktik eğitim ve yüksek süre.' },
+  { name: 'Kocaelispor (Kiralık)', boostOvr: 3, wageMult: 1.7, desc: 'Şampiyonluk yarışında sorumluluk alma fırsatı.' },
+  { name: 'Westerlo / Hull City (Avrupa Kiralık)', boostOvr: 5, wageMult: 3.0, desc: 'Avrupa temposuna uyum ve yabancı gözlemci vitrini.' }
+];
+
+// 3. Futbolcu Menajerleri (Agent)
+const FOOTBALL_AGENTS_DB = [
+  { id: 'family', name: 'Aile Üyesi / Ağabey Menajer', cutPct: 3, radarBonus: 0, bonusMult: 1.0, desc: 'Komisyonu çok düşüktür (%3) ancak Avrupa devleriyle bağlantısı zayıftır.' },
+  { id: 'national', name: 'Ulusal Lisanslı Menajer', cutPct: 8, radarBonus: 12, bonusMult: 1.25, desc: 'Süper Lig kulüpleriyle yakın ilişki, +%25 daha yüksek imza parası.' },
+  { id: 'super_agent', name: 'FIFA Süper Menajer (Mendes / Raiola Ekolü)', cutPct: 12, radarBonus: 28, bonusMult: 1.65, desc: 'Avrupa devlerinin kapısını açar, imza parasını +%65 katlar!' }
+];
+
+// 4. Her Yaş Dönemi İçin Zenginleştirilmiş Yıllık Olaylar
+if (typeof RANDOM_EVENTS_DB !== 'undefined') {
+  RANDOM_EVENTS_DB.push(
+    // ÇOCUKLUK & İLKOKUL/ORTAOKUL (6 - 14 YAŞ)
+    {
+      id: 'neighborhood_window_break',
+      minAge: 7, maxAge: 12,
+      badge: '⚽ Mahalle Maçı Krizi',
+      title: 'Röveşata Çekerken Huysuz Komşunun Camı Kırıldı!',
+      desc: 'Mahallede iki taş arası maç yaparken çektiğin sert şut alt kat komşusunun salon camını indirdi. Herkes kaçmaya başladı!',
+      choices: [
+        {
+          label: '🙋‍♂️ Kaçma ve Özür Dileyip Harçlığınla Öde',
+          effect: (G, c) => {
+            G.happy = clamp(G.happy + 8);
+            if (G.proPlayer) G.proPlayer.shooting = clamp((G.proPlayer.shooting || 60) + 2, 40, 99);
+            return { text: '🤝 Dürüstlüğün komşunun çok hoşuna gitti, seni affetti ve şut gücün mahallede efsane oldu!', type: 'good' };
+          }
+        },
+        {
+          label: '🏃 Тоpu Koltuğunun Altına Alıp Hızla Kaç (+Hız)',
+          effect: (G, c) => {
+            if (G.proPlayer) G.proPlayer.pace = clamp((G.proPlayer.pace || 60) + 3, 40, 99);
+            return { text: '🏃 Sokak aralarından rüzgar gibi kaçtın! Sprint hızın gelişti.', type: 'normal' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'pe_teacher_notice',
+      minAge: 9, maxAge: 14,
+      badge: '👟 Beden Eğitimi Dersi',
+      title: 'Beden Eğitimi Öğretmeni Seni Yanına Çağırdı',
+      desc: 'Beden eğitimi dersindeki çift kale maçta attığın çalımlar ve hırsın öğretmenin dikkatini çekti. Seni okulun futbol takımına davet ediyor!',
+      choices: [
+        {
+          label: '⚽ Hemen Okul Takımına Katıl (+Scout Radarı & Yetenek)',
+          effect: (G, c) => {
+            if (typeof ensureMegaFootballState === 'function') ensureMegaFootballState();
+            if (G.proPlayer && !G.proPlayer.active) {
+              G.proPlayer.active = true;
+              G.proPlayer.stage = 'school_team';
+              G.proPlayer.clubName = 'Okul Futbol Takımı';
+            }
+            if (G.proPlayer) {
+              G.proPlayer.scoutRadar = clamp((G.proPlayer.scoutRadar || 10) + 22);
+              G.proPlayer.dribbling = clamp((G.proPlayer.dribbling || 62) + 3, 40, 99);
+            }
+            G.happy = clamp(G.happy + 14);
+            return { text: '👕 **Okul Takımı** formasını sırtına geçirdin! Artık ilçe turnuvalarında kulüp gözlemcilerinin (Scout) radarına girebilirsin.', type: 'milestone' };
+          }
+        },
+        {
+          label: '📚 "Ben Sadece Derslerime Odaklanacağım" De (+OBP)',
+          effect: (G, c) => {
+            G.obpScore = clamp(G.obpScore + 4, 50, 100);
+            G.smart = clamp(G.smart + 4);
+            return { text: '📚 Futbol yerine sınavlara odaklandın, okul notların yükseldi.', type: 'normal' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'report_card_day',
+      minAge: 8, maxAge: 16,
+      badge: '📄 Karne Günü Heyecanı',
+      title: 'Okulda Karne Dağıtım Töreni',
+      desc: 'Dönem sona erdi ve karneni eve götürdün. Ailen notlarına ve okul başarısına bakıyor.',
+      choices: [
+        {
+          label: '🏆 Karneyi Gösterip Babandan Harçlık İste',
+          effect: (G, c) => {
+            const gift = Math.round(c.monthlyMinWage * (G.obpScore >= 80 ? 0.25 : 0.08));
+            G.money += gift;
+            G.happy = clamp(G.happy + 10);
+            return { text: `🎁 Ailen karne hediyesi olarak sana **+${fmtMoney(gift)}** harçlık verdi!`, type: 'good' };
+          }
+        },
+        {
+          label: '👟 "Bana Yeni Krampon Alın" De (+Futbol Gelişimi)',
+          effect: (G, c) => {
+            if (G.proPlayer) {
+              G.proPlayer.shooting = clamp((G.proPlayer.shooting || 60) + 3, 40, 99);
+              G.proPlayer.scoutRadar = clamp((G.proPlayer.scoutRadar || 0) + 10);
+            }
+            G.happy = clamp(G.happy + 12);
+            return { text: '👟 Ailen sana yepyeni dişli krampon aldı! Sahadaki özgüvenin katlandı.', type: 'good' };
+          }
+        }
+      ]
+    },
+
+    // GENÇLİK & LİSE YILLARI (13 - 18 YAŞ)
+    {
+      id: 'school_cup_scouts_in_stands',
+      minAge: 12, maxAge: 17,
+      badge: '🕵️‍♂️ Tribünde Kulüp Gözlemcileri (Scout)',
+      title: 'Okullararası İl Şampiyonası Finalinde Gözlemciler Var!',
+      desc: 'Lise/Ortaokul turnuvasının final maçındasın. Tribünde Süper Lig kulüplerinin altyapı hocaları ellerinde not defterleriyle maçı izliyor!',
+      choices: [
+        {
+          label: '🔥 Bireysel Yeteneğini Konuştur ve Şov Yap',
+          effect: (G, c) => {
+            if (typeof ensureMegaFootballState === 'function') ensureMegaFootballState();
+            if (Math.random() < 0.72) {
+              if (G.proPlayer) {
+                G.proPlayer.active = true;
+                if (G.proPlayer.stage === 'none' || G.proPlayer.stage === 'street') G.proPlayer.stage = 'school_team';
+                G.proPlayer.scoutRadar = clamp((G.proPlayer.scoutRadar || 20) + 35);
+                G.proPlayer.goals += 2;
+                G.proPlayer.seasonGoals += 2;
+              }
+              if (typeof generateYouthScoutOffers === 'function') generateYouthScoutOffers(2);
+              return { text: '🌟 **MUHTEŞEM PERFORMANS!** Finalde 2 gol attın, tribündeki altyapı gözlemcileri adını listenin en başına yazdı! (Futbolcu Kariyeri menüsünden gelen altyapı tekliflerini incele!)', type: 'fame' };
+            } else {
+              return { text: '😓 Çok çalım denediğin için birkaç top ezdin ama mücadelen alkış aldı.', type: 'normal' };
+            }
+          }
+        },
+        {
+          label: '🧠 Takım Oyunu Oyna ve Pas Dağıt',
+          effect: (G, c) => {
+            if (G.proPlayer) {
+              G.proPlayer.scoutRadar = clamp((G.proPlayer.scoutRadar || 20) + 20);
+              G.proPlayer.passing = clamp((G.proPlayer.passing || 62) + 3, 40, 99);
+            }
+            if (typeof generateYouthScoutOffers === 'function') generateYouthScoutOffers(1);
+            return { text: '🧭 Oyun zekanla gözlemcilerden tam not aldın ve kulüplerden altyapı daveti geldi!', type: 'good' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'internet_cafe_tournament',
+      minAge: 13, maxAge: 19,
+      badge: '🎧 İnternet Kafe Turnuvası',
+      title: 'Mahalle İnternet Kafesinde Ödüllü Turnuva',
+      desc: 'Arkadaşlarınla hafta sonu düzenlenen FIFA & CS turnuvasına katıldınız. Birinciye nakit ödül var.',
+      choices: [
+        {
+          label: '🎮 Turnuvaya Katıl ve Kupayı Zorla',
+          effect: (G, c) => {
+            const prize = Math.round(c.monthlyMinWage * 0.35);
+            G.money += prize;
+            G.happy = clamp(G.happy + 12);
+            return { text: `🏆 Finalde rakiplerini ezip geçtin ve **+${fmtMoney(prize)}** turnuva ödülünü kazandın!`, type: 'good' };
+          }
+        },
+        {
+          label: '🏋️ Antrenmana Gitmeyi Tercih Et (+Fizik)',
+          effect: (G, c) => {
+            G.health = clamp(G.health + 6);
+            if (G.proPlayer) G.proPlayer.physical = clamp((G.proPlayer.physical || 60) + 3, 40, 99);
+            return { text: '💪 Arkadaşların kafedeyken sen sahada ekstra kondisyon çalıştın!', type: 'good' };
+          }
+        }
+      ]
+    },
+
+    // ÜNİVERSİTE VE GENÇ YETİŞKİNLİK (18 - 27 YAŞ)
+    {
+      id: 'roommate_bill_crisis',
+      minAge: 18, maxAge: 25,
+      onlyUni: true,
+      badge: '🏠 Öğrenci Evi & Yurt Gündemi',
+      title: 'Ev/Oda Arkadaşın Faturaları Ödemeden Memlekete Gitti',
+      desc: 'Kış ortasında doğalgaz ve internet faturası birikti ancak oda arkadaşın kendi payını bırakmadan memlekete tatile gitti.',
+      choices: [
+        {
+          label: '💳 Mecburen Kendi Cebinden Kapat (0.25x Maaş)',
+          effect: (G, c) => {
+            const bill = Math.round(c.monthlyMinWage * 0.25);
+            G.money -= bill;
+            return { text: `🧾 Kesinti olmasın diye **-${fmtMoney(bill)}** faturayı tek başına ödedin.`, type: 'bad' };
+          }
+        },
+        {
+          label: '📞 Ailesini Arayıp Parayı İste',
+          effect: (G, c) => {
+            G.happy = clamp(G.happy + 4);
+            return { text: '📲 Arkadaşın mahcup olup payını IBAN hesabına gönderdi, zarardan kurtuldun!', type: 'good' };
+          }
+        }
+      ]
+    },
+
+    // YETİŞKİN, İŞ, AİLE VE GÜNLÜK HAYAT (22 - 70 YAŞ)
+    {
+      id: 'wedding_gold_ceremony',
+      minAge: 22, maxAge: 60,
+      badge: '💍 Düğün & Takı Merasimi',
+      title: 'Yakın Arkadaşının Düğününde Takı Sırası',
+      desc: 'Çocukluk arkadaşın evleniyor ve anonsçu mikrofonu eline aldı. Bütün salon kimin ne takacağına bakıyor!',
+      choices: [
+        {
+          label: '🪙 Tam Altın Tak ve Anons Ettir (0.9x Maaş • +Ün)',
+          effect: (G, c) => {
+            const cost = Math.round(c.monthlyMinWage * 0.9);
+            if (G.money < cost) return { text: '💸 Paran yetmediği için zarfa sessizce nakit koydun.', type: 'normal' };
+            G.money -= cost;
+            G.fame = clamp(G.fame + 7);
+            G.happy = clamp(G.happy + 10);
+            return { text: `🎤 Anonsçu adını mikrofondan haykırdı! Bütün salon alkışladı (-${fmtMoney(cost)}).`, type: 'fame' };
+          }
+        },
+        {
+          label: '✉️ Zarfa 200’lük Banknot Koyup Hızlıca Geç (0.15x Maaş)',
+          effect: (G, c) => {
+            const cost = Math.round(c.monthlyMinWage * 0.15);
+            G.money -= cost;
+            return { text: `✉️ Ekonomik bir takıyla düğün görevini tamamladın (-${fmtMoney(cost)}).`, type: 'normal' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'village_land_inheritance',
+      minAge: 25, maxAge: 68,
+      badge: '🌾 Tapu & Miras Kulisleri',
+      title: 'Memleketteki Hisseli Köy Arsasından Otoyol Geçiyor!',
+      desc: 'Dedenden kalan ve yıllardır unutulan memleketteki tarlanın yanından yeni otoyol projesi geçeceği söylentisi yayıldı. Bir emlakçı hemen nakit teklif ediyor.',
+      choices: [
+        {
+          label: '💵 Hemen Emlakçıya Sat (3.5x Maaş Garanti Nakit)',
+          effect: (G, c) => {
+            const cash = Math.round(c.monthlyMinWage * 3.5);
+            G.money += cash;
+            return { text: `📜 Hisseni emlakçıya devredip anında **+${fmtMoney(cash)}** nakit aldın!`, type: 'good' };
+          }
+        },
+        {
+          label: '🏗️ Bekle ve İmar / Kamulaştırma Çıkmasını Um',
+          effect: (G, c) => {
+            if (Math.random() < 0.55) {
+              const bigPay = Math.round(c.monthlyMinWage * 8.5);
+              G.money += bigPay;
+              return { text: `🎰 **İMAR PİYANGOSU!** Otoyol kavşağı tam tarlanın yanından geçti, müteahhitten **+${fmtMoney(bigPay)}** aldın!`, type: 'milestone' };
+            } else {
+              return { text: '📉 Proje güzergahı değişti, tarla eski değerinde kaldı.', type: 'normal' };
+            }
+          }
+        }
+      ]
+    },
+    {
+      id: 'parking_spot_dispute',
+      minAge: 21, maxAge: 65,
+      requiresCar: true,
+      badge: '🅿️ Apartman & Otopark Krizi',
+      title: 'Komşun Senin Park Yerine Dubayla El Koydu',
+      desc: 'Akşam işten yorgun argın döndüğünde apartmanın önündeki her zaman park ettiğin yere yan bina sakinlerinin duba koyduğunu gördün.',
+      choices: [
+        {
+          label: '🚓 Zabıtaya ve Trafik Polisine Bildir (Resmi Çözüm)',
+          effect: (G, c) => {
+            G.happy = clamp(G.happy + 8);
+            return { text: '🚓 Ekipler gelip izinsiz dubaları kaldırdı ve komşuya idari para cezası kesti!', type: 'good' };
+          }
+        },
+        {
+          label: '😤 Dubayı Fırlatıp Aracı Sıfır Yanaştır',
+          effect: (G, c) => {
+            G.stress = clamp((G.stress || 0) + 12);
+            if (G.cars[0]) G.cars[0].cond = clamp(G.cars[0].cond - 6, 10, 100);
+            return { text: '🔑 Gece birisi aracının kapısını anahtarla çizmiş! Kondisyon düştü.', type: 'bad' };
+          }
+        }
+      ]
+    },
+    {
+      id: 'accounting_invoice_audit',
+      minAge: 22, maxAge: 62,
+      requiresJob: true,
+      badge: '🧾 Maliye & Fatura Denetimi',
+      title: 'Ay Sonu KDV ve Fatura Mutabakatında Büyük Fark Yakaladın',
+      desc: 'Şirketin ay sonu muhasebe ve tedarikçi faturalarını kontrol ederken mükerrer kesilmiş yüksek tutarlı bir fatura fark ettin.',
+      choices: [
+        {
+          label: '📊 Raporlayıp Şirketi Zarardan Kurtar (+Terfi Primi)',
+          effect: (G, c) => {
+            const bonus = Math.round(c.monthlyMinWage * 2.2);
+            G.money += bonus;
+            G.jobExp += 1;
+            return { text: `👏 Dikkatli kontrolün şirketi büyük bir vergi/maliyet zararından kurtardı! Yönetim sana **+${fmtMoney(bonus)}** prim verdi.`, type: 'good' };
+          }
+        },
+        {
+          label: '🤫 Tedarikçiyle Anlaşıp Komisyon Al (+Kara Para)',
+          effect: (G, c) => {
+            const cut = Math.round(c.monthlyMinWage * 4.5);
+            G.dirtyMoney = (G.dirtyMoney || 0) + cut;
+            return { text: `🕶️ Fatura farkını sessizce kapatıp tedarikçiden **+${fmtMoney(cut)} Kara Para** komisyon aldın.`, type: 'normal' };
+          }
+        }
+      ]
+    }
+  );
+}
