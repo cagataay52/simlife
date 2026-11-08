@@ -5517,3 +5517,495 @@ let unifiedSportsMainTab = 'player'; // 'player' | 'president' | 'other_sports'
     }
   };
 })();
+
+/* ============================================================================
+   5'İ 1 ARADA SİSTEM BİRLEŞTİRME VE SİNERJİ PAKETİ (INTEGRATION PATCH)
+   ============================================================================ */
+
+let edevletHubTab = 'id_lic';     // 'id_lic' | 'passport' | 'portrait'
+let activeJobFilter = 'suitable'; // 'suitable' | 'diploma' | 'license' | 'general'
+
+(function attachFiveInOneIntegrationPack() {
+  if (window._fiveInOneConsolidationLoaded) return;
+  window._fiveInOneConsolidationLoaded = true;
+
+  const COMMERCIAL_CAR_IDS = ['scooter', 'doblo', 'transporter', 'volvo_fh16', 'scania_s730'];
+
+  function ensureIntegrationState() {
+    if (!G) return;
+    if (typeof upgradeProPlayerState === 'function') upgradeProPlayerState();
+    if (typeof G.proPlayer.isLegend !== 'boolean') G.proPlayer.isLegend = false;
+    if (typeof G.proPlayer.isSportingDirector !== 'boolean') G.proPlayer.isSportingDirector = false;
+    if (G.proPlayer.ovr >= 78 || G.proPlayer.goals >= 35 || G.proPlayer.caps >= 15 || G.proPlayer.ballonDors >= 1) {
+      G.proPlayer.isLegend = true;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1. E-DEVLET, KİMLİK, EHLİYET, ADLİ SİCİL VE KONSOLOSLUK/GÖÇ TEK MERKEZİ
+  // ---------------------------------------------------------------------------
+  window.renderUnifiedEdevletHub = function () {
+    ensureIntegrationState();
+    const c = getCountry();
+    const costB = Math.round(c.monthlyMinWage * 0.7);
+    const costCE = Math.round(c.monthlyMinWage * 1.6);
+    const expungeCost = Math.round(c.monthlyMinWage * 4.5);
+
+    const tabsHtml = `
+      <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3">
+        <button onclick="edevletHubTab='id_lic'; openMenuSection('license')" class="py-2 rounded-xl text-[11px] font-extrabold transition ${edevletHubTab === 'id_lic' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400'}">
+          🪪 Kimlik &amp; Sicil
+        </button>
+        <button onclick="edevletHubTab='passport'; openMenuSection('license')" class="py-2 rounded-xl text-[11px] font-extrabold transition ${edevletHubTab === 'passport' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400'}">
+          🛂 Pasaport &amp; Göç
+        </button>
+        <button onclick="edevletHubTab='portrait'; openMenuSection('license')" class="py-2 rounded-xl text-[11px] font-extrabold transition ${edevletHubTab === 'portrait' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400'}">
+          📸 Biyometrik Foto
+        </button>
+      </div>
+    `;
+
+    if (edevletHubTab === 'id_lic') {
+      return renderHeroBannerHTML('license') + tabsHtml + renderOfficialIdentityAndDocumentsHTML() + `
+        <div class="space-y-2">
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">🚗 B Sınıfı Sürücü Belgesi</div>
+              <div class="text-[10px] text-slate-400">Otomobil, Kurye &amp; Hafif Ticari</div>
+            </div>
+            <button onclick="takeDrivingLicense('B', ${costB})" class="px-3 py-2 rounded-xl text-xs font-extrabold ${G.licenses.B ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-500 text-slate-950'}">
+              ${G.licenses.B ? 'Alındı ✓' : fmtMoney(costB)}
+            </button>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">🚛 CE Sınıfı Ağır Vasıta (Tır/Otobüs) Ehliyeti</div>
+              <div class="text-[10px] text-slate-400">Uluslararası Tır, Vinç &amp; Otobüs Kaptanlığı</div>
+            </div>
+            <button onclick="takeDrivingLicense('CE', ${costCE})" class="px-3 py-2 rounded-xl text-xs font-extrabold ${G.licenses.CE ? 'bg-slate-800 text-emerald-400' : 'bg-amber-400 text-slate-950'}">
+              ${G.licenses.CE ? 'Alındı ✓' : fmtMoney(costCE)}
+            </button>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-900 border ${G.criminalRecord ? 'border-rose-500/40' : 'border-slate-800'} flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-white">⚖️ Adli Sicil &amp; Arşiv Kaydı Sildirme</div>
+              <div class="text-[10px] text-slate-400">Memuriyet, pilotaj ve başkanlık engelini kaldırır</div>
+            </div>
+            ${G.criminalRecord
+              ? `<button onclick="clearCriminalRecord(${expungeCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">Sildir (${fmtMoney(expungeCost)})</button>`
+              : `<span class="text-xs font-bold text-emerald-400">Sicil Temiz ✓</span>`}
+          </div>
+        </div>
+      `;
+    }
+
+    if (edevletHubTab === 'passport') {
+      const moveCost = Math.round(c.monthlyMinWage * 4);
+      return renderHeroBannerHTML('license') + tabsHtml + renderPassportVisaStampsHTML() + `
+        <div class="space-y-2">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">✈️ Konsolosluk Vize Başvurusu &amp; Ülke Göçü</h4>
+          ${COUNTRIES.filter(x => x.id !== G.countryId).map(target => `
+            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${target.flag} ${target.name} (${target.currency} ${target.code})</div>
+                <div class="text-[10px] text-slate-400">Asgari: ${target.monthlyMinWage.toLocaleString('tr-TR')} ${target.currency} &bull; Vergi: %${Math.round(target.taxRate * 100)} &bull; Enf: %${Math.round(target.inflation * 100)}</div>
+              </div>
+              <button onclick="migrateToCountry('${target.id}', ${moveCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">
+                Vize Al (${fmtMoney(moveCost)})
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    return renderHeroBannerHTML('license') + tabsHtml + `
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col items-center gap-3 text-center">
+        <img src="${getCurrentPortrait()}" class="w-24 h-28 rounded-2xl object-cover border-2 border-sky-400 shadow-lg" />
+        <div>
+          <div class="text-xs font-extrabold text-white">${G.firstName} ${G.lastName}</div>
+          <div class="text-[10px] text-slate-400">Kimlik ve pasaport üzerindeki biyometrik fotoğrafını yenile</div>
+        </div>
+        <button onclick="G.portraitIdx = (G.portraitIdx + 1) % 3; saveGame(); renderAll(); openMenuSection('license');" class="w-full py-2.5 rounded-xl bg-sky-500 text-slate-950 text-xs font-extrabold">
+          🔄 Yeni Biyometrik Fotoğraf Çektir
+        </button>
+      </div>
+    `;
+  };
+
+  // ---------------------------------------------------------------------------
+  // 2. AKILLI FİLTRELİ İŞ İLANLARI MOTORU (BANA UYGUN / DİPLOMA / EHLİYET / GENEL)
+  // ---------------------------------------------------------------------------
+  function isJobQualified(j) {
+    if (j.cleanRecord && G.criminalRecord) return false;
+    if (j.reqEdu === 'highschool' && !G.highSchoolGrad) return false;
+    if (j.reqEdu === 'uni' && (!G.uniGrad || G.graduatedMajor !== j.major)) return false;
+    if (j.reqLicense && !G.licenses[j.reqLicense]) return false;
+    if (j.minExp && (G.jobExp || 0) < j.minExp) return false;
+    return true;
+  }
+
+  window.setJobBoardFilter = function (flt) {
+    activeJobFilter = flt;
+    openNavSheet('career');
+  };
+
+  function buildFilteredJobBoardHTML() {
+    const suitCount = JOBS.filter(j => isJobQualified(j)).length;
+    const dipCount = JOBS.filter(j => j.reqEdu === 'uni').length;
+    const licCount = JOBS.filter(j => j.reqLicense || j.major === 'lojistik' || j.major === 'denizcilik' || j.major === 'havacilik').length;
+
+    const filteredJobs = JOBS.filter(j => {
+      if (activeJobFilter === 'suitable') return isJobQualified(j) || G.jobId === j.id;
+      if (activeJobFilter === 'diploma') return j.reqEdu === 'uni';
+      if (activeJobFilter === 'license') return Boolean(j.reqLicense || j.major === 'lojistik' || j.major === 'denizcilik' || j.major === 'havacilik');
+      if (activeJobFilter === 'general') return j.reqEdu === 'none' || j.reqEdu === 'highschool';
+      return true;
+    });
+
+    return `
+      <div class="space-y-2" id="filteredJobBoardSection">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">💼 Filtreli Kurumsal İş İlanları</h4>
+          ${G.jobId ? `<button onclick="quitJob()" class="text-[11px] font-bold text-rose-400">İstifa Et</button>` : ''}
+        </div>
+
+        <!-- 4'lü Filtre Sekmesi -->
+        <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 text-[10px] font-extrabold">
+          <button onclick="setJobBoardFilter('suitable')" class="py-2 rounded-xl ${activeJobFilter === 'suitable' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🎯 Uygun (${suitCount})</button>
+          <button onclick="setJobBoardFilter('diploma')" class="py-2 rounded-xl ${activeJobFilter === 'diploma' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🎓 Fakülte (${dipCount})</button>
+          <button onclick="setJobBoardFilter('license')" class="py-2 rounded-xl ${activeJobFilter === 'license' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🚛 Lojistik (${licCount})</button>
+          <button onclick="setJobBoardFilter('general')" class="py-2 rounded-xl ${activeJobFilter === 'general' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">☕ Genel</button>
+        </div>
+
+        ${filteredJobs.length === 0 ? `
+          <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center text-xs text-slate-400">
+            Şu an bu filtrede şartlarını karşıladığın bir ilan yok. Diğer sekmelere göz atabilirsin.
+          </div>
+        ` : filteredJobs.map(j => {
+          const monthlyGross = getJobMonthlyGross(j);
+          const isCurrent = G.jobId === j.id;
+          const qualified = isJobQualified(j);
+          let reqText = 'Diploma Şartı Yok';
+          if (j.reqEdu === 'highschool') reqText = 'Lise Mezunu';
+          if (j.reqEdu === 'uni') {
+            const m = UNI_MAJORS.find(x => x.id === j.major);
+            reqText = `${m ? m.name : 'Üniversite'} Mezunu`;
+          }
+          if (j.reqLicense) reqText += ` • ${j.reqLicense} Ehliyet`;
+          if (j.minExp) reqText += ` • ${j.minExp} Yıl Deneyim`;
+          const blocked = j.cleanRecord && G.criminalRecord;
+
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border ${isCurrent ? 'border-emerald-500' : (qualified ? 'border-slate-700' : 'border-slate-800/70 opacity-75')} flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-white truncate">${j.icon} ${j.title} ${qualified && !isCurrent ? '<span class="text-[9px] text-emerald-400 ml-1">✓ Şartlar Uygun</span>' : ''}</div>
+                <div class="text-[10px] text-slate-400">${reqText} ${blocked ? '<span class="text-rose-400 font-bold">• Sabıka Engeli!</span>' : ''}</div>
+                <div class="text-xs font-mono-num font-bold text-emerald-400 mt-0.5">Brüt: ${fmtMoney(monthlyGross)} / ay</div>
+              </div>
+              <button onclick="applyForJob('${j.id}')" class="px-3 py-2 rounded-xl text-xs font-extrabold shrink-0 ${isCurrent ? 'bg-emerald-500/20 text-emerald-300' : (qualified ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400')}">
+                ${isCurrent ? 'Çalışıyor' : (blocked ? 'Sabıkalı' : 'Başvur')}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. FUTBOLCU JÜBİLESİ -> KULÜP BAŞKANLIĞI (%50 İNDİRİM) & SPORTİF DİREKTÖRLÜK
+  // ---------------------------------------------------------------------------
+  const _origRetirePro = window.retireFromProFootball;
+  window.retireFromProFootball = function () {
+    ensureIntegrationState();
+    if (G.proPlayer && (G.proPlayer.ovr >= 74 || G.proPlayer.apps >= 12)) {
+      G.proPlayer.isLegend = true;
+    }
+    if (typeof _origRetirePro === 'function') _origRetirePro();
+  };
+
+  window.becomeLegendSportingDirector = function () {
+    ensureIntegrationState();
+    if (!G.proPlayer.isLegend && G.proPlayer.apps < 10) {
+      showToast('Sportif Direktör olmak için önce futbolcu kariyerinde tecrübe kazanmalısın!');
+      return;
+    }
+    G.proPlayer.isSportingDirector = !G.proPlayer.isSportingDirector;
+    if (G.proPlayer.isSportingDirector && G.club && G.club.active) {
+      G.club.power = clamp(G.club.power + 2, 60, 99);
+    }
+    playSfx('trophy');
+    addLog(G.age, G.proPlayer.isSportingDirector
+      ? `👔 Yeşil sahalardaki tecrübenle **Sportif Direktör & Futbol Aklı** koltuğuna oturdun!`
+      : `🚪 Sportif Direktörlük görevinden ayrıldın.`, 'milestone');
+    saveGame(); renderAll(); openMenuSection('sports');
+  };
+
+  // Efsane Futbolcuya Kongre ve Kulüp Satın Almada %50 İndirim + %95 Taraftar Güveni
+  const _origAcquireClub = acquireOrElectClub;
+  acquireOrElectClub = function (leagueId, teamId) {
+    ensureIntegrationState();
+    const isFootballVeteran = G.proPlayer && (G.proPlayer.isLegend || G.proPlayer.apps >= 10 || G.proPlayer.ovr >= 75);
+    if (!isFootballVeteran) {
+      return _origAcquireClub(leagueId, teamId);
+    }
+
+    const c = getCountry();
+    const lg = FOOTBALL_LEAGUES_DB[leagueId];
+    const tm = lg ? lg.teams.find(x => x.id === teamId) : null;
+    if (!tm) return;
+    if (G.age < 22) { showToast('Efsane futbolcu kontenjanından başkanlık için en az 22 yaşında olmalısın!'); return; }
+
+    const isKongre = tm.model === 'kongre';
+    const baseMinWages = isKongre ? Math.round(tm.valueM * 0.16) : Math.round(tm.valueM * 0.75);
+    const discountedCost = Math.round(c.monthlyMinWage * baseMinWages * 0.50); // %50 İndirim!
+
+    if (G.money < discountedCost) {
+      showToast(`Efsane Futbolcu %50 indirimli teminatı için ${fmtMoney(discountedCost)} gerekiyor!`);
+      return;
+    }
+
+    finalizeClubTakeover(leagueId, tm, discountedCost, isKongre ? 'kongre' : 'sahiplik', 95);
+    addLog(G.age, `🌟 **EFSANEDEN BAŞKANLIĞA!** Yeşil sahalardaki itibarın sayesinde **%50 indirimli teminat** ve **%95 taraftar desteğiyle** **${tm.name}** koltuğuna oturdun!`, 'fame');
+    saveGame(); renderAll(); openMenuSection('sports');
+  };
+
+  // ---------------------------------------------------------------------------
+  // 4. GARAJ TİCARİ ARAÇLARI & LOJİSTİK ANTREPO -> ŞİRKET FİLOSU SİNERJİSİ
+  // ---------------------------------------------------------------------------
+  window.assignGarageVehicleToBusiness = function (carIdx, bizIdx) {
+    const car = G.cars[carIdx];
+    const biz = G.businesses[bizIdx];
+    if (!car || !biz) return;
+
+    const isHeavy = car.carId === 'volvo_fh16' || car.carId === 'scania_s730';
+    const fleetGain = isHeavy ? 2 : 1;
+    biz.fleet += fleetGain;
+    G.cars.splice(carIdx, 1);
+    if (biz.fleet >= 5) unlockAchievement('fleet_king');
+
+    playSfx('trophy');
+    const bType = BUSINESS_TYPES.find(t => t.id === biz.typeId) || BUSINESS_TYPES[0];
+    addLog(G.age, `🚛 **FİLO SİNERJİSİ!** Garajındaki **${car.name}** aracını **${bType.name}** şirket filona dahil ettin (+${fleetGain} ${bType.unitName}, şahsi yakıt/sigorta gideri sıfırlandı)!`, 'good');
+    saveGame(); renderAll(); openNavSheet('finance');
+  };
+
+  function renderGarageFleetSynergyPanelHTML() {
+    const commCars = G.cars
+      .map((car, idx) => ({ car, idx }))
+      .filter(item => COMMERCIAL_CAR_IDS.includes(item.car.carId));
+    const hasAntrepo = G.houses.some(h => h.houseId === 'lojistik_depo');
+
+    if (commCars.length === 0 && !hasAntrepo) return '';
+
+    return `
+      <div class="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-2 mb-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold text-emerald-300">🔗 Garaj &amp; Lojistik Antrepo Sinerji Merkezi</span>
+          ${hasAntrepo ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold">🏭 Antrepo +%20 Kâr Aktif</span>` : ''}
+        </div>
+        ${hasAntrepo ? `<div class="text-[10px] text-slate-300">Tapulu <strong>Gümrük Yanı Lojistik Antrepo</strong> mülkün sayesinde tüm şirketlerinin net kârı <strong>+%20</strong> artırımlı hesaplanıyor!</div>` : ''}
+        ${commCars.length > 0 && G.businesses.length > 0 ? `
+          <div class="space-y-1.5 pt-1">
+            <div class="text-[10px] text-amber-300 font-bold"> Garajındaki Ticari Araçları Şirket Filosuna Bağla (Ağır Tırlar +2 Filo Verir):</div>
+            ${commCars.map(({ car, idx }) => `
+              <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div class="text-[11px] font-bold text-white truncate">${car.icon} ${car.name} <span class="text-slate-400">(%${car.cond})</span></div>
+                <button onclick="assignGarageVehicleToBusiness(${idx}, 0)" class="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">
+                  Filoya Kat (+${car.carId.includes('fh16') || car.carId.includes('s730') ? '2' : '1'} Filo)
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        ` : (commCars.length > 0 ? `<div class="text-[10px] text-slate-400">Garajında ${commCars.length} ticari araç var. Bir şirket kurduğunda bunları ücretsiz filoya katabilirsin!</div>` : '')}
+      </div>
+    `;
+  }
+
+  // Lojistik Antrepo +%20 Şirket Kâr Sinerjisini ve Sportif Direktör Maaşını Ana Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensureIntegrationState();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison) return fin;
+    const c = getCountry();
+
+    // 1. Lojistik Antrepo Tapusu Varsa Şirket Kârına +%20 Sinerji Ekle
+    const hasAntrepo = G.houses && G.houses.some(h => h.houseId === 'lojistik_depo');
+    if (hasAntrepo && fin.monthlyBizProfit > 0) {
+      const bonusProfit = Math.round(fin.monthlyBizProfit * 0.20);
+      fin.monthlyBizRevenue += Math.round(bonusProfit * 1.3);
+      fin.monthlyBizProfit += bonusProfit;
+      fin.monthlyNetCashflow += bonusProfit;
+      fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    }
+
+    // 2. Efsane Sportif Direktör Maaşı
+    if (G.proPlayer && G.proPlayer.isSportingDirector) {
+      const sdPay = Math.round(c.monthlyMinWage * 6.5);
+      fin.monthlyGrossSalary += sdPay;
+      fin.monthlyNetSalary += Math.round(sdPay * 0.8);
+      fin.monthlyNetCashflow += Math.round(sdPay * 0.8);
+      fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    }
+    return fin;
+  };
+
+  // ---------------------------------------------------------------------------
+  // 5. SENDİKA EKRANI İÇİ DOĞRUDAN KARA PARA AKLAMA & PARAVAN ŞİRKET PANELİ
+  // ---------------------------------------------------------------------------
+  window.quickSetupFrontCompany = function () {
+    const c = getCountry();
+    const frontCost = Math.round(c.monthlyMinWage * 35);
+    const totalAvailable = G.money + (G.dirtyMoney || 0);
+    if (totalAvailable < frontCost) {
+      showToast(`Paravan şirket için toplam ${fmtMoney(frontCost)} (Nakit veya Kara Para) gerekiyor!`);
+      return;
+    }
+    if (G.dirtyMoney >= frontCost) {
+      G.dirtyMoney -= frontCost;
+    } else {
+      const rem = frontCost - G.dirtyMoney;
+      G.dirtyMoney = 0;
+      G.money -= rem;
+    }
+    G.businesses.push({ uid: uid(), typeId: 'oto_servis', fleet: 1, employees: 2, strategy: 'balanced' });
+    playSfx('coin');
+    addLog(G.age, `🧼 **PARAVAN ŞİRKET KURULDU!** Yeraltı gelirlerini aklamak için **Oto Ekspertiz & Yıkama Servisi** açtın!`, 'milestone');
+    saveGame(); renderAll(); openMenuSection('crime');
+  };
+
+  window.launderDirectlyInCrimeMenu = function () {
+    if (!G.dirtyMoney || G.dirtyMoney <= 0) {
+      showToast('Aklanacak kara para bulunmuyor!');
+      return;
+    }
+    if (G.businesses.length === 0) {
+      showToast('Önce aşağıdaki butonla 1 Paravan Şirket kurmalısın!');
+      return;
+    }
+    const cleanAmt = Math.round(G.dirtyMoney * 0.85);
+    G.money += cleanAmt;
+    G.dirtyMoney = 0;
+    playSfx('coin');
+    addLog(G.age, `🧼 Sendika muhasebesi üzerinden kara parayı aklayarak **+${fmtMoney(cleanAmt)}** temiz banka bakiyesine dönüştürdün!`, 'good');
+    saveGame(); renderAll(); openMenuSection('crime');
+  };
+
+  // ---------------------------------------------------------------------------
+  // ANA MENÜ VE SEKME KANCALARI (HİÇBİR ÖZELLİĞİ BOZMADAN ENTEGRE EDER)
+  // ---------------------------------------------------------------------------
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureIntegrationState();
+    _prevOpenNav(tab);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // A) Kariyer Sekmesindeki Uzun İş Listesini 4 Sekmeli Akıllı Filtre İle Değiştir
+    if (tab === 'career' && !G.inPrison) {
+      const headers = Array.from(body.querySelectorAll('h4'));
+      const jobHeader = headers.find(h => h.textContent.includes('Kurumsal İş İlanları') || h.textContent.includes('Tam Zamanlı Meslekler'));
+      if (jobHeader && jobHeader.parentElement && jobHeader.parentElement.parentElement) {
+        jobHeader.parentElement.parentElement.outerHTML = buildFilteredJobBoardHTML();
+      }
+    }
+
+    // B) Finans -> Şirket Sekmesine Garaj-Filo & Antrepo Sinerji Panelini Ekle
+    if (tab === 'finance' && activeFinanceTab === 'biz') {
+      body.insertAdjacentHTML('afterbegin', renderGarageFleetSynergyPanelHTML());
+    }
+
+    // C) Menüdeki Alt Göç Butonunu Birleşik e-Devlet & Pasaport Merkezine Bağla
+    if (tab === 'menu') {
+      body.querySelectorAll('button').forEach(btn => {
+        if (btn.textContent.includes('Kimlik, Vize & Sicil') || btn.textContent.includes('Kimlik, Ehliyet')) {
+          btn.innerHTML = `<div class="text-lg">🛂</div><div class="text-xs font-extrabold text-white">e-Devlet &amp; Pasaport</div><div class="text-[10px] text-slate-400">Kimlik, Ehliyet, Sicil &amp; Göç</div>`;
+        }
+        if (btn.textContent.includes('Pasaport & Göç') || btn.textContent.includes('Ülke Göçü')) {
+          btn.onclick = () => { edevletHubTab = 'passport'; openMenuSection('license'); };
+        }
+      });
+    }
+  };
+
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureIntegrationState();
+
+    // 1. Kimlik, Ehliyet ve Göç Çağrılarının Tamamını Tek "e-Devlet & Konsolosluk Merkezi"nde Aç
+    if (sec === 'license' || sec === 'identity' || sec === 'migrate') {
+      if (sec === 'identity') edevletHubTab = 'portrait';
+      if (sec === 'migrate') edevletHubTab = 'passport';
+
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '🛂 e-Devlet & Konsolosluk Merkezi';
+      document.getElementById('sheetSubtitle').textContent = `Kimlik, Sürücü Belgesi, Adli Sicil & Vize İşlemleri`;
+      document.getElementById('sheetBody').innerHTML = renderUnifiedEdevletHub();
+      return;
+    }
+
+    _prevOpenMenuSec(sec);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // 2. Sendika & Yeraltı Ekranına Doğrudan Kara Para Aklama ve Paravan Şirket Kurma Masası Ekle
+    if (sec === 'crime') {
+      const c = getCountry();
+      const frontCost = Math.round(c.monthlyMinWage * 35);
+      const masakRisk = G.dirtyMoney > c.monthlyMinWage * 15 ? 'YÜKSEK (%28 Baskın Riski!)' : 'DÜŞÜK';
+      const launderCard = `
+        <div class="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-500/40 space-y-2 mb-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-amber-300">🧼 Yeraltı Finans &amp; Kara Para Aklama Masası</span>
+            <span class="text-[10px] font-mono-num text-rose-300">MASAK Riski: ${masakRisk}</span>
+          </div>
+          <div class="text-[11px] text-slate-300">
+            Eldeki Kara Para: <strong class="text-amber-400 font-mono-num">${fmtMoney(G.dirtyMoney || 0)}</strong> &bull;
+            Paravan Şirket: <strong class="text-emerald-400">${G.businesses.length} Adet</strong>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="launderDirectlyInCrimeMenu()" class="p-2.5 rounded-xl bg-emerald-500 text-slate-950 text-[11px] font-extrabold">
+              🧼 Şimdi Akla (%85 Net)
+            </button>
+            <button onclick="quickSetupFrontCompany()" class="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">
+              🏢 Paravan Oto Yıkama Aç (${fmtMoney(frontCost)})
+            </button>
+          </div>
+        </div>
+      `;
+      body.insertAdjacentHTML('beforeend', launderCard);
+    }
+
+    // 3. Futbol & Spor Merkezinde Başkanlık Sekmesine "Efsane Futbolcu %50 İndirim & Sportif Direktörlük" Ekle
+    if ((sec === 'sports' || sec === 'club_presidency' || sec === 'pro_footballer') && unifiedSportsMainTab === 'president') {
+      const isVeteran = G.proPlayer && (G.proPlayer.isLegend || G.proPlayer.apps >= 10 || G.proPlayer.ovr >= 75);
+      const c = getCountry();
+      const sdPay = Math.round(c.monthlyMinWage * 6.5);
+      const legendBanner = `
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-emerald-500/15 border border-amber-400/50 space-y-2 mb-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-amber-300">⚽ Yeşil Sahalardan Yönetime: Futbolcu Ayrıcalığı</span>
+            <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[9px] font-extrabold">${isVeteran ? '%50 İNDİRİM AKTİF' : '10+ Maç Gerekir'}</span>
+          </div>
+          <div class="text-[10px] text-slate-200">
+            ${isVeteran
+              ? 'Futbolculuk kariyerin sayesinde tüm kulüp kongre teminatlarında ve satın almalarda <strong>%50 Efsane İndirimi</strong> ve <strong>%95 Taraftar Güveni</strong> kazanırsın!'
+              : 'Futbolcu kariyerinde 10+ maça çıktığında veya 75+ OVR olduğunda kulüp başkanlığına %50 indirimle geçebilirsin.'}
+          </div>
+          ${isVeteran ? `
+            <button onclick="becomeLegendSportingDirector()" class="w-full py-2 rounded-xl ${G.proPlayer.isSportingDirector ? 'bg-emerald-500/25 border border-emerald-500 text-emerald-300' : 'bg-amber-400 text-slate-950'} text-[11px] font-extrabold">
+              ${G.proPlayer.isSportingDirector ? '✓ Sportif Direktörlük Görevindesin (+Maaş & +2 Kulüp Gücü)' : `👔 Sportif Direktör & Futbol Aklı Ol (+${fmtMoney(sdPay)}/ay)`}
+            </button>
+          ` : ''}
+        </div>
+      `;
+      const topSw = body.querySelector('.grid.grid-cols-3');
+      if (topSw) topSw.insertAdjacentHTML('afterend', legendBanner);
+    }
+  };
+})();
