@@ -792,3 +792,133 @@ if (typeof RANDOM_EVENTS_DB !== 'undefined') {
     }
   );
 }
+
+/* ============================================================================
+   DERİN SİYASET (MECLİS, BAKANLIKLAR, YASALAR) & RADYO / STREAMER VERİTABANI
+   ============================================================================ */
+
+// 1. Siyasi Partiler ve İdeolojik Bloklar
+const POLITICAL_PARTIES_DB = [
+  { id: 'party_refah', name: 'Ulusal Kalkınma & Refah Partisi', short: 'UKP', color: '#f59e0b', desc: 'Ekonomik büyüme, lojistik teşvikler ve güçlü sanayi odaklı merkez parti.' },
+  { id: 'party_sosyal', name: 'Demokratik Halk & Adalet Partisi', short: 'DHP', color: '#ef4444', desc: 'Sosyal devlet, yüksek asgari ücret ve eğitim/sağlık reformu odaklı parti.' },
+  { id: 'party_vizyon', name: 'Gelecek & Teknoloji İttifakı', short: 'GTİ', color: '#38bdf8', desc: 'Dijital ekonomi, düşük vergi, gençlik ve serbest piyasa odaklı yenilikçi parti.' },
+  { id: 'party_custom', name: 'Kendi Siyasi Partini Kur', short: 'YKP', color: '#10b981', desc: 'Tüzüğünü ve kadrosunu bizzat belirlediğin bağımsız siyasi hareket.' }
+];
+
+// 2. Kabine ve Bakanlık Koltukları
+const MINISTRIES_DB = [
+  {
+    id: 'maliye',
+    title: 'Hazine ve Maliye Bakanlığı',
+    icon: '🏦',
+    bonusDesc: 'Vergi oranlarını %4 düşürür, borsa/mevduat gelirlerini +%15 artırır.',
+    salaryMult: 11.5
+  },
+  {
+    id: 'ulastirma',
+    title: 'Ulaştırma ve Altyapı Bakanlığı',
+    icon: '🚛',
+    bonusDesc: 'Lojistik, tır filosu ve denizcilik şirketlerinin aylık net kârını +%25 artırır.',
+    salaryMult: 11.0
+  },
+  {
+    id: 'icisler',
+    title: 'İçişleri ve Adalet Bakanlığı',
+    icon: '🛡️',
+    bonusDesc: 'MASAK/mali denetim riskini sıfırlar, siyasi otoriteyi ve halk desteğini korur.',
+    salaryMult: 11.0
+  },
+  {
+    id: 'genclik_spor',
+    title: 'Gençlik ve Spor Bakanlığı',
+    icon: '🏟️',
+    bonusDesc: 'Kulüp kasasına yıllık stadyum hibesi verir ve TFF/MHK lobi gücünü +%25 artırır.',
+    salaryMult: 10.5
+  }
+];
+
+// 3. Meclis Genel Kurulunda Oylanacak Yasa Tasarıları
+const PARLIAMENT_BILLS_DB = [
+  {
+    id: 'bill_tax_cut',
+    title: 'Kurumlar ve Gelir Vergisi İndirim Paketi',
+    desc: 'Ülkedeki gelir vergisini %4 düşürür ve şirket sahiplerinin net kârını artırır.',
+    reqSeats: 301,
+    approvalGain: 10
+  },
+  {
+    id: 'bill_logistics_hub',
+    title: 'Uluslararası Lojistik ve Gümrük Muafiyet Yasası',
+    desc: 'Tüm şirketlerinin aylık cirosunu +%18 kalıcı olarak büyütür.',
+    reqSeats: 301,
+    approvalGain: 8
+  },
+  {
+    id: 'bill_football_pool',
+    title: 'Futbol Yayın Havuzu ve Stadyum Teşvik Yasası',
+    desc: 'Başkanı olduğun kulübün kasasına anında devlet yayın teşviki aktarır.',
+    reqSeats: 301,
+    approvalGain: 12
+  },
+  {
+    id: 'bill_youth_grant',
+    title: 'Üniversite Gençlik Bursu ve Asgari Ücret Refah Yasası',
+    desc: 'Ülke asgari ücretini %12 artırır ve halk desteğini zirveye taşır.',
+    reqSeats: 301,
+    approvalGain: 18
+  }
+];
+
+// 4. Yayıncı (Streamer) & Podcast Stüdyosu Ekipmanları
+const STREAMER_GEAR_DB = [
+  { id: 'mic', name: 'Shure SM7B Mikrofon & GoXLR Ses Mikseri', icon: '🎙️', costMult: 1.5, viewBoost: 25, fameBoost: 4 },
+  { id: 'cam', name: 'Sony 4K Sinema Kamerası & Elgato Key Light', icon: '📷', costMult: 2.8, viewBoost: 45, fameBoost: 6 },
+  { id: 'pc', name: 'Çift PC Custom Sıvı Soğutmalı Yayın Sistemi', icon: '🖥️', costMult: 5.5, viewBoost: 80, fameBoost: 8 },
+  { id: 'room', name: 'Akustik Ses Yalıtımı & RGB Stüdyo Dekoru', icon: '🎧', costMult: 8.0, viewBoost: 130, fameBoost: 12 }
+];
+
+// 5. Radyo, Dijital Spor Medyası ve TV Kanalı Yatırımları
+const MEDIA_OUTLETS_DB = [
+  {
+    id: 'podcast_show',
+    name: 'Dijital Podcast & Talk Show Stüdyosu',
+    icon: '🎙️',
+    costMult: 12,
+    monthlyRevMult: 2.4,
+    influence: 8,
+    theme: 'Her hafta ünlü konuklarla gündem programı.'
+  },
+  {
+    id: 'fm_radio',
+    name: 'Ulusal FM Radyo İstasyonu (Radyo Frekansı)',
+    icon: '📻',
+    costMult: 38,
+    monthlyRevMult: 7.5,
+    influence: 18,
+    theme: '7/24 müzik, sabah şovu ve canlı trafik/reklam kuşağı.'
+  },
+  {
+    id: 'skor_agi_media',
+    name: 'Dijital Spor Medyası Ağı (Siyah-Turuncu Konsept)',
+    icon: '🟠',
+    costMult: 55,
+    monthlyRevMult: 12.0,
+    influence: 28,
+    theme: 'Son dakika transfer kulisleri, özel maç grafikleri ve milyonluk etkileşim!'
+  },
+  {
+    id: 'national_tv',
+    name: 'Ulusal Haber & Spor Televizyon Kanalı',
+    icon: '📺',
+    costMult: 140,
+    monthlyRevMult: 32.0,
+    influence: 50,
+    theme: 'Ülke gündemini, seçim anketlerini ve spor kamuoyunu doğrudan belirleyen medya devi.'
+  }
+];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'party_leader', title: 'Parti Genel Başkanı', desc: 'Bir siyasi partinin genel başkanı seçildin ve meclise girdin.', icon: '🏛️' },
+  { id: 'top_streamer', title: 'Yılın Yayıncısı', desc: 'Canlı yayınlarda 100.000 abone ve tam donanımlı stüdyoya ulaştın.', icon: '🎙️' },
+  { id: 'media_mogul', title: 'Medya İmparatoru', desc: 'Dijital Spor Medyası veya Ulusal TV Kanalı sahibi oldun.', icon: '📺' }
+);
