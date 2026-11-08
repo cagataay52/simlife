@@ -6009,3 +6009,799 @@ let activeJobFilter = 'suitable'; // 'suitable' | 'diploma' | 'license' | 'gener
     }
   };
 })();
+
+/* ============================================================================
+   GÖRSEL CİLA MOTORU + DERİN SİYASET (MECLİS/BAKANLIK) + RADYO & MEDYA STÜDYOSU
+   ============================================================================ */
+
+let activePoliticsSubTab = 'party'; // 'party' | 'parliament' | 'cabinet'
+let activeMediaHubTab = 'social';   // 'social' | 'streamer' | 'empire'
+
+function ensurePoliticsAndMediaState() {
+  if (!G) return;
+
+  // 1. Derin Siyaset Durumu
+  if (!G.deepPol) {
+    G.deepPol = {
+      partyId: null,
+      partyName: null,
+      partyShort: 'BAĞ',
+      isPartyLeader: false,
+      delegates: 35,
+      mySeats: 0,
+      coalitionSeats: 0,
+      coalitionPartner: null,
+      ministryId: null,
+      passedBills: [],
+       logisticsSubsidy: 0
+    };
+  }
+
+  // 2. Radyo, Medya ve Dijital Yayıncı (Streamer) Stüdyosu Durumu
+  if (!G.mediaStudio) {
+    G.mediaStudio = {
+      streamerName: (G.firstName || 'Oyuncu') + 'Live',
+      gear: [],
+      liveSubs: 0,
+      peakViewers: 15,
+      streamsThisYear: 0,
+      ownedOutlets: [],
+      editorialFocus: 'ads', // 'ads' | 'politics' | 'football'
+      customSportMediaName: 'Skor Ağı Dijital'
+    };
+  }
+}
+
+/* ---------------- BÖLÜM 1: 5'Lİ GÖRSEL CİLA VE ANİMASYON MOTORU ---------------- */
+(function initVisualPolishEngine() {
+  if (window._visualPolishEngineLoaded) return;
+  window._visualPolishEngineLoaded = true;
+
+  let _lastMoneyVal = null;
+  let _rollingAnimFrame = null;
+
+  function spawnFloatingMoney(diff) {
+    if (!diff || Math.abs(diff) < 10) return;
+    const chip = document.createElement('div');
+    const isPos = diff > 0;
+    chip.className = `floating-money-chip ${isPos ? 'floating-money-pos' : 'floating-money-neg'}`;
+    chip.textContent = `${isPos ? '+' : ''}${fmtMoney(diff)}`;
+    document.body.appendChild(chip);
+    setTimeout(() => chip.remove(), 1350);
+  }
+
+  function animateRollingBalance(el, startVal, endVal, sparkHtml) {
+    if (_rollingAnimFrame) cancelAnimationFrame(_rollingAnimFrame);
+    const duration = 380;
+    const startTime = performance.now();
+
+    function step(now) {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const cur = Math.round(startVal + (endVal - startVal) * eased);
+      el.innerHTML = `${fmtMoney(cur)} ${sparkHtml || ''}`;
+      if (progress < 1) {
+        _rollingAnimFrame = requestAnimationFrame(step);
+      }
+    }
+    _rollingAnimFrame = requestAnimationFrame(step);
+  }
+
+  // RenderAll Kancası: Akıcı Bakiye Sayacı, Uçucu Para ve Portre Neon Halesi
+  const _prevRenderAll = renderAll;
+  renderAll = function () {
+    ensurePoliticsAndMediaState();
+    const prevM = _lastMoneyVal;
+    _prevRenderAll();
+    if (!G) return;
+
+    // Portre Neon Halesi
+    const avatar = document.getElementById('charAvatar');
+    if (avatar) {
+      avatar.classList.remove('avatar-halo-gold', 'avatar-halo-emerald');
+      if (G.fame >= 65 || (G.politics && G.politics.officeId === 'president') || (G.club && G.club.active)) {
+        avatar.classList.add('avatar-halo-gold');
+      } else if (getNetWorth() >= getCountry().monthlyMinWage * 25) {
+        avatar.classList.add('avatar-halo-emerald');
+      }
+    }
+
+    // Akıcı Sayı Sayacı & Uçucu Para Partikülü
+    const balEl = document.getElementById('charBalance');
+    if (balEl) {
+      const svgMatch = balEl.innerHTML.match(/<svg[\s\S]*<\/svg>/i);
+      const sparkHtml = svgMatch ? svgMatch[0] : '';
+      if (prevM !== null && prevM !== G.money) {
+        const diff = G.money - prevM;
+        spawnFloatingMoney(diff);
+        animateRollingBalance(balEl, prevM, G.money, sparkHtml);
+      }
+      _lastMoneyVal = G.money;
+    }
+
+    // Üst Barda Bakanlık veya Parti Genel Başkanlığı Unvanı Gösterimi
+    const roleEl = document.getElementById('charRoleText');
+    if (roleEl && !G.inPrison && G.deepPol && G.deepPol.ministryId && (!G.politics || G.politics.officeId !== 'president')) {
+      const minObj = MINISTRIES_DB.find(m => m.id === G.deepPol.ministryId);
+      if (minObj) {
+        roleEl.textContent = `${minObj.icon} ${minObj.title} • ${G.age} Yaş`;
+      }
+    }
+  };
+
+  // Alt Menüde Aktif Sekmeye Neon Işık Ekle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    _prevOpenNav(tab);
+    const navBtns = document.querySelectorAll('#appShell > nav button');
+    const tabMap = { career: 0, finance: 1, relations: 3, menu: 4 };
+    navBtns.forEach((btn, idx) => {
+      if (idx === 2) return; // +1 Yaş butonu
+      btn.classList.toggle('nav-dock-active', tabMap[tab] === idx);
+    });
+  };
+})();
+
+/* ---------------- BÖLÜM 2: 🏛️ DERİN SİYASET: PARTİ, MECLİS, KOALİSYON & BAKANLIKLAR ---------------- */
+
+// 600 Milletvekilli SVG Meclis Genel Kurulu (Hemicycle) Çizimi
+function renderParliamentHemicycleSVG() {
+  const dp = G.deepPol;
+  const mySeats = clamp(dp.mySeats, 0, 600);
+  const coalSeats = clamp(dp.coalitionSeats, 0, 600 - mySeats);
+  const totalBlock = mySeats + coalSeats;
+
+  const totalDots = 60; // Her nokta 10 milletvekilini temsil eder
+  const myDots = Math.round((mySeats / 600) * totalDots);
+  const coalDots = Math.round((coalSeats / 600) * totalDots);
+
+  let dotsHtml = '';
+  let dotCounter = 0;
+  const rows = [
+    { r: 34, count: 14 },
+    { r: 48, count: 20 },
+    { r: 62, count: 26 }
+  ];
+
+  rows.forEach(row => {
+    for (let i = 0; i < row.count; i++) {
+      const angle = Math.PI - (i / Math.max(1, row.count - 1)) * Math.PI;
+      const x = (120 + Math.cos(angle) * row.r).toFixed(1);
+      const y = (78 - Math.sin(angle) * row.r).toFixed(1);
+      let fill = '#334155'; // Muhalefet
+      if (dotCounter < myDots) fill = '#10b981'; // Senin Partin
+      else if (dotCounter < myDots + coalDots) fill = '#f59e0b'; // Koalisyon Ortağı
+      dotsHtml += `<circle cx="${x}" cy="${y}" r="3.6" fill="${fill}" />`;
+      dotCounter++;
+    }
+  });
+
+  return `
+    <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 mb-2.5">
+      <div class="flex items-center justify-between text-[10px] font-extrabold">
+        <span class="text-amber-400 uppercase">🏛️ 600 SANDALYELİ MECLİS GENEL KURULU</span>
+        <span class="font-mono-num ${totalBlock >= 301 ? 'text-emerald-400' : 'text-slate-400'}">Çoğunluk: ${totalBlock} / 301 MV</span>
+      </div>
+      <svg viewBox="0 0 240 88" class="w-full h-24 overflow-visible">
+        ${dotsHtml}
+        <rect x="102" y="68" width="36" height="12" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="120" y="77" text-anchor="middle" fill="#f8fafc" font-size="6.5" font-weight="800" font-family="JetBrains Mono">KÜRSÜ</text>
+      </svg>
+      <div class="flex justify-between text-[10px] font-mono-num border-t border-slate-800 pt-1.5">
+        <span class="text-emerald-400">● Partin: <strong>${mySeats} MV</strong></span>
+        <span class="text-amber-400">● Koalisyon: <strong>${coalSeats} MV</strong></span>
+        <span class="text-slate-400">● Muhalefet: <strong>${600 - totalBlock} MV</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderDeepPoliticsHubHTML() {
+  ensurePoliticsAndMediaState();
+  const c = getCountry();
+  const dp = G.deepPol;
+
+  const subNav = `
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[11px] font-extrabold">
+      <button onclick="activePoliticsSubTab='party'; openMenuSection('politics')" class="py-2 rounded-xl ${activePoliticsSubTab === 'party' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🚩 Parti &amp; Seçim</button>
+      <button onclick="activePoliticsSubTab='parliament'; openMenuSection('politics')" class="py-2 rounded-xl ${activePoliticsSubTab === 'parliament' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🏛️ Meclis (${dp.mySeats + dp.coalitionSeats})</button>
+      <button onclick="activePoliticsSubTab='cabinet'; openMenuSection('politics')" class="py-2 rounded-xl ${activePoliticsSubTab === 'cabinet' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">💼 Bakanlıklar</button>
+    </div>
+  `;
+
+  // SEKME 1: PARTİ KURMA, KONGRESİ VE MAKAM SEÇİMLERİ
+  if (activePoliticsSubTab === 'party') {
+    const rallyCost = Math.round(c.monthlyMinWage * 2.5);
+    const congressCost = Math.round(c.monthlyMinWage * 6.0);
+
+    const partyBox = !dp.partyId ? `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2 mb-2.5">
+        <div class="text-xs font-extrabold text-amber-300">🚩 Siyasi Partiye Katıl veya Kendi Partini Kur</div>
+        <div class="space-y-1.5">
+          ${POLITICAL_PARTIES_DB.map(pt => `
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${pt.name} <span class="text-amber-400">(${pt.short})</span></div>
+                <div class="text-[10px] text-slate-400">${pt.desc}</div>
+              </div>
+              <button onclick="joinOrFoundParty('${pt.id}')" class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">Seç</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2 mb-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-extrabold text-amber-400 uppercase">AKTİF SİYASİ HAREKETİN</div>
+            <div class="text-xs font-extrabold text-white">${dp.partyName} (${dp.partyShort})</div>
+          </div>
+          <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-extrabold">
+            ${dp.isPartyLeader ? '👑 Genel Başkan' : `Delege: %${dp.delegates}`}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="doPartyCongressAction(${congressCost})" class="p-2.5 rounded-xl bg-amber-400 text-slate-950 text-[11px] font-extrabold">
+            ${dp.isPartyLeader ? `🗳️ Genel Seçime Gir (Meclis)` : `👑 Büyük Kongrede Genel Başkan Ol (${fmtMoney(congressCost)})`}
+          </button>
+          <button onclick="dpLeaveParty()" class="p-2.5 rounded-xl bg-slate-800 text-slate-300 text-[11px] font-bold">Partiden Ayrıl</button>
+        </div>
+      </div>
+    `;
+
+    return renderHeroBannerHTML('politics') + subNav + partyBox + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 mb-2.5">
+        <div class="flex justify-between"><span class="text-xs font-extrabold text-white">📊 Kamuoyu Seçmen Desteği</span><span class="text-xs font-mono-num font-bold text-emerald-400">Oy: %${G.politics.approval}</span></div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="doPoliticalRally(${rallyCost})" class="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">📢 İl Mitingi (${fmtMoney(rallyCost)})</button>
+          <button onclick="doTvDebate()" class="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold">📺 Canlı Yayın</button>
+        </div>
+      </div>
+      <div class="space-y-2">
+        ${POLITICS_OFFICES.map(off => {
+          const campCost = Math.round(c.monthlyMinWage * off.campaignMult);
+          const isCur = G.politics.officeId === off.id;
+          return `<div class="p-3 rounded-2xl bg-slate-900 border ${isCur ? 'border-amber-400' : 'border-slate-800'} flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-white">${off.icon} ${off.title}</div><div class="text-[10px] text-slate-400">Min Yaş: ${off.minAge} • Hedef Oy: %${off.reqApproval} • Maaş: <strong class="text-emerald-400">${fmtMoney(c.monthlyMinWage * off.salaryMult)}/ay</strong></div></div><button onclick="runForOffice('${off.id}', ${campCost})" class="px-3 py-2 rounded-xl text-xs font-extrabold ${isCur ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-400 text-slate-950'}">${isCur ? 'Makamda' : 'Aday Ol'}</button></div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 2: 600 KOLTUKLU MECLİS, KOALİSYON PROTOKOLÜ VE YASA TASARILARI
+  if (activePoliticsSubTab === 'parliament') {
+    const totalSeats = dp.mySeats + dp.coalitionSeats;
+    return renderHeroBannerHTML('politics') + subNav + renderParliamentHemicycleSVG() + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-2 mb-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs font-extrabold text-white">🤝 Hükümet &amp; Koalisyon Müzakereleri</div>
+            <div class="text-[10px] text-slate-400">${dp.coalitionPartner ? `Ortak: ${dp.coalitionPartner} (+${dp.coalitionSeats} MV)` : 'Yasa çıkarmak için 301 sandalye çoğunluğuna ulaşmalısın'}</div>
+          </div>
+          <button onclick="formParliamentCoalition()" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">
+            ${dp.coalitionPartner ? 'Ortağı Değiştir' : 'Koalisyon Kur'}
+          </button>
+        </div>
+      </div>
+
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">📜 Meclis Genel Kurulu Yasa Tasarıları (301+ MV Gerekir)</h4>
+      <div class="space-y-2">
+        ${PARLIAMENT_BILLS_DB.map(b => {
+          const passed = dp.passedBills.includes(b.id);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border ${passed ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${b.title}</div>
+                <div class="text-[10px] text-slate-400">${b.desc}</div>
+              </div>
+              <button onclick="voteParliamentBill('${b.id}')" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${passed ? 'bg-slate-800 text-emerald-400' : (totalSeats >= 301 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-500')}">
+                ${passed ? 'Yasalaştı ✓' : 'Oylamaya Sun'}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 3: BAKANLIKLAR VE KABİNE YÖNETİMİ
+  return renderHeroBannerHTML('politics') + subNav + `
+    <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 mb-2.5">
+      💡 Koalisyon ortağı olduğunda, partin mecliste <strong>80+ sandalye</strong> kazandığında veya <strong>Cumhurbaşkanı</strong> seçildiğinde aşağıdaki bakanlık koltuklarını üstlenebilirsin!
+    </div>
+
+    <div class="space-y-2">
+      ${MINISTRIES_DB.map(min => {
+        const active = dp.ministryId === min.id;
+        const pay = Math.round(c.monthlyMinWage * min.salaryMult);
+        return `
+          <div class="p-3.5 rounded-2xl bg-slate-900 border ${active ? 'border-emerald-500' : 'border-slate-800'} flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">${min.icon} ${min.title}</div>
+              <div class="text-[10px] text-slate-400">${min.bonusDesc}</div>
+              <div class="text-[10px] text-emerald-400 font-mono-num mt-0.5">Bakanlık Ödeneği: +${fmtMoney(pay)}/ay</div>
+            </div>
+            <button onclick="takeMinistryPortfolio('${min.id}')" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-500 text-slate-950'}">
+              ${active ? 'Görevde ✓' : 'Görevi Al'}
+            </button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function joinOrFoundParty(partyId) {
+  if (G.age < 18) { showToast('Parti üyeliği için 18+ yaş gerekir!'); return; }
+  const pt = POLITICAL_PARTIES_DB.find(x => x.id === partyId);
+  if (!pt) return;
+  const dp = G.deepPol;
+  dp.partyId = pt.id;
+  dp.partyName = pt.id === 'party_custom' ? `${G.lastName} Hareketi Partisi` : pt.name;
+  dp.partyShort = pt.id === 'party_custom' ? (G.lastName.slice(0, 2).toUpperCase() + 'P') : pt.short;
+  dp.isPartyLeader = pt.id === 'party_custom';
+  dp.delegates = dp.isPartyLeader ? 100 : 40;
+  dp.mySeats = dp.isPartyLeader ? 45 : 85;
+  G.politics.inParty = true;
+  if (dp.isPartyLeader) unlockAchievement('party_leader');
+  playSfx('trophy');
+  addLog(G.age, `🚩 **${dp.partyName} (${dp.partyShort})** çatısı altında aktif siyasete atıldın!`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+function dpLeaveParty() {
+  G.deepPol.partyId = null;
+  G.deepPol.isPartyLeader = false;
+  G.deepPol.mySeats = 0;
+  G.deepPol.coalitionSeats = 0;
+  G.deepPol.ministryId = null;
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+function doPartyCongressAction(cost) {
+  const dp = G.deepPol;
+  if (!dp.isPartyLeader) {
+    if (G.money < cost) { showToast('Delege kulisi ve kurultay bütçesi için bakiye yetersiz!'); return; }
+    G.money -= cost;
+    dp.isPartyLeader = true;
+    dp.delegates = 100;
+    dp.mySeats = Math.max(95, dp.mySeats + 50);
+    G.fame = clamp(G.fame + 20);
+    unlockAchievement('party_leader');
+    playSfx('trophy');
+    addLog(G.age, `👑 **OLAĞANÜSTÜ KURULTAY ZAFERİ!** Delegelerin oylarıyla **${dp.partyName} Genel Başkanı** seçildin!`, 'fame');
+  } else {
+    // Genel Seçim Simülasyonu
+    const mediaBoost = (G.mediaStudio && G.mediaStudio.editorialFocus === 'politics') ? (G.mediaStudio.ownedOutlets.length * 8) : 0;
+    const votePct = clamp(G.politics.approval + mediaBoost + randInt(-4, 9), 7, 58);
+    dp.mySeats = Math.round((votePct / 100) * 600);
+    playSfx('trophy');
+    addLog(G.age, `🗳️ **GENEL SEÇİM SONUCU:** Partin **%${votePct}** oy alarak Meclis'te **${dp.mySeats} Milletvekili** çıkardı!`, 'fame');
+    activePoliticsSubTab = 'parliament';
+  }
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+function formParliamentCoalition() {
+  const dp = G.deepPol;
+  if (!dp.partyId || dp.mySeats < 20) {
+    showToast('Koalisyon masası kurmak için önce partinle mecliste en az 20 vekil çıkarmalısın!');
+    return;
+  }
+  const partners = [
+    { name: 'Milliyetçi Merkez Grubu', seats: 145 },
+    { name: 'Sosyal Demokrat Blok', seats: 165 },
+    { name: 'Bağımsız Reformcular İttifakı', seats: 120 }
+  ];
+  const p = pickRandom(partners);
+  dp.coalitionPartner = p.name;
+  dp.coalitionSeats = p.seats;
+  playSfx('coin');
+  addLog(G.age, `🤝 Mecliste **${p.name}** ile hükümet koalisyonu kurdun! Toplam sandalye sayınız **${dp.mySeats + dp.coalitionSeats} MV** oldu.`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+function voteParliamentBill(billId) {
+  const dp = G.deepPol;
+  if (dp.passedBills.includes(billId)) return;
+  if (dp.mySeats + dp.coalitionSeats < 301) {
+    showToast('Yasa çıkarmak için Mecliste en az 301 sandalye çoğunluğuna (Parti + Koalisyon) ulaşmalısın!');
+    return;
+  }
+  const bill = PARLIAMENT_BILLS_DB.find(x => x.id === billId);
+  if (!bill) return;
+
+  dp.passedBills.push(billId);
+  G.politics.approval = clamp(G.politics.approval + bill.approvalGain);
+  const c = getCountry();
+
+  if (billId === 'bill_tax_cut') {
+    G.politics.taxModifier = (G.politics.taxModifier || 0) - 0.04;
+  } else if (billId === 'bill_logistics_hub') {
+    dp.logisticsSubsidy = (dp.logisticsSubsidy || 0) + 0.18;
+  } else if (billId === 'bill_football_pool' && G.club && G.club.active) {
+    const grant = Math.round(c.monthlyMinWage * 25);
+    G.club.clubTreasury += grant;
+  } else if (billId === 'bill_youth_grant') {
+    c.monthlyMinWage = Math.round(c.monthlyMinWage * 1.12);
+  }
+
+  playSfx('trophy');
+  addLog(G.age, `📜 **MECLİS KARARI:** **${bill.title}** ${dp.mySeats + dp.coalitionSeats} kabul oyuyla yasalaştı ve Resmi Gazete'de yayımlandı!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+function takeMinistryPortfolio(minId) {
+  const dp = G.deepPol;
+  const totalSeats = dp.mySeats + dp.coalitionSeats;
+  if (totalSeats < 80 && G.politics.officeId !== 'president' && !G.politics.officeId) {
+    showToast('Bakanlık koltuğu için mecliste en az 80 MV olmalı veya seçilmiş bir makamda bulunmalısın!');
+    return;
+  }
+  dp.ministryId = minId;
+  const min = MINISTRIES_DB.find(x => x.id === minId);
+  G.fame = clamp(G.fame + 15);
+
+  if (minId === 'genclik_spor' && G.club && G.club.active) {
+    G.club.tffLobby = clamp((G.club.tffLobby || 50) + 25);
+  }
+  playSfx('trophy');
+  addLog(G.age, `${min.icon} **KABİNE ATAMASI:** Resmi kararname ile **${min.title}** koltuğuna atandın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('politics');
+}
+
+/* ---------------- BÖLÜM 3: 📻 RADYO, MEDYA VE DİJİTAL YAYINCI (STREAMER) STÜDYOSU ---------------- */
+
+function renderMediaAndStreamerHubHTML() {
+  ensurePoliticsAndMediaState();
+  const c = getCountry();
+  const ms = G.mediaStudio;
+
+  const topTabs = `
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[11px] font-extrabold">
+      <button onclick="activeMediaHubTab='streamer'; openMenuSection('social')" class="py-2 rounded-xl ${activeMediaHubTab === 'streamer' ? 'bg-fuchsia-500 text-white shadow' : 'text-slate-400'}">🎙️ Yayıncı Odası</button>
+      <button onclick="activeMediaHubTab='empire'; openMenuSection('social')" class="py-2 rounded-xl ${activeMediaHubTab === 'empire' ? 'bg-orange-500 text-slate-950 shadow' : 'text-slate-400'}">📻 Radyo &amp; Medya</button>
+      <button onclick="activeMediaHubTab='social'; openMenuSection('social')" class="py-2 rounded-xl ${activeMediaHubTab === 'social' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400'}">📱 Sosyal Akış</button>
+    </div>
+  `;
+
+  // SEKME 1: YAYINCI (STREAMER) & PODCAST ODASI
+  if (activeMediaHubTab === 'streamer') {
+    const monthlySubRev = Math.round((ms.liveSubs / 100) * (c.monthlyMinWage * 0.25));
+    return topTabs + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-fuchsia-500/40 space-y-2.5 mb-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-extrabold text-fuchsia-400 uppercase flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> CANLI YAYIN &amp; PODCAST STÜDYOSU
+            </div>
+            <div class="text-sm font-extrabold text-white">🎧 ${ms.streamerName} <span class="text-xs text-slate-400">(${ms.gear.length}/4 Ekipman)</span></div>
+          </div>
+          <!-- Canlı Ses Ekolayzır Barları -->
+          <div class="flex items-end gap-1 h-6 px-2">
+            <div class="eq-bar" style="animation-delay:0s"></div>
+            <div class="eq-bar" style="animation-delay:0.2s"></div>
+            <div class="eq-bar" style="animation-delay:0.4s"></div>
+            <div class="eq-bar" style="animation-delay:0.1s"></div>
+            <div class="eq-bar" style="animation-delay:0.3s"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[8px] text-slate-400">ÜCRETLİ ABONE</div>
+            <div class="text-xs font-extrabold font-mono-num text-fuchsia-400">${ms.liveSubs.toLocaleString('tr-TR')}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[8px] text-slate-400">ANLIK İZLEYİCİ</div>
+            <div class="text-xs font-extrabold font-mono-num text-white">${ms.peakViewers.toLocaleString('tr-TR')}</div>
+          </div>
+          <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+            <div class="text-[8px] text-slate-400">ABONE GELİRİ</div>
+            <div class="text-xs font-extrabold font-mono-num text-emerald-400">+${fmtMoney(monthlySubRev)}/ay</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="startInteractiveLiveStream('gaming')" class="p-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white text-xs font-extrabold">
+            🎮 Oyun &amp; Sohbet Yayını Aç
+          </button>
+          <button onclick="startInteractiveLiveStream('sports_talk')" class="p-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 text-xs font-extrabold">
+            ⚽ Transfer &amp; Gündem Yayını
+          </button>
+        </div>
+      </div>
+
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">🎛️ Yayıncı Odası Donanım Yükseltmeleri</h4>
+      <div class="space-y-2">
+        ${STREAMER_GEAR_DB.map(g => {
+          const owned = ms.gear.includes(g.id);
+          const cost = Math.round(c.monthlyMinWage * g.costMult);
+          return `
+            <div class="p-3 rounded-2xl bg-slate-900 border ${owned ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${g.icon} ${g.name}</div>
+                <div class="text-[10px] text-slate-400">İzleyici Çarpanı: <strong>+${g.viewBoost}%</strong> • Şöhret: <strong>+${g.fameBoost}</strong></div>
+              </div>
+              <button onclick="buyStreamerGear('${g.id}', ${cost})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${owned ? 'bg-slate-800 text-emerald-400' : 'bg-fuchsia-500 text-white'}">
+                ${owned ? 'Kurulu ✓' : fmtMoney(cost)}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 2: RADYO İSTASYONU, SİYAH-TURUNCU DİJİTAL SPOR MEDYASI VE TV KANALI
+  if (activeMediaHubTab === 'empire') {
+    return topTabs + `
+      <div class="media-skor-card mb-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[9px] font-extrabold text-orange-400 uppercase tracking-widest">🟠 SİYAH-TURUNCU MEDYA &amp; YAYIN GRUBU</div>
+            <div class="text-sm font-extrabold text-white">${ms.customSportMediaName} Holding</div>
+          </div>
+          <span class="px-2 py-1 rounded bg-orange-500 text-slate-950 text-[10px] font-extrabold">${ms.ownedOutlets.length} Kuruluş</span>
+        </div>
+        <div class="text-[10px] text-slate-300">Medya grubunun yayın politikasını belirleyerek reklam geliri, siyasi oy desteği veya futbol kulübün için kamuoyu gücü üretebilirsin:</div>
+        <div class="grid grid-cols-3 gap-1.5 text-[10px] pt-1">
+          <button onclick="setMediaEditorialFocus('ads')" class="py-1.5 rounded-lg border font-bold ${ms.editorialFocus === 'ads' ? 'border-orange-500 bg-orange-500/25 text-white' : 'border-slate-800 text-slate-400'}">💰 Ticari Reklam (+%25 Gelir)</button>
+          <button onclick="setMediaEditorialFocus('politics')" class="py-1.5 rounded-lg border font-bold ${ms.editorialFocus === 'politics' ? 'border-orange-500 bg-orange-500/25 text-white' : 'border-slate-800 text-slate-400'}">🏛️ Siyasi Lobi (+Oy Desteği)</button>
+          <button onclick="setMediaEditorialFocus('football')" class="py-1.5 rounded-lg border font-bold ${ms.editorialFocus === 'football' ? 'border-orange-500 bg-orange-500/25 text-white' : 'border-slate-800 text-slate-400'}">⚽ Spor Kulisleri (+Taraftar/TFF)</button>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        ${MEDIA_OUTLETS_DB.map(out => {
+          const owned = ms.ownedOutlets.includes(out.id);
+          const cost = Math.round(c.monthlyMinWage * out.costMult);
+          const rev = Math.round(c.monthlyMinWage * out.monthlyRevMult * (ms.editorialFocus === 'ads' ? 1.25 : 1.0));
+          return `
+            <div class="p-3.5 rounded-2xl bg-slate-900 border ${owned ? 'border-orange-500' : 'border-slate-800'} space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-extrabold text-white">${out.icon} ${out.name}</div>
+                  <div class="text-[10px] text-slate-400">${out.theme}</div>
+                  <div class="text-[10px] text-emerald-400 font-mono-num mt-0.5">Aylık Reklam/Sponsor Geliri: <strong>+${fmtMoney(rev)}/ay</strong></div>
+                </div>
+                <button onclick="acquireMediaOutlet('${out.id}', ${cost})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${owned ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-500 text-slate-950'}">
+                  ${owned ? 'Sahibisin ✓' : `Kur (${fmtMoney(cost)})`}
+                </button>
+              </div>
+              ${owned ? `
+                <button onclick="triggerHeadlineBroadcast('${out.id}')" class="w-full py-1.5 rounded-xl bg-slate-950 border border-orange-500/40 text-orange-300 text-[10px] font-extrabold">
+                  📡 Özel Manşet / Canlı Radyo Yayını Yap (+Anlık Nakit &amp; Etki)
+                </button>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // SEKME 3: KLASİK SOSYAL MEDYA AKIŞI
+  const platforms = ['Instaphoto', 'TokTik', 'YouVideo', 'KickStream'];
+  return topTabs + `
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-fuchsia-500/30 grid grid-cols-2 gap-2 mb-2.5">
+      ${platforms.map(p => {
+        const joined = G.social.activePlatforms.includes(p);
+        return `<button onclick="joinSocialPlatform('${p}')" class="p-2 rounded-xl border text-xs font-bold ${joined ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-slate-800 bg-slate-950 text-slate-300'}">${joined ? '✓ ' + p : '+ ' + p + ' Aç'}</button>`;
+      }).join('')}
+    </div>
+    <div class="space-y-2">
+      <button onclick="postSocialContent('viral')" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left"><div><div class="text-xs font-extrabold text-white">🔥 Viral Reels / Shorts Videosu Çek</div><div class="text-[10px] text-slate-400">Keşfete düşme ve yüksek takipçi şansı</div></div><span class="text-xs font-bold text-emerald-400">Paylaş &rarr;</span></button>
+      <button onclick="postSocialContent('stream')" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left"><div><div class="text-xs font-extrabold text-white">🎮 Hızlı Mobil Yayın Aç</div><div class="text-[10px] text-slate-400">Takipçi + anlık bağış geliri</div></div><span class="text-xs font-bold text-emerald-400">Yayın Aç &rarr;</span></button>
+      <button onclick="postSocialContent('sponsor')" class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-left"><div><div class="text-xs font-extrabold text-white">💼 Sponsorlu Marka Reklamı Al</div><div class="text-[10px] text-slate-400">En az 10.000 takipçi gerekir</div></div><span class="text-xs font-bold text-amber-400">Anlaşma &rarr;</span></button>
+      <button onclick="applyForBlueTick()" class="w-full p-3 rounded-2xl bg-slate-900 border border-sky-500/30 flex items-center justify-between text-left"><div><div class="text-xs font-extrabold text-sky-400">☑️ Mavi Tik Başvurusu</div><div class="text-[10px] text-slate-400">50.000+ takipçi gerekir</div></div><span class="text-xs font-bold text-sky-400">Başvur &rarr;</span></button>
+    </div>
+  `;
+}
+
+function buyStreamerGear(gearId, cost) {
+  const ms = G.mediaStudio;
+  if (ms.gear.includes(gearId)) return;
+  if (G.money < cost) { showToast('Stüdyo ekipmanı için nakit yetersiz!'); return; }
+  G.money -= cost;
+  ms.gear.push(gearId);
+  const g = STREAMER_GEAR_DB.find(x => x.id === gearId);
+  G.fame = clamp(G.fame + g.fameBoost);
+  ms.peakViewers = Math.round(ms.peakViewers * (1 + g.viewBoost / 100) + 120);
+  playSfx('coin');
+  addLog(G.age, `🎛️ Yayıncı stüdyona **${g.name}** kurdun! Yayın kaliten ve izleyici kitlen büyüdü.`, 'good');
+  saveGame(); renderAll(); openMenuSection('social');
+}
+
+function startInteractiveLiveStream(streamType) {
+  const ms = G.mediaStudio;
+  if (ms.streamsThisYear >= 4) { showToast('Bu yılki 4 büyük yayın maratonunu tamamladın! +1 Yaş ilerle.'); return; }
+  ms.streamsThisYear += 1;
+
+  const c = getCountry();
+  const gearMult = 1 + ms.gear.length * 0.65;
+  const newSubs = Math.round(randInt(180, 650) * gearMult);
+  const donationMoney = Math.round(c.monthlyMinWage * 0.45 * gearMult);
+
+  ms.liveSubs += newSubs;
+  ms.peakViewers = Math.max(ms.peakViewers, Math.round(ms.liveSubs * 2.4));
+  G.social.followers += newSubs * 6;
+  G.money += donationMoney;
+  G.fame = clamp(G.fame + 4);
+
+  if (ms.liveSubs >= 100000 || ms.gear.length === 4) unlockAchievement('top_streamer');
+  playSfx('coin');
+
+  const topicTxt = streamType === 'sports_talk' ? 'Süper Lig ve Transfer Kulisleri' : 'Gece Maratonu Oyun & Sohbet';
+  addLog(G.age, `🎙️ **CANLI YAYIN REKORU (${topicTxt}):** Yayını **${ms.peakViewers.toLocaleString('tr-TR')}** anlık izleyici takip etti! **+${newSubs} yeni abone** ve **+${fmtMoney(donationMoney)}** bağış (Donate) kazandın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('social');
+}
+
+function acquireMediaOutlet(outId, cost) {
+  const ms = G.mediaStudio;
+  if (ms.ownedOutlets.includes(outId)) return;
+  if (G.money < cost) { showToast('Medya kuruluşu sermayesi için bakiye yetersiz!'); return; }
+  const out = MEDIA_OUTLETS_DB.find(x => x.id === outId);
+  if (!out) return;
+
+  G.money -= cost;
+  ms.ownedOutlets.push(outId);
+  G.fame = clamp(G.fame + 18);
+  if (outId === 'skor_agi_media' || outId === 'national_tv') unlockAchievement('media_mogul');
+
+  playSfx('trophy');
+  addLog(G.age, `📡 **MEDYA PATRONU!** **${out.name}** kuruluşunu bünyene kattın! Artık kamuoyunu ve reklam piyasasını doğrudan yönetiyorsun.`, 'fame');
+  saveGame(); renderAll(); openMenuSection('social');
+}
+
+function setMediaEditorialFocus(focus) {
+  G.mediaStudio.editorialFocus = focus;
+  saveGame(); renderAll(); openMenuSection('social');
+}
+
+function triggerHeadlineBroadcast(outId) {
+  const c = getCountry();
+  const ms = G.mediaStudio;
+  const out = MEDIA_OUTLETS_DB.find(x => x.id === outId);
+  if (!out) return;
+
+  const adBonus = Math.round(c.monthlyMinWage * (out.monthlyRevMult * 0.6));
+  G.money += adBonus;
+
+  if (ms.editorialFocus === 'politics') {
+    G.politics.approval = clamp(G.politics.approval + 8);
+    addLog(G.age, `📺 **${out.name}** ana haber bülteninde siyasi projelerini tanıttın! Seçmen desteğin **%${G.politics.approval}** oldu (+${fmtMoney(adBonus)} reklam).`, 'fame');
+  } else if (ms.editorialFocus === 'football' && G.club && G.club.active) {
+    G.club.fanTrust = clamp(G.club.fanTrust + 9);
+    G.club.tffLobby = clamp((G.club.tffLobby || 50) + 8);
+    addLog(G.age, `🟠 **${out.name}** özel yayınıyla kulübün **${G.club.teamName}** lehine dev kamuoyu oluşturdun! (+9 Taraftar Güveni & +${fmtMoney(adBonus)} sponsor geliri).`, 'fame');
+  } else {
+    addLog(G.age, `📻 **${out.name}** prime-time özel reklam kuşağından **+${fmtMoney(adBonus)}** anlık gelir elde ettin!`, 'good');
+  }
+  playSfx('coin');
+  saveGame(); renderAll(); openMenuSection('social');
+}
+
+/* ---------------- BÖLÜM 4: EKONOMİ, YAŞ VE MENÜ KANCALARI ---------------- */
+(function attachPoliticsAndMediaHooks() {
+  if (window._polAndMediaHooksLoaded) return;
+  window._polAndMediaHooksLoaded = true;
+
+  // 1. Bakanlık Maaşı, Yasa Teşvikleri, Yayıncı Abone Geliri ve Medya Kârlarını Aylık Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensurePoliticsAndMediaState();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison) return fin;
+    const c = getCountry();
+    const dp = G.deepPol;
+    const ms = G.mediaStudio;
+
+    // A) Bakanlık Maaşı ve Maliye/Ulaştırma Bakanlığı Bonusları
+    if (dp.ministryId) {
+      const min = MINISTRIES_DB.find(x => x.id === dp.ministryId);
+      if (min) {
+        const minGross = Math.round(c.monthlyMinWage * min.salaryMult);
+        const minNet = Math.round(minGross * 0.82);
+        fin.monthlyGrossSalary += minGross;
+        fin.monthlyNetSalary += minNet;
+        fin.monthlyNetCashflow += minNet;
+      }
+      if (dp.ministryId === 'ulastirma' && fin.monthlyBizProfit > 0) {
+        const ulastirmaBoost = Math.round(fin.monthlyBizProfit * 0.25);
+        fin.monthlyBizProfit += ulastirmaBoost;
+        fin.monthlyNetCashflow += ulastirmaBoost;
+      }
+    }
+
+    // B) Meclis Lojistik Yasası Bonusları
+    if (dp.logisticsSubsidy > 0 && fin.monthlyBizProfit > 0) {
+      const lawBoost = Math.round(fin.monthlyBizProfit * dp.logisticsSubsidy);
+      fin.monthlyBizProfit += lawBoost;
+      fin.monthlyNetCashflow += lawBoost;
+    }
+
+    // C) Yayıncı (Streamer) Abone Geliri + Radyo/TV Medya İmparatorluğu Aylık Geliri
+    let monthlyMediaIncome = Math.round((ms.liveSubs / 100) * (c.monthlyMinWage * 0.25));
+    ms.ownedOutlets.forEach(outId => {
+      const out = MEDIA_OUTLETS_DB.find(x => x.id === outId);
+      if (out) {
+        const mult = ms.editorialFocus === 'ads' ? 1.25 : 1.0;
+        monthlyMediaIncome += Math.round(c.monthlyMinWage * out.monthlyRevMult * mult);
+      }
+    });
+
+    if (monthlyMediaIncome > 0) {
+      fin.monthlySocialIncome += monthlyMediaIncome;
+      fin.monthlyNetCashflow += monthlyMediaIncome;
+    }
+
+    fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    return fin;
+  };
+
+  // 2. +1 Yaş İlerlediğinde Yıllık Yayın Hakkını Sıfırla ve Medya Etkilerini Uygula
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensurePoliticsAndMediaState();
+    if (G && G.mediaStudio) {
+      G.mediaStudio.streamsThisYear = 0;
+      if (G.mediaStudio.ownedOutlets.length > 0) {
+        if (G.mediaStudio.editorialFocus === 'politics') {
+          G.politics.approval = clamp(G.politics.approval + G.mediaStudio.ownedOutlets.length * 3);
+        } else if (G.mediaStudio.editorialFocus === 'football' && G.club && G.club.active) {
+          G.club.fanTrust = clamp(G.club.fanTrust + G.mediaStudio.ownedOutlets.length * 4);
+        }
+      }
+    }
+    _prevAdvanceAge();
+  };
+
+  // 3. Siyaset ve Sosyal Medya/Radyo Sekmelerini Yeni Görünümlerle Aç
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensurePoliticsAndMediaState();
+
+    if (sec === 'politics') {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '🏛️ Siyaset, Meclis & Bakanlıklar';
+      const dp = G.deepPol;
+      document.getElementById('sheetSubtitle').textContent = dp.partyId
+        ? `${dp.partyShort} • Meclis: ${dp.mySeats + dp.coalitionSeats} MV • Oy: %${G.politics.approval}`
+        : `Halk Desteği: %${G.politics.approval} • Parti, Meclis & Kabine`;
+      document.getElementById('sheetBody').innerHTML = renderDeepPoliticsHubHTML();
+      return;
+    }
+
+    if (sec === 'social' || sec === 'media_studio') {
+      if (sec === 'media_studio') activeMediaHubTab = 'empire';
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '🎙️ Yayıncı Stüdyosu, Radyo & Medya';
+      document.getElementById('sheetSubtitle').textContent = `Abone: ${G.mediaStudio.liveSubs.toLocaleString('tr-TR')} • Medya Kuruluşu: ${G.mediaStudio.ownedOutlets.length} Adet`;
+      document.getElementById('sheetBody').innerHTML = renderMediaAndStreamerHubHTML();
+      return;
+    }
+
+    _prevOpenMenuSec(sec);
+  };
+
+  // 4. Ana Menüdeki Sosyal Medya Kartını "Radyo, Medya & Yayıncı Stüdyosu" Olarak Güncelle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensurePoliticsAndMediaState();
+    _prevOpenNav(tab);
+    if (tab === 'menu') {
+      const body = document.getElementById('sheetBody');
+      if (!body) return;
+      body.querySelectorAll('button').forEach(btn => {
+        if (btn.textContent.includes('Sosyal Medya')) {
+          btn.innerHTML = `<div class="text-lg">🎙️</div><div class="text-xs font-extrabold text-white">Medya, Radyo &amp; Streamer</div><div class="text-[10px] text-fuchsia-300">${G.mediaStudio.liveSubs.toLocaleString('tr-TR')} Abone &bull; ${G.mediaStudio.ownedOutlets.length} Kanal</div>`;
+        }
+        if (btn.textContent.includes('Siyaset & Devlet')) {
+          btn.innerHTML = `<div class="text-lg">🏛️</div><div class="text-xs font-extrabold text-white">Meclis &amp; Bakanlıklar</div><div class="text-[10px] text-amber-300">${G.deepPol.mySeats + G.deepPol.coalitionSeats} MV &bull; Oy %${G.politics.approval}</div>`;
+        }
+      });
+    }
+  };
+})();
