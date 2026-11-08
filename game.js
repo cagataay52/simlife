@@ -5283,3 +5283,237 @@ function renderRadialConditionRingSVG(cond = 100) {
     });
   };
 })();
+
+/* ============================================================================
+   TEK MERKEZLİ FUTBOL BİRLEŞTİRME YAMASI (UNIFIED FOOTBALL & SPORTS HUB)
+   ============================================================================ */
+
+let unifiedSportsMainTab = 'player'; // 'player' | 'president' | 'other_sports'
+
+(function unifyAllFootballSystems() {
+  // 1. Eski basit "Profesyonel Futbolcu" branşını listeden kaldır (Çift görünmeyi önler)
+  if (typeof SPORTS_BRANCHES !== 'undefined' && Array.isArray(SPORTS_BRANCHES)) {
+    const oldFbIdx = SPORTS_BRANCHES.findIndex(b => b.id === 'football');
+    if (oldFbIdx !== -1) SPORTS_BRANCHES.splice(oldFbIdx, 1);
+  }
+
+  // 2. Eski G.sports.branchId === 'football' kayıtlarını yeni G.proPlayer sistemine aktar
+  function syncLegacyFootballState() {
+    if (!G) return;
+    if (typeof upgradeProPlayerState === 'function') upgradeProPlayerState();
+    if (G.sports && G.sports.branchId === 'football') {
+      G.proPlayer.active = true;
+      if (!G.proPlayer.stage || G.proPlayer.stage === 'none') {
+        G.proPlayer.stage = G.sports.tierIndex === 0 ? 'u19_academy' : 'pro_star';
+      }
+      G.sports.branchId = null; // Eski sistemin çift maaş/etiket vermesini kapat
+    }
+  }
+
+  // 3. Futbolcu Aylık Maaşını / Altyapı Bursunu Doğrudan Ana Ekonomi & Bordro Motoruna Bağla
+  function getUnifiedFootballerMonthlyPay() {
+    if (!G || !G.proPlayer || !G.proPlayer.active) return 0;
+    const c = getCountry();
+    const p = G.proPlayer;
+    recalcProPlayerOvr();
+    if (p.stage === 'u19_academy') {
+      const ac = YOUTH_ACADEMIES_DB.find(x => x.id === p.academyId);
+      return Math.round(c.monthlyMinWage * (ac ? ac.stipendMult : 0.45));
+    }
+    if (p.stage === 'pro_reserve') {
+      return Math.round(c.monthlyMinWage * (p.onLoan ? 2.4 : 3.2) * (p.ovr / 70));
+    }
+    if (p.stage === 'pro_star') {
+      return Math.round(c.monthlyMinWage * (p.tier >= 2 ? 32.0 : 11.5) * (p.ovr / 72));
+    }
+    return 0; // Okul takımı / sokak aşamasında amatör lisans
+  }
+
+  const _origCalcFinances = calculateFinances;
+  calculateFinances = function () {
+    syncLegacyFootballState();
+    const fin = _origCalcFinances();
+    if (!G || G.inPrison) return fin;
+
+    const fbPay = getUnifiedFootballerMonthlyPay();
+    if (fbPay > 0) {
+      const sgk = Math.round(fbPay * 0.14);
+      const tax = Math.round(fbPay * getEffectiveTaxRate());
+      const netFb = Math.max(0, fbPay - sgk - tax);
+
+      fin.monthlyGrossSalary += fbPay;
+      fin.sgkCut += sgk;
+      fin.incomeTaxCut += tax;
+      fin.monthlyTax += (sgk + tax);
+      fin.monthlyNetSalary += netFb;
+      fin.monthlyNetCashflow += netFb;
+      fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    }
+    return fin;
+  };
+
+  // 4. Üst Profil Barında (charRoleText) Futbolcu veya Başkan Unvanını Net Göster
+  const _origRenderAll = renderAll;
+  renderAll = function () {
+    syncLegacyFootballState();
+    _origRenderAll();
+    if (!G || G.inPrison) return;
+
+    const roleEl = document.getElementById('charRoleText');
+    if (!roleEl) return;
+
+    if (G.club && G.club.active && G.proPlayer && G.proPlayer.active) {
+      roleEl.textContent = `⚽ ${G.proPlayer.clubName} (${G.proPlayer.ovr} OVR) & 🏟️ ${G.club.teamName} Başkanı • ${G.age} Yaş`;
+    } else if (G.proPlayer && G.proPlayer.active) {
+      roleEl.textContent = `⚽ ${G.proPlayer.clubName} (${G.proPlayer.ovr} OVR) • ${G.age} Yaş`;
+    } else if (G.club && G.club.active) {
+      roleEl.textContent = `🏟️ ${G.club.teamName} Başkanı • ${G.age} Yaş`;
+    }
+  };
+
+  // 5. E-Bordro Başlığında Futbolcu Kontratını Göster
+  const _origPayrollHTML = renderPayrollSlipHTML;
+  renderPayrollSlipHTML = function () {
+    syncLegacyFootballState();
+    const html = _origPayrollHTML();
+    if (G && G.proPlayer && G.proPlayer.active && getUnifiedFootballerMonthlyPay() > 0) {
+      return html.replace('Kurumsal Personel', `⚽ Profesyonel Futbolcu (${G.proPlayer.clubName})`);
+    }
+    return html;
+  };
+
+  // 6. TEK MERKEZLİ FUTBOL VE SPOR EKRANI OLUŞTURUCU
+  window.renderUnifiedFootballHub = function () {
+    syncLegacyFootballState();
+    const c = getCountry();
+    const p = G.proPlayer;
+    const cl = G.club;
+
+    const topSwitcher = `
+      <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3">
+        <button onclick="unifiedSportsMainTab='player'; openMenuSection('sports')" class="py-2.5 rounded-xl text-[11px] font-extrabold transition ${unifiedSportsMainTab === 'player' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400'}">
+          ⚽ Futbolcu ${p.active ? `(${p.ovr})` : ''}
+        </button>
+        <button onclick="unifiedSportsMainTab='president'; openMenuSection('sports')" class="py-2.5 rounded-xl text-[11px] font-extrabold transition ${unifiedSportsMainTab === 'president' ? 'bg-orange-500 text-slate-950 shadow' : 'text-slate-400'}">
+          🏟️ Başkanlık ${cl.active ? '✓' : ''}
+        </button>
+        <button onclick="unifiedSportsMainTab='other_sports'; openMenuSection('sports')" class="py-2.5 rounded-xl text-[11px] font-extrabold transition ${unifiedSportsMainTab === 'other_sports' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400'}">
+          🏀 Basket / E-Spor
+        </button>
+      </div>
+    `;
+
+    // SEKME A: FUTBOLCU KARİYERİ (OKUL -> ALTYAPI -> U19 -> A TAKIM -> BALLON D'OR)
+    if (unifiedSportsMainTab === 'player') {
+      let playerHtml = renderProFootballerCareerView();
+
+      // Aktif futbolcuysa Beşgen Radar Grafiği, 2D Saha ve Jübile butonunu ekle
+      if (p.active && p.stage !== 'none') {
+        const retireBtn = `
+          <div class="pt-2">
+            <button onclick="retireFromProFootball()" class="w-full py-2.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs font-bold">
+              👟 Aktif Futbolculuk Kariyerini Noktala (Jübile Yap)
+            </button>
+          </div>
+        `;
+        if (activeProPlayerTab === 'overview' && typeof render2DTacticalPitchSVG === 'function') {
+          playerHtml += render2DTacticalPitchSVG('4-2-3-1 Hücum', p.ovr) + retireBtn;
+        } else {
+          playerHtml += retireBtn;
+        }
+      }
+      return renderHeroBannerHTML('sports') + topSwitcher + playerHtml;
+    }
+
+    // SEKME B: FUTBOL KULÜBÜ BAŞKANLIĞI & FİKSTÜR PANOSU
+    if (unifiedSportsMainTab === 'president') {
+      let clubHtml = renderClubPresidencyView();
+      if (cl.active && activeClubSubTab === 'squad' && typeof render2DTacticalPitchSVG === 'function') {
+        clubHtml = render2DTacticalPitchSVG(cl.tactic, cl.power) + clubHtml;
+      }
+      return renderHeroBannerHTML('sports') + topSwitcher + clubHtml;
+    }
+
+    // SEKME C: DİĞER SPOR BRANŞLARI (BASKETBOL & E-SPOR)
+    const curBranch = SPORTS_BRANCHES.find(b => b.id === G.sports.branchId);
+    return renderHeroBannerHTML('sports') + topSwitcher + `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2 mb-2.5">
+        <div class="flex justify-between"><span class="text-xs font-extrabold text-white">${curBranch ? `${curBranch.icon} ${curBranch.name} (${curBranch.tiers[G.sports.tierIndex]})` : 'Basketbol / E-Spor Sözleşmesi Yok'}</span><span class="text-xs font-bold text-emerald-400">Yetenek: %${G.sports.skill}</span></div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="trainSportsSkill()" class="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">🏋️ Antrenman Yap</button>
+          <button onclick="requestTransferOffer()" class="p-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold">✈️ Üst Lige Transfer</button>
+        </div>
+      </div>
+      <div class="space-y-2">
+        ${SPORTS_BRANCHES.map(br => {
+          const act = G.sports.branchId === br.id;
+          return `<div class="p-3 rounded-2xl bg-slate-900 border ${act ? 'border-emerald-500' : 'border-slate-800'} flex items-center justify-between gap-2"><div><div class="text-xs font-extrabold text-white">${br.icon} ${br.name}</div><div class="text-[10px] text-slate-400">${br.tiers.join(' &rarr; ')}</div><div class="text-[10px] text-emerald-400">Zirve Kontrat: ${fmtMoney(c.monthlyMinWage * br.mults[2])}/ay</div></div><button onclick="joinSportsBranch('${br.id}')" class="px-3 py-2 rounded-xl text-xs font-extrabold ${act ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-500 text-slate-950'}">${act ? 'Sözleşmeli' : 'Seçmeye Gir'}</button></div>`;
+        }).join('')}
+      </div>
+    `;
+  };
+
+  window.retireFromProFootball = function () {
+    if (!G || !G.proPlayer || !G.proPlayer.active) return;
+    const oldClub = G.proPlayer.clubName;
+    G.proPlayer.active = false;
+    G.proPlayer.stage = 'none';
+    playSfx('trophy');
+    addLog(G.age, `👟 **JÜBİLE!** **${oldClub}** formasıyla çıktığın son maçta taraftarların alkışları arasında futbolculuk kariyerini noktaladın. Artık **Kulüp Başkanlığına** odaklanabilirsin!`, 'milestone');
+    unifiedSportsMainTab = 'president';
+    saveGame(); renderAll(); openMenuSection('sports');
+  };
+
+  // 7. Tüm Futbol Çağrılarını ('sports', 'pro_footballer', 'club_presidency') Tek Merkeze Yönlendir
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    syncLegacyFootballState();
+    if (sec === 'pro_footballer' || sec === 'club_presidency' || sec === 'sports') {
+      if (sec === 'pro_footballer') unifiedSportsMainTab = 'player';
+      if (sec === 'club_presidency') unifiedSportsMainTab = 'president';
+
+      const sheet = document.getElementById('bottomSheet');
+      const body = document.getElementById('sheetBody');
+      sheet.classList.remove('hidden');
+
+      document.getElementById('sheetTitle').textContent = '⚽ Futbol & Spor Merkezi';
+      const p = G.proPlayer;
+      const cl = G.club;
+      document.getElementById('sheetSubtitle').textContent = p.active
+        ? `Futbolcu: ${p.clubName} (${p.ovr} OVR)`
+        : (cl.active ? `Başkan: ${cl.teamName} (Hafta ${cl.week}/22)` : 'Futbolcu Kariyeri, Kulüp Başkanlığı & E-Spor');
+
+      body.innerHTML = renderUnifiedFootballHub();
+
+      // FUT Kartına Beşgen Radar SVG ve Puan Tablosuna Kulüp Arması SVG Ekle
+      if (unifiedSportsMainTab === 'player' && p.active && typeof renderPlayerPentagonRadarSVG === 'function') {
+        const futCard = body.querySelector('.fut-player-card .flex.items-start.justify-between');
+        if (futCard && !futCard.querySelector('svg')) {
+          futCard.insertAdjacentHTML('beforeend', renderPlayerPentagonRadarSVG(p));
+        }
+      }
+      if (unifiedSportsMainTab === 'president' && cl.active && typeof renderClubCrestSVG === 'function') {
+        body.querySelectorAll('.standings-table tbody tr').forEach((tr, idx) => {
+          const rowData = cl.standings[idx];
+          const nameCell = tr.children[1];
+          if (rowData && nameCell) {
+            nameCell.innerHTML = `${renderClubCrestSVG(rowData.colors, rowData.short, 18)} <span>${rowData.name}</span>`;
+          }
+        });
+      }
+      return;
+    }
+    _prevOpenMenuSec(sec);
+  };
+
+  // 8. Menüdeki Çift Futbol Butonlarını Temizle ve Tek "Futbol & Spor Merkezi" Yap
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    syncLegacyFootballState();
+    _prevOpenNav(tab);
+    if (tab === 'menu') {
+      const duplicateHero = document.getElementById('clubMenuHeroBtn');
+      if (duplicateHero) duplicateHero.remove();
+    }
+  };
+})();
