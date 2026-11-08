@@ -325,3 +325,116 @@ html, body {
   border-radius: 16px;
   padding: 12px;
 }
+
+/* ============================================================================
+   HD GRAFİK VE MİKRO-WIDGET PAKETİ (ANA EKRAN DÜZENİNİ KORUYAN GÖRSEL MOTOR)
+   ============================================================================ */
+
+/* 1. 10 Bölmeli Segmentli LED İstatistik Barları & Delta Rozeti */
+.stat-track {
+  position: relative;
+  height: 8px !important;
+  border-radius: 4px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  overflow: hidden;
+}
+.stat-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0%,
+    transparent calc(10% - 1.5px),
+    #090d16 calc(10% - 1.5px),
+    #090d16 10%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+.stat-delta-pill {
+  font-size: 8px;
+  font-weight: 800;
+  padding: 0 3px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+/* 2. Günlük Akışı Mikro-Widget Rozetleri ve Mini Skorbord */
+.log-money-pill-pos {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: #34d399;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+}
+.log-money-pill-neg {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(244, 63, 94, 0.18);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  color: #fb7185;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+}
+.mini-match-widget {
+  background: linear-gradient(90deg, #090d16 0%, #111827 50%, #090d16 100%);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+/* 3. Galeri & Emlak Fotoğraflı Vitrin Kartları */
+.showcase-thumb-wrap {
+  width: 74px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #090d16;
+  flex-shrink: 0;
+}
+.showcase-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 4. Olay Pencereleri (Modal) Sinematik Atmosfer Başlığı */
+.modal-atmo-banner {
+  height: 82px;
+  border-radius: 16px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 12px;
+}
+.modal-atmo-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16, 24, 40, 0.25) 0%, rgba(16, 24, 40, 0.92) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
+/* 5. 2D Taktik Çim Saha Görseli */
+.tactical-pitch-card {
+  background: linear-gradient(180deg, #064e3b 0%, #047857 50%, #064e3b 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.45);
+}
