@@ -4890,3 +4890,396 @@ transferProPlayerToClub = function (clubName, tier, reqOvr, signBonus) {
     }
   };
 })();
+
+/* ============================================================================
+   HD GRAFİK MOTORU (5 GÖRSEL PAKET TAM ENTEGRASYON)
+   ============================================================================ */
+
+// 1. Araç ve Emlak Vitrin Görselleri Veritabanı
+const CAR_THUMBNAILS_DB = {
+  scooter: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=300&q=80',
+  tofas: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=300&q=80',
+  doblo: 'https://images.unsplash.com/photo-1565043666747-69f6646db940?auto=format&fit=crop&w=300&q=80',
+  egea: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=300&q=80',
+  egea_cross: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=300&q=80',
+  corolla: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=300&q=80',
+  togg: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=300&q=80',
+  transporter: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=300&q=80',
+  passat: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=300&q=80',
+  bmw320: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=300&q=80',
+  volvo_fh16: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=300&q=80',
+  scania_s730: 'https://images.unsplash.com/photo-1586191582056-b7f0372a3ce6?auto=format&fit=crop&w=300&q=80',
+  g63: 'https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=300&q=80',
+  porsche911: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=300&q=80',
+  ferrari_f8: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=300&q=80',
+  maybach: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=300&q=80'
+};
+
+const HOUSE_THUMBNAILS_DB = {
+  ogrenci_apart: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=300&q=80',
+  studio: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=300&q=80',
+  apt31: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=300&q=80',
+  lojistik_depo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=300&q=80',
+  villa: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80',
+  penthouse: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=300&q=80',
+  mansion: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=300&q=80'
+};
+
+// 2. Kulüp Renklerine Göre Vektörel SVG Kulüp Kalkanı / Arması Üretici
+function renderClubCrestSVG(colorsStr = '🟡🔵', shortCode = 'FK', size = 24) {
+  const colorMap = {
+    '🟡': '#facc15', '🔵': '#1d4ed8', '🔴': '#dc2626', '⚫': '#18181b',
+    '⚪': '#f8fafc', '🟢': '#16a34a', '🟠': '#f97316', '🟣': '#7e22ce',
+    '🟤': '#78350f', '🩷': '#ec4899'
+  };
+  const chars = Array.from(colorsStr || '');
+  const c1 = colorMap[chars[0]] || '#10b981';
+  const c2 = colorMap[chars[1]] || '#0f172a';
+  const textCol = (c1 === '#facc15' || c1 === '#f8fafc') && (c2 === '#facc15' || c2 === '#f8fafc') ? '#090d16' : '#ffffff';
+  const uidShield = 'sh_' + shortCode.replace(/[^a-zA-Z0-9]/g, '') + '_' + size;
+
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 36 40" class="inline-block shrink-0 align-middle mr-1">
+      <defs>
+        <clipPath id="${uidShield}">
+          <path d="M3 4 L18 1 L33 4 L33 19 C33 29 18 37 18 38 C18 37 3 29 3 19 Z" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#${uidShield})">
+        <rect x="0" y="0" width="18" height="40" fill="${c1}" />
+        <rect x="18" y="0" width="18" height="40" fill="${c2}" />
+        <rect x="13" y="0" width="10" height="40" fill="${c1}" fill-opacity="0.35" />
+      </g>
+      <path d="M3 4 L18 1 L33 4 L33 19 C33 29 18 37 18 38 C18 37 3 29 3 19 Z" fill="none" stroke="#e2e8f0" stroke-width="2" />
+      <text x="18" y="22" text-anchor="middle" fill="${textCol}" font-size="9.5" font-weight="900" font-family="Plus Jakarta Sans, sans-serif" style="paint-order:stroke; stroke:#090d16; stroke-width:2.2px;">${shortCode.slice(0, 3)}</text>
+    </svg>
+  `;
+}
+
+// 3. 2D Görsel Taktik Çim Saha Dizilişi (11 Oyuncu Noktası)
+function render2DTacticalPitchSVG(formation = '4-2-3-1 Hücum', teamOvr = 84) {
+  const layouts = {
+    '4-2-3-1 Hücum': [
+      [50, 88, 'KL'], [18, 70, 'SLB'], [38, 73, 'STP'], [62, 73, 'STP'], [82, 70, 'SĞB'],
+      [36, 54, 'MDO'], [64, 54, 'MDO'], [20, 34, 'SLK'], [50, 36, 'OOS'], [80, 34, 'SĞK'], [50, 16, 'SNT']
+    ],
+    '4-3-3 Gegenpress': [
+      [50, 88, 'KL'], [18, 70, 'SLB'], [38, 73, 'STP'], [62, 73, 'STP'], [82, 70, 'SĞB'],
+      [50, 56, 'MDO'], [32, 43, 'MO'], [68, 43, 'MO'], [20, 22, 'SLK'], [80, 22, 'SĞK'], [50, 15, 'SNT']
+    ],
+    '3-5-2 Kanat Organizasyonu': [
+      [50, 88, 'KL'], [28, 73, 'STP'], [50, 75, 'STP'], [72, 73, 'STP'],
+      [14, 48, 'SLK'], [36, 54, 'MO'], [64, 54, 'MO'], [86, 48, 'SĞK'], [50, 36, 'OOS'], [36, 17, 'SNT'], [64, 17, 'SNT']
+    ],
+    '4-1-4-1 Kontrollü Pas': [
+      [50, 88, 'KL'], [18, 70, 'SLB'], [38, 73, 'STP'], [62, 73, 'STP'], [82, 70, 'SĞB'],
+      [50, 58, 'MDO'], [18, 40, 'SLO'], [39, 41, 'MO'], [61, 41, 'MO'], [82, 40, 'SĞO'], [50, 17, 'SNT']
+    ]
+  };
+  const nodes = layouts[formation] || layouts['4-2-3-1 Hücum'];
+
+  const dotsSvg = nodes.map(([x, y, pos], idx) => `
+    <g>
+      <circle cx="${x * 2.4}" cy="${y * 1.4}" r="8.5" fill="${idx === 0 ? '#f59e0b' : '#10b981'}" stroke="#090d16" stroke-width="2" />
+      <text x="${x * 2.4}" y="${y * 1.4 + 3}" text-anchor="middle" fill="#090d16" font-size="6.5" font-weight="900" font-family="JetBrains Mono">${pos}</text>
+    </g>
+  `).join('');
+
+  return `
+    <div class="tactical-pitch-card mb-2.5">
+      <div class="flex items-center justify-between text-[10px] font-extrabold text-emerald-100 mb-1.5 px-1">
+        <span>📋 2D SAHA DİZİLİŞİ: ${formation.toUpperCase()}</span>
+        <span class="font-mono-num text-amber-300">TAKIM GÜCÜ: ${teamOvr} OVR</span>
+      </div>
+      <svg viewBox="0 0 240 140" class="w-full h-36 rounded-xl overflow-hidden">
+        <!-- Saha Çizgileri -->
+        <rect x="4" y="4" width="232" height="132" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
+        <line x1="4" y1="70" x2="236" y2="70" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" />
+        <circle cx="120" cy="70" r="18" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" />
+        <rect x="68" y="4" width="104" height="24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" />
+        <rect x="68" y="112" width="104" height="24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" />
+        ${dotsSvg}
+      </svg>
+    </div>
+  `;
+}
+
+// 4. Futbolcu 5'li Beşgen Radar (Örümcek Ağı) Grafiği
+function renderPlayerPentagonRadarSVG(p) {
+  const vals = [p.pace || 65, p.shooting || 65, p.passing || 65, p.dribbling || 65, p.physical || 65];
+  const labels = ['HIZ', 'ŞUT', 'PAS', 'TEK', 'FİZ'];
+  const cx = 65, cy = 62, maxR = 42;
+
+  const getPt = (idx, ratio) => {
+    const angle = (-Math.PI / 2) + (idx * 2 * Math.PI / 5);
+    return [
+      (cx + Math.cos(angle) * maxR * ratio).toFixed(1),
+      (cy + Math.sin(angle) * maxR * ratio).toFixed(1)
+    ];
+  };
+
+  const outerPoly = [0, 1, 2, 3, 4].map(i => getPt(i, 1.0).join(',')).join(' ');
+  const midPoly = [0, 1, 2, 3, 4].map(i => getPt(i, 0.65).join(',')).join(' ');
+  const valPoly = vals.map((v, i) => getPt(i, clamp(v, 30, 99) / 100).join(',')).join(' ');
+
+  const axisLines = [0, 1, 2, 3, 4].map(i => {
+    const [x, y] = getPt(i, 1.0);
+    const [lx, ly] = getPt(i, 1.24);
+    return `
+      <line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(148,163,184,0.22)" stroke-width="1" />
+      <text x="${lx}" y="${Number(ly) + 3}" text-anchor="middle" fill="#facc15" font-size="7.5" font-weight="800" font-family="JetBrains Mono">${labels[i]}</text>
+    `;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 130 122" class="w-28 h-24 shrink-0">
+      <polygon points="${outerPoly}" fill="rgba(15,23,42,0.75)" stroke="rgba(148,163,184,0.3)" stroke-width="1" />
+      <polygon points="${midPoly}" fill="none" stroke="rgba(148,163,184,0.18)" stroke-dasharray="2 2" stroke-width="1" />
+      ${axisLines}
+      <polygon points="${valPoly}" fill="rgba(250, 204, 21, 0.32)" stroke="#facc15" stroke-width="2" />
+    </svg>
+  `;
+}
+
+// 5. Dairesel Araç Kondisyon Halkası (Radial Progress Ring)
+function renderRadialConditionRingSVG(cond = 100) {
+  const c = clamp(cond, 0, 100);
+  const clr = c >= 80 ? '#10b981' : (c >= 55 ? '#f59e0b' : '#f43f5e');
+  const offset = (100 - c).toFixed(1);
+  return `
+    <svg viewBox="0 0 40 40" class="w-10 h-10 shrink-0">
+      <circle cx="20" cy="20" r="15.9" fill="none" stroke="#1e293b" stroke-width="4" />
+      <circle cx="20" cy="20" r="15.9" fill="none" stroke="${clr}" stroke-width="4" stroke-dasharray="100" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 20 20)" />
+      <text x="20" y="23" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="800" font-family="JetBrains Mono">%${c}</text>
+    </svg>
+  `;
+}
+
+// 6. Tüm Görsel Paketleri Mevcut Sisteme Bağlayan Ana Kanca
+(function attachHDGraphicsPack() {
+  if (window._hdGraphicsPackLoaded) return;
+  window._hdGraphicsPackLoaded = true;
+
+  let _prevStatsSnap = null;
+
+  // A) Üst Bar Servet Sparkline Çizgisi ve Alt Bar LED Delta Rozetleri
+  const _baseRenderAll = renderAll;
+  renderAll = function () {
+    if (G) {
+      if (!Array.isArray(G.netWorthHistory)) G.netWorthHistory = [0, 0, 0, 0, 0];
+      const curNw = getNetWorth();
+      if (G.netWorthHistory[G.netWorthHistory.length - 1] !== curNw) {
+        G.netWorthHistory.push(curNw);
+        if (G.netWorthHistory.length > 8) G.netWorthHistory.shift();
+      }
+    }
+
+    _baseRenderAll();
+    if (!G) return;
+
+    // 1. Üst Bakiye Yanına Mini Sparkline Ekle
+    const balEl = document.getElementById('charBalance');
+    if (balEl && G.netWorthHistory && G.netWorthHistory.length >= 2) {
+      const hist = G.netWorthHistory;
+      const minV = Math.min(...hist), maxV = Math.max(...hist);
+      const rng = Math.max(1, maxV - minV);
+      const pts = hist.map((v, i) => {
+        const x = (i / (hist.length - 1)) * 42 + 2;
+        const y = 14 - ((v - minV) / rng) * 11;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      const isUp = hist[hist.length - 1] >= hist[0];
+      const spkColor = isUp ? '#34d399' : '#fb7185';
+      const sparkSvg = `<svg viewBox="0 0 46 16" class="inline-block w-11 h-4 ml-1 align-middle"><polyline fill="none" stroke="${spkColor}" stroke-width="1.8" stroke-linecap="round" points="${pts}"/></svg>`;
+      balEl.innerHTML = `${fmtMoney(G.money)} ${sparkSvg}`;
+    }
+
+    // 2. Alt 6'lı İstatistik Barlarına Anlık Değişim (+ / -) Rozeti Ekle
+    const statKeys = [
+      ['Health', G.health], ['Happy', G.happy], ['Smart', G.smart],
+      ['Looks', G.looks], ['Fame', G.fame], ['Stress', G.stress]
+    ];
+    if (_prevStatsSnap) {
+      statKeys.forEach(([k, val]) => {
+        const diff = Math.round(val - (_prevStatsSnap[k] ?? val));
+        const el = document.getElementById(`stat${k}Val`);
+        if (el && diff !== 0) {
+          const isGood = k === 'Stress' ? diff < 0 : diff > 0;
+          const badgeCls = isGood ? 'bg-emerald-500/25 text-emerald-300' : 'bg-rose-500/25 text-rose-300';
+          el.innerHTML = `${clamp(val)}<span class="stat-delta-pill ${badgeCls}">${diff > 0 ? '+' + diff : diff}</span>`;
+        }
+      });
+    }
+    _prevStatsSnap = { Health: G.health, Happy: G.happy, Smart: G.smart, Looks: G.looks, Fame: G.fame, Stress: G.stress };
+  };
+
+  // B) Günlük Akışı İçin Mikro-Widget Kartları (Skorbord & Neon Finans Rozetleri)
+  const _baseRenderLogs = renderLogs;
+  renderLogs = function () {
+    _baseRenderLogs();
+    const container = document.getElementById('logContainer');
+    if (!container || !G) return;
+
+    // 1. Para Tutarlarını (+120.000 ₺ / -45.000 ₺) Neon Rozete Dönüştür
+    container.querySelectorAll('.timeline-age-block .text-xs').forEach(node => {
+      let html = node.innerHTML;
+      html = html.replace(/(\+[0-9.,]+\s*(?:₺|\$|€|£|﷼|د\.إ|kr|¥|₩|₽|R\$|₦))/g, '<span class="log-money-pill-pos">$1</span>');
+      html = html.replace(/(-\s*[0-9.,]+\s*(?:₺|\$|€|£|﷼|د\.إ|kr|¥|₩|₽|R\$|₦))/g, '<span class="log-money-pill-neg">$1</span>');
+
+      // 2. Hafta Maç Sonuçlarını Mini Skorbord Widget'ına Dönüştür
+      const matchRegex = /Hafta\s+(\d+)\s+\((.*?)\):<\/strong>\s+(.*?)\s+<strong[^>]*>(\d+\s*-\s*\d+)<\/strong>\s+([^•]+)/i;
+      const m = html.match(matchRegex);
+      if (m) {
+        const [, wk, resText, homeTeam, scoreStr, awayTeam] = m;
+        html += `
+          <div class="mini-match-widget flex items-center justify-between text-[10px]">
+            <span class="font-extrabold text-white truncate max-w-[105px]">${homeTeam.trim()}</span>
+            <span class="px-2.5 py-0.5 rounded-lg bg-orange-500 text-slate-950 font-mono-num font-black">${scoreStr}</span>
+            <span class="font-extrabold text-white truncate max-w-[105px] text-right">${awayTeam.trim()}</span>
+          </div>
+        `;
+      }
+      node.innerHTML = html;
+    });
+  };
+
+  // C) Galeri, Emlak, Kulüp Başkanlığı ve Futbolcu Sekmelerine Görsel Vitrin & SVG Grafik Enjeksiyonu
+  const _baseOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    _baseOpenMenuSec(sec);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // 1. Galeri Sekmesine Araç Fotoğrafları ve Kondisyon Halkası Ekle
+    if (sec === 'cars') {
+      if (activeGarageTab === 'dealer') {
+        const cards = body.querySelectorAll('.p-3.rounded-2xl.bg-slate-900');
+        cards.forEach((card, i) => {
+          const car = CARS[i];
+          if (!car) return;
+          const imgUrl = CAR_THUMBNAILS_DB[car.id] || CAR_THUMBNAILS_DB.egea;
+          const row = card.querySelector('.flex.items-center.justify-between');
+          if (row && !card.querySelector('.showcase-thumb-wrap')) {
+            row.insertAdjacentHTML('afterbegin', `
+              <div class="showcase-thumb-wrap">
+                <img src="${imgUrl}" alt="${car.name}" class="showcase-thumb-img" />
+              </div>
+            `);
+          }
+        });
+      } else if (activeGarageTab === 'mycars' && G.cars.length > 0) {
+        const myCards = body.querySelectorAll('.p-3\\.5.rounded-2xl.bg-slate-900');
+        myCards.forEach((card, i) => {
+          const car = G.cars[i];
+          if (!car) return;
+          const imgUrl = CAR_THUMBNAILS_DB[car.carId] || CAR_THUMBNAILS_DB.egea;
+          const topRow = card.querySelector('.flex.items-center.justify-between');
+          if (topRow && !card.querySelector('.showcase-thumb-wrap')) {
+            topRow.insertAdjacentHTML('afterbegin', `
+              <div class="flex items-center gap-2.5">
+                <div class="showcase-thumb-wrap">
+                  <img src="${imgUrl}" alt="${car.name}" class="showcase-thumb-img" />
+                </div>
+                ${renderRadialConditionRingSVG(car.cond)}
+              </div>
+            `);
+          }
+        });
+      }
+    }
+
+    // 2. Emlak Sekmesine Mülk Fotoğrafları Ekle
+    if (sec === 'houses') {
+      const dealerCards = body.querySelectorAll('.p-3.rounded-2xl.bg-slate-900');
+      dealerCards.forEach((card, i) => {
+        const h = HOUSES[i];
+        if (!h) return;
+        const imgUrl = HOUSE_THUMBNAILS_DB[h.id] || HOUSE_THUMBNAILS_DB.apt31;
+        if (!card.querySelector('.showcase-thumb-wrap')) {
+          card.insertAdjacentHTML('afterbegin', `
+            <div class="showcase-thumb-wrap mr-2">
+              <img src="${imgUrl}" alt="${h.name}" class="showcase-thumb-img" />
+            </div>
+          `);
+        }
+      });
+    }
+
+    // 3. Kulüp Başkanlığına SVG Kulüp Armaları ve 2D Taktik Çim Saha Ekle
+    if (sec === 'club_presidency' && G.club && G.club.active) {
+      if (activeClubSubTab === 'squad') {
+        const pitchHtml = render2DTacticalPitchSVG(G.club.tactic, G.club.power);
+        body.insertAdjacentHTML('afterbegin', pitchHtml);
+      }
+      // Puan durumundaki kulüp satırlarına vektörel SVG kalkan arması ekle
+      body.querySelectorAll('.standings-table tbody tr').forEach((tr, idx) => {
+        const rowData = G.club.standings[idx];
+        const nameCell = tr.children[1];
+        if (rowData && nameCell) {
+          nameCell.innerHTML = `${renderClubCrestSVG(rowData.colors, rowData.short, 18)} <span>${rowData.name}</span>`;
+        }
+      });
+    }
+
+    // 4. Futbolcu Kariyerine 5'li Beşgen Radar Grafiği ve 2D Saha Ekle
+    if (sec === 'pro_footballer' && G.proPlayer && G.proPlayer.active) {
+      const futCard = body.querySelector('.fut-player-card');
+      if (futCard && !futCard.querySelector('svg')) {
+        const topFlex = futCard.querySelector('.flex.items-start.justify-between');
+        if (topFlex) {
+          topFlex.insertAdjacentHTML('beforeend', renderPlayerPentagonRadarSVG(G.proPlayer));
+        }
+      }
+      if (activeProPlayerTab === 'overview') {
+        body.insertAdjacentHTML('beforeend', render2DTacticalPitchSVG('4-2-3-1 Hücum', G.proPlayer.ovr));
+      }
+    }
+  };
+
+  // D) Olay Pencerelerine (eventModal) Sinematik Görsel Başlık ve Risk/Ödül Etiketleri Ekle
+  const _baseOpenEventModal = openEventModal;
+  openEventModal = function (ev) {
+    _baseOpenEventModal(ev);
+    const modalCard = document.querySelector('#eventModal > div');
+    if (!modalCard) return;
+
+    const oldBanner = modalCard.querySelector('.modal-atmo-banner');
+    if (oldBanner) oldBanner.remove();
+
+    const textSample = ((ev.badge || '') + ' ' + (ev.title || '')).toLowerCase();
+    let bannerImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=700&q=80';
+    if (/futbol|maç|derbi|turnuva|scout|altyapı|ballon|stadyum|kongre/i.test(textSample)) {
+      bannerImg = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=700&q=80';
+    } else if (/mahkeme|ceza|polis|masak|suç|تebligat|savcı/i.test(textSample)) {
+      bannerImg = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=700&q=80';
+    } else if (/sınav|yks|okul|lise|üniversite|karne/i.test(textSample)) {
+      bannerImg = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=700&q=80';
+    } else if (/ihale|gümrük|شirket|fatura|vergi|kredi|miras/i.test(textSample)) {
+      bannerImg = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=700&q=80';
+    } else if (/evlilik|düğün|eş|çocuk|aile/i.test(textSample)) {
+      bannerImg = 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=700&q=80';
+    }
+
+    modalCard.insertAdjacentHTML('afterbegin', `
+      <div class="modal-atmo-banner" style="background-image:url('${bannerImg}')">
+        <div class="modal-atmo-overlay">
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-sm">${ev.badge || 'Yaşam Olayı'}</span>
+          <span class="text-[10px] font-mono-num font-bold text-slate-300">YAŞ ${G ? G.age : 0}</span>
+        </div>
+      </div>
+    `);
+
+    // Seçenek butonlarındaki parantez içi bilgi veya oranları sağ tarafa şık rozet olarak ayır
+    const choiceBtns = document.querySelectorAll('#eventChoices button');
+    choiceBtns.forEach(btn => {
+      const rawTxt = btn.textContent || '';
+      const parenMatch = rawTxt.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+      if (parenMatch) {
+        const mainText = parenMatch[1].trim();
+        const tagText = parenMatch[2].trim();
+        btn.className = 'w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-500/50 flex items-center justify-between gap-2 text-left text-xs font-extrabold text-white transition active:scale-[0.98]';
+        btn.innerHTML = `<span>${mainText}</span><span class="px-2 py-0.5 rounded-lg bg-slate-950/90 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono-num shrink-0">${tagText}</span>`;
+      }
+    });
+  };
+})();
