@@ -6805,3 +6805,805 @@ function triggerHeadlineBroadcast(outId) {
     }
   };
 })();
+
+/* ============================================================================
+   5'Lİ GERÇEKÇİ KARİYER, KPSS, İK MÜLAKATI, TERFİ VE SGK HİZMET DÖKÜMÜ MOTORU
+   ============================================================================ */
+
+let careerMainSubTab = 'portal'; // 'edu_kpss' | 'portal' | 'workplace' | 'sgk_cv'
+
+function ensureRealisticCareerState() {
+  if (!G) return;
+  if (!G.career) {
+    G.career = {
+      degreeType: null,           // 'onlisans' | 'lisans'
+      associateMajor: null,       // 2 yıllık bölüm ID
+      tempGradCertificate: false, // Geçici mezuniyet belgesi (Diploma basılana kadar KPSS/İş başvurusu sağlar)
+      internshipDone: false,      // Zorunlu 30 iş günü staj
+      certificates: [],           // Alınan mesleki sertifikalar
+      cvScore: 42,                // 0 - 100 CV Gücü
+      kpssScore: 0,               // En son KPSS P93/P3 puanı
+      kpssYearAge: null,
+      isCivilServant: false,      // 657 Devlet Memuru mu?
+      publicJobId: null,
+      employerName: null,         // Aktif işveren adı (SGK Hizmet Dökümü için)
+      rankIndex: 0,               // 0: Uzman Yrd, 1: Cost Controller/Sorumlu, 2: Müdür, 3: Direktör/CFO
+      perfScore: 55,              // 0 - 100 İşyeri Performans & Terfi Puanı
+      negotiatedBonusPct: 0,      // İK Mülakatında alınan maaş pazarlığı farkı (%)
+      yearsInCurrentFirm: 0,      // Kıdem tazminatı için mevcut şirketteki yıl
+      accumulatedSeverance: 0,    // Biriken Kıdem Tazminatı tutarı
+      sgkDays: 0,                 // Toplam 4A/4C SGK Prim Günü (Yılda 360 gün)
+      sgkHistory: [],             // Barkodlu SGK Hizmet Dökümü satırları
+      unemploymentYearsLeft: 0,   // İŞKUR İşsizlik maaşı kalan yıl
+      unemploymentMonthlyPay: 0,
+      isRetired: false,
+      pensionMonthly: 0,
+      overtimeThisYear: 0,
+      auditDoneThisYear: 0
+    };
+  }
+  recalcCVScore();
+}
+
+function recalcCVScore() {
+  if (!G || !G.career) return;
+  const cr = G.career;
+  let score = 25 + Math.round((G.smart || 60) * 0.25);
+  if (G.highSchoolGrad) score += 10;
+  if (cr.degreeType === 'onlisans') score += 16;
+  if (G.uniGrad || cr.degreeType === 'lisans') score += 24;
+  if (cr.internshipDone) score += 12;
+  score += Math.min(20, (G.jobExp || 0) * 3);
+  cr.certificates.forEach(cId => {
+    const cert = CERTIFICATES_DB.find(x => x.id === cId);
+    if (cert) score += cert.cvBoost;
+  });
+  cr.cvScore = clamp(score, 20, 100);
+}
+
+function getActiveJobLadderInfo() {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  if (cr.isCivilServant && cr.publicJobId) {
+    const pj = KPSS_PUBLIC_JOBS_DB.find(x => x.id === cr.publicJobId) || KPSS_PUBLIC_JOBS_DB[0];
+    const pubRanks = ['Aday Memur (8/1)', 'Kadrolu Uzman Memur (5/2)', 'Birim Şefi (3/1)', 'Daire Başkanı / Başmüfettiş (1/4)'];
+    return {
+      title: `${pj.title} — ${pubRanks[clamp(cr.rankIndex, 0, 3)]}`,
+      employer: pj.employer,
+      rankName: pubRanks[clamp(cr.rankIndex, 0, 3)],
+      isPublic: true
+    };
+  }
+
+  const job = JOBS.find(j => j.id === G.jobId);
+  if (!job) return null;
+  const ladderKey = job.major || (job.id.includes('lojistik') || job.id.includes('tir') ? 'lojistik' : (job.id.includes('muhasebe') ? 'isletme' : 'default'));
+  const ladder = CAREER_LADDERS_DB[ladderKey] || CAREER_LADDERS_DB.default;
+  const rName = ladder.ranks[clamp(cr.rankIndex, 0, 3)];
+  const empName = cr.employerName || ladder.employers[0];
+
+  return {
+    title: `${job.title} (${rName})`,
+    employer: empName,
+    rankName: rName,
+    isPublic: false
+  };
+}
+
+function getJobPerksInfo(job) {
+  if (!job) return { mealMult: 0.14, transport: 'Servis + Yol', healthIns: 'Tamamlayıcı Sağlık', bonusText: 'Yılda 1 Maaş Prim' };
+  if (job.mult >= 3.0) {
+    return { mealMult: 0.22, transport: 'Şirket Aracı + Yakıt Kartı', healthIns: 'Özel Sağlık Sigortası (ÖSS)', bonusText: 'Çift Maaş İkramiye' };
+  }
+  if (job.mult >= 1.8) {
+    return { mealMult: 0.16, transport: 'Multinet / Ticket Yemek + Yol', healthIns: 'Tamamlayıcı Sağlık Sigortası', bonusText: 'Performans Primi' };
+  }
+  return { mealMult: 0.12, transport: 'Yemek Kartı + Akbil/Yol', healthIns: 'SGK 4A Güvencesi', bonusText: 'Fazla Mesai Ödemeli' };
+}
+
+/* ---------------- 1. ÖN LİSANS, DGS, STAJ VE KPSS ATAMA FONKSİYONLARI ---------------- */
+
+window.enrollAssociateDegree = function (assocId) {
+  ensureRealisticCareerState();
+  const am = ASSOCIATE_MAJORS_DB.find(x => x.id === assocId);
+  if (!am) return;
+  if (G.lastExamScore > 0 && G.lastExamScore < am.minScore - 20) {
+    showToast(`Bu ön lisans programı için en az ${am.minScore - 20} TYT puanı gerekir!`);
+    return;
+  }
+  G.eduStage = 'Üniversite';
+  G.currentMajor = am.dgsTarget;
+  G.uniYearsLeft = 2; // 2 Yıllık Ön Lisans!
+  G.career.degreeType = 'onlisans';
+  G.career.associateMajor = am.id;
+  G.uniLiving = 'kyk';
+  playSfx('coin');
+  addLog(G.age, `🎓 **${am.name}** (2 Yıllık Ön Lisans) programına kaydoldun! Mezuniyet sonrası ister doğrudan işe/KPSS'ye girebilir, istersen DGS ile 4 yıllığa tamamlayabilirsin.`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.doMandatoryInternship = function () {
+  ensureRealisticCareerState();
+  if (G.career.internshipDone) { showToast('Zorunlu stajını zaten tamamladın!'); return; }
+  const c = getCountry();
+  const stipend = Math.round(c.monthlyMinWage * 0.35);
+  G.career.internshipDone = true;
+  G.money += stipend;
+  G.jobExp = (G.jobExp || 0) + 1;
+  recalcCVScore();
+  playSfx('trophy');
+  addLog(G.age, `📋 **ZORUNLU STAJ TAMAMLANDI!** Kurumsal bir firmada 30 iş günü staj yaparak referans mektubu aldın (+1 Yıl Deneyim, +12 CV Puanı ve +${fmtMoney(stipend)} stajyer ücreti).`, 'good');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.applyDGSUpgrade = function () {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  if (cr.degreeType !== 'onlisans' || !G.uniGrad) {
+    showToast('DGS ile 4 yıllığa tamamlamak için önce 2 yıllık Ön Lisans bölümünden mezun olmalısın!');
+    return;
+  }
+  const assoc = ASSOCIATE_MAJORS_DB.find(x => x.id === cr.associateMajor) || ASSOCIATE_MAJORS_DB[0];
+  G.eduStage = 'Üniversite';
+  G.currentMajor = assoc.dgsTarget;
+  G.uniYearsLeft = 2; // 3. ve 4. sınıf
+  G.uniGrad = false;
+  cr.degreeType = 'lisans';
+  playSfx('trophy');
+  addLog(G.age, `📈 **DGS (Dikey Geçiş Sınavı) Başarısı!** 2 yıllık ön lisans diplomanı 4 yıllık **Lisans** fakültesine tamamlamak üzere 3. sınıftan eğitime başladın!`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.takeKPSSExam = function () {
+  ensureRealisticCareerState();
+  if (G.age < 18 || !G.highSchoolGrad) {
+    showToast('KPSS sınavına girmek için en az Lise veya Ön Lisans/Lisans mezunu (ya da geçici mezuniyet belgeli) olmalısın!');
+    return;
+  }
+  const c = getCountry();
+  const fee = Math.round(c.monthlyMinWage * 0.04);
+  if (G.money < fee) { showToast('ÖSYM KPSS sınav ücreti için bakiye yetersiz!'); return; }
+  G.money -= fee;
+
+  const cr = G.career;
+  let kType = 'KPSS Ortaöğretim (P94)';
+  if (cr.degreeType === 'onlisans') kType = 'KPSS Ön Lisans (P93)';
+  else if (G.uniGrad) kType = 'KPSS Lisans (P3)';
+
+  const score = clamp(Math.round(54 + (G.smart * 0.34) + (G.obpScore * 0.14) + randInt(-4, 8)), 58, 98);
+  cr.kpssScore = score;
+  cr.kpssType = kType;
+  cr.kpssYearAge = G.age;
+
+  playSfx('trophy');
+  addLog(G.age, `📝 **ÖSYM ${kType} SONUCU:** Sınavdan **${score} Puan** aldın! (Geçici mezuniyet belgen veya diplomanla kamu kadrolarına tercih yapabilirsin).`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.assignToKPSSPublicJob = function (pubId) {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  const pj = KPSS_PUBLIC_JOBS_DB.find(x => x.id === pubId);
+  if (!pj) return;
+  if (G.criminalRecord) { showToast('657 Devlet Memurluğu için adli sicil kaydının temiz olması şarttır!'); return; }
+  if (cr.kpssScore < pj.reqKpss) {
+    showToast(`Bu kadroya atanmak için en az ${pj.reqKpss} KPSS puanı gerekiyor! (Senin puanın: ${cr.kpssScore || 0})`);
+    return;
+  }
+
+  G.jobId = null;
+  cr.isCivilServant = true;
+  cr.publicJobId = pj.id;
+  cr.employerName = pj.employer;
+  cr.rankIndex = 0;
+  cr.yearsInCurrentFirm = 0;
+  cr.perfScore = 70;
+  unlockAchievement('civil_servant_657');
+  playSfx('trophy');
+  addLog(G.age, `🏛️ **ÖSYM KPSS MERKEZİ ATAMA SONUCU:** **${cr.kpssScore}** puanla **${pj.title}** kadrosuna asil olarak atandın! (4C Devlet Memuru Güvencesi)`, 'fame');
+  careerMainSubTab = 'workplace';
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+/* ---------------- 2. İK MÜLAKATI, TEKLİF MEKTUBU VE MAAŞ PAZARLIĞI ---------------- */
+
+window.startHRJobInterview = function (jobId) {
+  ensureRealisticCareerState();
+  if (G.age < 18) { showToast('Tam zamanlı çalışmak için 18+ yaşında olmalısın!'); return; }
+  const j = JOBS.find(x => x.id === jobId);
+  if (!j) return;
+
+  // Ön Lisans mezunları Lojistik ve İşletme/Muhasebe işlerine başvurabilsin
+  const cr = G.career;
+  const hasOnlisansMatch = (cr.degreeType === 'onlisans' && G.uniGrad && (j.major === 'lojistik' || j.major === 'isletme'));
+
+  if (j.cleanRecord && G.criminalRecord) { showToast('Adli sicil kaydın bu pozisyon için engel!'); return; }
+  if (j.reqEdu === 'highschool' && !G.highSchoolGrad) { showToast('Lise diploması gerekiyor!'); return; }
+  if (j.reqEdu === 'uni' && !hasOnlisansMatch && (!G.uniGrad || G.graduatedMajor !== j.major)) {
+    showToast('İlgili fakülte veya ön lisans mezuniyeti (Geçici Mezuniyet Belgesi / Diploma) gerekiyor!');
+    return;
+  }
+  if (j.reqLicense && !G.licenses[j.reqLicense]) { showToast(`${j.reqLicense} Sınıfı Sürücü Belgesi gerekiyor!`); return; }
+  if (j.minExp && (G.jobExp || 0) < j.minExp && !cr.internshipDone) {
+    showToast(`En az ${j.minExp} yıl deneyim veya tamamlanmış Zorunlu Staj gerekiyor!`);
+    return;
+  }
+
+  const ladderKey = j.major || (j.id.includes('lojistik') || j.id.includes('tir') ? 'lojistik' : (j.id.includes('muhasebe') ? 'isletme' : 'default'));
+  const ladder = CAREER_LADDERS_DB[ladderKey] || CAREER_LADDERS_DB.default;
+  const pickedEmployer = pickRandom(ladder.employers);
+  const baseGross = getJobMonthlyGross(j);
+  const perks = getJobPerksInfo(j);
+
+  openEventModal({
+    badge: `🤝 İK & DEPARTMAN MÜDÜRÜ MÜLAKATI • CV GÜCÜ: %${cr.cvScore}`,
+    title: `${pickedEmployer} — ${j.title}`,
+    desc: `İnsan Kaynakları Müdürü özgeçmişini (${cr.certificates.length} Sertifika, ${G.jobExp || 0} Yıl Kıdem) inceledi. Başlangıç teklifi: Aylık ${fmtMoney(baseGross)} Brüt + ${perks.transport} + ${perks.healthIns}. Mülakat masasında nasıl ilerleyeceksin?`,
+    choices: [
+      {
+        label: `✍️ Teklifi Kabul Et ve Sözleşmeyi İmzala (${fmtMoney(baseGross)}/ay)`,
+        action: () => finalizeJobHire(j, pickedEmployer, 0)
+      },
+      {
+        label: `💼 Sertifika & Deneyimini Gösterip +%20 Maaş Pazarlığı Yap (CV %${cr.cvScore})`,
+        action: () => {
+          const chance = 0.35 + (cr.cvScore / 140);
+          if (Math.random() < chance) {
+            finalizeJobHire(j, pickedEmployer, 20);
+            addLog(G.age, `🤝 **BAŞARILI MAAŞ PAZARLIĞI!** İK yönetimi sertifikalarını ve bilginizi takdir ederek başlangıç maaşına **+%20 ek zam** onayladı!`, 'good');
+          } else {
+            finalizeJobHire(j, pickedEmployer, 0);
+            showToast('İK bütçe limitini aşamadı, standart teklifle işe başladın.');
+          }
+        }
+      },
+      {
+        label: '🚪 Teklifi Reddet ve Masadan Kalk',
+        action: () => openNavSheet('career')
+      }
+    ]
+  });
+};
+
+function finalizeJobHire(job, employerName, negotiatedBonusPct) {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  cr.isCivilServant = false;
+  cr.publicJobId = null;
+  G.jobId = job.id;
+  cr.employerName = employerName;
+  cr.rankIndex = 0;
+  cr.perfScore = 60;
+  cr.negotiatedBonusPct = negotiatedBonusPct || 0;
+  cr.yearsInCurrentFirm = 0;
+  cr.accumulatedSeverance = 0;
+  cr.unemploymentYearsLeft = 0;
+
+  unlockAchievement('first_job');
+  playSfx('coin');
+  addLog(G.age, `💼 **İŞE GİRİŞ BİLDİRgesi (4A):** **${employerName}** bünyesinde **${job.title}** olarak göreve başladın! SGK girişin yapıldı.`, 'milestone');
+  careerMainSubTab = 'workplace';
+  saveGame(); renderAll(); openNavSheet('career');
+}
+
+/* ---------------- 3. İŞYERİ OPERASYONLARI, MESAİ, TERFİ VE KIDEM TAZMİNATLI FESİH ---------------- */
+
+window.doWorkplaceAction = function (actType) {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  const c = getCountry();
+  const fin = calculateFinances();
+
+  if (!G.jobId && !cr.isCivilServant) {
+    showToast('Şu an aktif olarak çalıştığın bir işyeri yok!');
+    return;
+  }
+
+  if (actType === 'overtime') {
+    if (cr.overtimeThisYear >= 3) { showToast('Bu yılki fazla mesai kotanı doldurdun!'); return; }
+    cr.overtimeThisYear += 1;
+    const otPay = Math.round(fin.monthlyNetSalary * 0.38);
+    G.money += otPay;
+    cr.perfScore = clamp(cr.perfScore + 8);
+    G.stress = clamp((G.stress || 10) + 9);
+    playSfx('coin');
+    addLog(G.age, `⏱️ **FAZLA MESAİ:** Ay sonu yoğunluğunda fazla mesaiye kalarak **+${fmtMoney(otPay)}** net mesai ücreti aldın (+8 Performans).`, 'good');
+  } else if (actType === 'cost_audit') {
+    if (cr.auditDoneThisYear >= 2) { showToast('Bu yılki dönem sonu mutabakat ve stok denetimini zaten yaptın!'); return; }
+    cr.auditDoneThisYear += 1;
+    cr.perfScore = clamp(cr.perfScore + 18);
+    G.smart = clamp(G.smart + 3);
+    const bonus = Math.round(c.monthlyMinWage * 0.75);
+    G.money += bonus;
+    playSfx('coin');
+    addLog(G.age, `📊 **MALİYET KONTROL & STOK MUTABAKATI:** Ay sonu fatura, mizan ve fire raporlarını kusursuz kapattın! Yönetimden **+${fmtMoney(bonus)}** başarı primi ve **+18 Terfi Puanı** aldın.`, 'good');
+  } else if (actType === 'request_promotion') {
+    if (cr.rankIndex >= 3) { showToast('Zaten en üst yönetici (Direktör / CFO) kademesindesin!'); return; }
+    const reqPerf = 75;
+    if (cr.perfScore < reqPerf) {
+      showToast(`Üst kademeye terfi için en az %${reqPerf} İşyeri Performans Puanı gerekiyor! (Mevcut: %${cr.perfScore})`);
+      return;
+    }
+    cr.rankIndex += 1;
+    cr.perfScore = 55;
+    const info = getActiveJobLadderInfo();
+    if (cr.rankIndex >= 1) unlockAchievement('cost_master');
+    playSfx('trophy');
+    addLog(G.age, `🚀 **TERFİ & UNVAN YÜKSELİŞİ!** Üstün performansın sayesinde **${info ? info.rankName : 'Yönetici'}** kademesine terfi ettin! Maaş çarpanın **x${RANK_SALARY_MULTS[cr.rankIndex]}** oldu!`, 'fame');
+  } else if (actType === 'severance_quit') {
+    openQuitOrSeveranceModal();
+    return;
+  }
+
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+function openQuitOrSeveranceModal() {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  const c = getCountry();
+  const info = getActiveJobLadderInfo();
+  const sevAmt = cr.accumulatedSeverance || Math.round(c.monthlyMinWage * 1.5 * Math.max(1, cr.yearsInCurrentFirm));
+  const unempPay = Math.round(c.monthlyMinWage * 0.55);
+
+  openEventModal({
+    badge: `⚖️ İŞ AKDİ FESHİ & ARABULUCULUK MASASI`,
+    title: `${info ? info.employer : 'İşyeri'} — İşten Ayrılma Süreci`,
+    desc: `Bu şirkette ${cr.yearsInCurrentFirm} yıldır çalışıyorsun ve içeride birikmiş ${fmtMoney(sevAmt)} Kıdem & İhbar Tazminatın bulunuyor. Nasıl ayrılmak istiyorsun?`,
+    choices: [
+      {
+        label: `🤝 İkale / Haklı Fesih ile Tazminatını Alarak Ayrıl (+${fmtMoney(sevAmt)} + İŞKUR Maaşı)`,
+        action: () => {
+          G.money += sevAmt;
+          G.jobId = null;
+          cr.isCivilServant = false;
+          cr.publicJobId = null;
+          cr.accumulatedSeverance = 0;
+          cr.yearsInCurrentFirm = 0;
+          cr.unemploymentYearsLeft = 1;
+          cr.unemploymentMonthlyPay = unempPay;
+          playSfx('coin');
+          addLog(G.age, `🏦 **KIDEM TAZMİNATI & İŞKUR:** İş sözleşmeni haklı nedenle feshederek **+${fmtMoney(sevAmt)} Kıdem Tazminatı** aldın ve İŞKUR'dan aylık **+${fmtMoney(unempPay)} İşsizlik Ödeneği** bağlandı!`, 'good');
+          saveGame(); renderAll(); openNavSheet('career');
+        }
+      },
+      {
+        label: '📄 Düz İstifa Dilekçesi Ver (Tazminat Yanar, Hemen Çıkış)',
+        action: () => {
+          G.jobId = null;
+          cr.isCivilServant = false;
+          cr.publicJobId = null;
+          cr.accumulatedSeverance = 0;
+          cr.yearsInCurrentFirm = 0;
+          addLog(G.age, `🚪 İstifa dilekçeni verip işten ayrıldın.`, 'normal');
+          saveGame(); renderAll(); openNavSheet('career');
+        }
+      }
+    ]
+  });
+}
+
+window.buyCareerCertificate = function (certId, cost) {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  if (cr.certificates.includes(certId)) return;
+  if (G.money < cost) { showToast('Sertifika eğitimi için bakiye yetersiz!'); return; }
+  const cert = CERTIFICATES_DB.find(x => x.id === certId);
+  if (!cert) return;
+
+  G.money -= cost;
+  cr.certificates.push(certId);
+  G.smart = clamp(G.smart + 4);
+  recalcCVScore();
+  playSfx('trophy');
+  addLog(G.age, `📜 **MESLEKİ SERTİFİKA:** **${cert.name}** eğitimini başarıyla tamamlayıp sertifikanı CV'ne ekledin! (CV Gücü: %${cr.cvScore})`, 'good');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.claimSGKRetirement = function () {
+  ensureRealisticCareerState();
+  const cr = G.career;
+  if (cr.isRetired) { showToast('Zaten emeklisin!'); return; }
+  if (cr.sgkDays < 5400 && G.age < 58) {
+    showToast(`Emeklilik için en az 5.400 SGK Prim Günü (15 Yıl Hizmet) veya 58 Yaş gerekiyor! (Mevcut: ${cr.sgkDays} Gün)`);
+    return;
+  }
+  const c = getCountry();
+  const sev = cr.accumulatedSeverance;
+  cr.isRetired = true;
+  cr.pensionMonthly = Math.round(c.monthlyMinWage * 1.45);
+  if (sev > 0) {
+    G.money += sev;
+    cr.accumulatedSeverance = 0;
+  }
+  unlockAchievement('retired_boss');
+  playSfx('trophy');
+  addLog(G.age, `🏖️ **SGK EMEKLİLİĞİ ONAYLANDI!** Toplam **${cr.sgkDays} prim günü** ile emekli oldun! Birikmiş **+${fmtMoney(sev)}** kıdem tazminatın ödendi ve ömür boyu aylık **+${fmtMoney(cr.pensionMonthly)}** emekli maaşı bağlandı!`, 'fame');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+/* ---------------- 4. YENİ 4 SEKMELİ KARİYER, İŞKUR, KPSS & SGK MERKEZİ EKRANI ---------------- */
+
+function renderRealisticCareerHubHTML() {
+  ensureRealisticCareerState();
+  const c = getCountry();
+  const cr = G.career;
+  const activeLadder = getActiveJobLadderInfo();
+
+  const topTabs = `
+    <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[10px] font-extrabold">
+      <button onclick="careerMainSubTab='portal'; openNavSheet('career')" class="py-2 rounded-xl ${careerMainSubTab === 'portal' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400'}">💼 İlan &amp; İK</button>
+      <button onclick="careerMainSubTab='workplace'; openNavSheet('career')" class="py-2 rounded-xl ${careerMainSubTab === 'workplace' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400'}">📈 İşyeri ${(G.jobId || cr.isCivilServant) ? '✓' : ''}</button>
+      <button onclick="careerMainSubTab='edu_kpss'; openNavSheet('career')" class="py-2 rounded-xl ${careerMainSubTab === 'edu_kpss' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400'}">🎓 Okul &amp; KPSS</button>
+      <button onclick="careerMainSubTab='sgk_cv'; openNavSheet('career')" class="py-2 rounded-xl ${careerMainSubTab === 'sgk_cv' ? 'bg-indigo-500 text-white shadow' : 'text-slate-400'}">📋 SGK &amp; CV</button>
+    </div>
+  `;
+
+  // SEKME 1: İŞYERİ YÖNETİMİ, TERFİ BASAMAKLARI, MESAİ VE BORDRO
+  if (careerMainSubTab === 'workplace') {
+    if (!G.jobId && !cr.isCivilServant) {
+      return renderHeroBannerHTML('career') + topTabs + `
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-2">
+          <div class="text-sm font-extrabold text-white">Şu An Aktif Bir İşyerinde Çalışmıyorsun</div>
+          <p class="text-[11px] text-slate-400">
+            ${cr.unemploymentYearsLeft > 0 ? `💳 İŞKUR İşsizlik Ödeneğin Aktif: Aylık <strong>+${fmtMoney(cr.unemploymentMonthlyPay)}</strong> alıyorsun.` : 'İlan & İK sekmesinden özel sektör mülakatlarına girebilir veya Okul & KPSS sekmesinden devlet memurluğuna atanabilirsin.'}
+          </p>
+          <button onclick="careerMainSubTab='portal'; openNavSheet('career')" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">İş İlanlarına Git &rarr;</button>
+        </div>
+      `;
+    }
+
+    const ladderKey = (JOBS.find(j => j.id === G.jobId) || {}).major || 'isletme';
+    const ladderObj = CAREER_LADDERS_DB[ladderKey] || CAREER_LADDERS_DB.default;
+
+    return renderHeroBannerHTML('career') + topTabs + renderPayrollSlipHTML() + `
+      <div class="workplace-exec-card space-y-2.5 mb-2.5">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-[9px] font-extrabold text-emerald-300 uppercase tracking-widest">🏢 ${activeLadder.employer}</div>
+            <div class="text-sm font-extrabold text-white">${activeLadder.title}</div>
+            <div class="text-[10px] text-slate-300">Kıdem: <strong>${cr.yearsInCurrentFirm} Yıl</strong> &bull; Biriken Kıdem Tazminatı: <strong class="text-amber-300 font-mono-num">${fmtMoney(cr.accumulatedSeverance)}</strong></div>
+          </div>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold">Kademe ${cr.rankIndex + 1}/4</span>
+        </div>
+
+        <!-- Performans & Terfi Barı -->
+        <div>
+          <div class="flex justify-between text-[10px] font-bold mb-1">
+            <span class="text-slate-200">📈 Yıllık Performans &amp; Terfi Puanı (Hedef %75)</span>
+            <span class="font-mono-num text-emerald-400">%${cr.perfScore}</span>
+          </div>
+          <div class="stat-track"><div class="stat-fill bg-emerald-400" style="width:${cr.perfScore}%"></div></div>
+        </div>
+
+        <!-- 4 Kademeli Kariyer Basamakları -->
+        <div class="grid grid-cols-4 gap-1 text-center text-[9px] pt-1">
+          ${ladderObj.ranks.map((rTitle, idx) => `
+            <div class="p-1.5 rounded-lg border ${cr.rankIndex === idx ? 'border-emerald-400 bg-emerald-500/20 text-white font-extrabold' : 'border-slate-800 bg-slate-950/70 text-slate-400'}">
+              <div class="truncate">${rTitle.split(' ')[0]}</div>
+              <div class="text-[8px] text-amber-300 font-mono-num">x${RANK_SALARY_MULTS[idx]}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="doWorkplaceAction('overtime')" class="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">
+            ⏱️ Fazla Mesaiye Kal (+Mesai Ücreti)
+          </button>
+          <button onclick="doWorkplaceAction('cost_audit')" class="p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[11px] font-bold">
+            📊 Ay Sonu Maliyet / Stok Mutabakatı
+          </button>
+          <button onclick="doWorkplaceAction('request_promotion')" class="p-2.5 rounded-xl bg-amber-400 text-slate-950 text-[11px] font-extrabold">
+            🚀 Üst Kademeye Terfi Talep Et
+          </button>
+          <button onclick="doWorkplaceAction('severance_quit')" class="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-bold">
+            ⚖️ Tazminatlı Fesih / Ayrıl
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 2: OKUL, 2 YILLIK ÖN LİSANS, DGS, ZORUNLU STAJ VE KPSS ATAMA ROBOTU
+  if (careerMainSubTab === 'edu_kpss') {
+    return renderHeroBannerHTML('career') + topTabs + `
+      <!-- Zorunlu Staj & Geçici Mezuniyet Belgesi Durumu -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/35 space-y-2 mb-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs font-extrabold text-white">📋 Mezuniyet, Staj &amp; Diploma Durumu</div>
+            <div class="text-[10px] text-slate-400">Eğitim: <strong>${G.eduStage}</strong> &bull; Staj: <strong>${cr.internshipDone ? 'Tamamlandı ✓' : 'Yapılmadı'}</strong></div>
+          </div>
+          ${G.uniGrad ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold">📄 Geçici Mezuniyet / Diploma Onaylı</span>` : ''}
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="doMandatoryInternship()" class="p-2 rounded-xl ${cr.internshipDone ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-500 text-slate-950'} text-[11px] font-extrabold">
+            ${cr.internshipDone ? '✓ Zorunlu Staj Yapıldı' : '🏢 30 Gün Zorunlu Staj Yap (+CV)'}
+          </button>
+          <button onclick="applyDGSUpgrade()" class="p-2 rounded-xl ${cr.degreeType === 'onlisans' && G.uniGrad ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'} text-[11px] font-extrabold">
+            📈 DGS İle 4 Yıllık Lisansa Tamamla
+          </button>
+        </div>
+      </div>
+
+      <!-- 2 Yıllık Ön Lisans Bölümleri -->
+      ${G.age >= 18 && G.highSchoolGrad && !G.uniGrad && G.eduStage !== 'Üniversite' ? `
+        <div class="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/35 space-y-2 mb-2.5">
+          <div class="text-xs font-extrabold text-sky-400">🎓 2 Yıllık Ön Lisans (MYO) Bölümleri (Hızlı Mezuniyet &amp; KPSS P93)</div>
+          <div class="space-y-1.5">
+            ${ASSOCIATE_MAJORS_DB.map(am => `
+              <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-bold text-white">${am.icon} ${am.name}</div>
+                  <div class="text-[10px] text-slate-400">${am.desc}</div>
+                </div>
+                <button onclick="enrollAssociateDegree('${am.id}')" class="px-3 py-1.5 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-extrabold shrink-0">Kayıt Ol</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- ÖSYM KPSS Sınavı ve Kamu Atama Tercih Robotu -->
+      <div class="kpss-doc-card space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-extrabold text-sky-300 uppercase">ÖSYM &bull; KPSS MERKEZİ ATAMA ROBOTU (657 MEMURLUK)</div>
+            <div class="text-xs font-extrabold text-white">KPSS Puanın: <span class="text-amber-300 font-mono-num">${cr.kpssScore ? cr.kpssScore + ' (' + cr.kpssType + ')' : 'Henüz Girilmedi'}</span></div>
+          </div>
+          <button onclick="takeKPSSExam()" class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">📝 KPSS'ye Gir</button>
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+          ${KPSS_PUBLIC_JOBS_DB.map(pj => {
+            const gross = Math.round(c.monthlyMinWage * pj.mult);
+            const isAssigned = cr.isCivilServant && cr.publicJobId === pj.id;
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950/90 border ${isAssigned ? 'border-emerald-400' : 'border-slate-800'} flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-bold text-white">${pj.icon} ${pj.title}</div>
+                  <div class="text-[10px] text-slate-400">Taban KPSS: <strong>${pj.reqKpss} Puan</strong> &bull; Maaş: <strong class="text-emerald-400">${fmtMoney(gross)}/ay</strong></div>
+                </div>
+                <button onclick="assignToKPSSPublicJob('${pj.id}')" class="px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold shrink-0 ${isAssigned ? 'bg-emerald-500/20 text-emerald-300' : (cr.kpssScore >= pj.reqKpss ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-500')}">
+                  ${isAssigned ? 'Kadrodasın ✓' : 'Tercih Yap'}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 3: E-DEVLET 4A/4C SGK HİZMET DÖKÜMÜ, EMEKLİLİK & SERTİFİKALAR
+  if (careerMainSubTab === 'sgk_cv') {
+    const sgkPct = clamp(Math.round((cr.sgkDays / 5400) * 100), 0, 100);
+    return renderHeroBannerHTML('career') + topTabs + `
+      <!-- Barkodlu e-Devlet SGK Tescil ve Hizmet Dökümü -->
+      <div class="sgk-service-card space-y-2 mb-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+          <div>
+            <div class="text-[9px] font-extrabold text-sky-400 uppercase">T.C. SOSYAL GÜVENLİK KURUMU &bull; E-DEVLET KAPISI</div>
+            <div class="text-xs font-extrabold text-white">4A / 4C Barkodlu SGK Tescil ve Hizmet Dökümü</div>
+          </div>
+          <span class="px-2 py-0.5 rounded bg-sky-500/15 border border-sky-500/40 text-sky-300 text-[9px] font-mono-num font-bold">
+            ${cr.sgkDays.toLocaleString('tr-TR')} GÜN
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center text-[10px]">
+          <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800"><span class="text-slate-400 block text-[8px]">SİGORTA KOLU</span><strong class="text-white">${cr.isCivilServant ? '4C (Emekli Sandığı)' : '4A (SSK Uzun Vade)'}</strong></div>
+          <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800"><span class="text-slate-400 block text-[8px]">TOPLAM PRİM</span><strong class="text-emerald-400 font-mono-num">${cr.sgkDays} / 5400 Gün</strong></div>
+          <div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800"><span class="text-slate-400 block text-[8px]">KIDEM FONU</span><strong class="text-amber-300 font-mono-num">${fmtMoney(cr.accumulatedSeverance)}</strong></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-[9px] text-slate-400 mb-0.5"><span>Emeklilik Prim Doluş Oranı</span><span class="font-mono-num">%${sgkPct}</span></div>
+          <div class="stat-track"><div class="stat-fill bg-sky-400" style="width:${sgkPct}%"></div></div>
+        </div>
+
+        ${cr.sgkHistory.length > 0 ? `
+          <table class="ledger-table font-mono-num mt-1">
+            <thead><tr class="text-slate-400"><th class="text-left">Yıl/Yaş</th><th class="text-left">İşveren Unvanı</th><th>Gün</th><th class="text-right">PEK / Brüt</th></tr></thead>
+            <tbody>
+              ${cr.sgkHistory.slice(-5).reverse().map(row => `
+                <tr>
+                  <td class="text-slate-300">Yaş ${row.age}</td>
+                  <td class="text-white truncate max-w-[125px]">${row.employer}</td>
+                  <td class="text-center text-emerald-400">360</td>
+                  <td class="text-right text-slate-200">${fmtMoney(row.gross)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : `<div class="text-[10px] text-slate-400 italic">Henüz adınıza yatırılmış 4A/4C SGK prim günü bulunmamaktadır.</div>`}
+
+        <button onclick="claimSGKRetirement()" class="w-full py-2 rounded-xl ${cr.isRetired ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500 text-slate-950'} text-xs font-extrabold">
+          ${cr.isRetired ? `✓ Emekli Maaşı Alıyorsun (+${fmtMoney(cr.pensionMonthly)}/ay)` : '🏖️ Emeklilik Dilekçesi Ver & Kıdem Tazminatını Al'}
+        </button>
+      </div>
+
+      <!-- CV Gücü ve Mesleki Sertifika Akademisi -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold text-white">📄 Özgeçmiş (CV) Gücün: <span class="text-emerald-400">%${cr.cvScore}</span></span>
+          <span class="text-[10px] text-slate-400">${cr.certificates.length} / ${CERTIFICATES_DB.length} Sertifika</span>
+        </div>
+        <div class="space-y-2 pt-1">
+          ${CERTIFICATES_DB.map(cert => {
+            const has = cr.certificates.includes(cert.id);
+            const cost = Math.round(c.monthlyMinWage * cert.costMult);
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950 border ${has ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-extrabold text-white">${cert.icon} ${cert.name}</div>
+                  <div class="text-[10px] text-slate-400">${cert.desc}</div>
+                  <div class="text-[10px] text-sky-400 font-bold">+${cert.cvBoost} CV Puanı &bull; +%${cert.salaryBoostPct} Maaş Avantajı</div>
+                </div>
+                <button onclick="buyCareerCertificate('${cert.id}', ${cost})" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold shrink-0 ${has ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-500 text-slate-950'}">
+                  ${has ? 'Alındı ✓' : fmtMoney(cost)}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 4 (VARSAYILAN): YAN HAKLI GERÇEKÇİ KARİYER PORTALI & İK MÜLAKAT İLANLARI
+  return null; // Varsayılan sekmede mevcut kariyer ekranının üstüne entegre edilir
+}
+
+/* ---------------- 5. EKONOMİ, YAŞ VE MENÜ KANCALARI ---------------- */
+(function attachRealisticCareerSystem() {
+  if (window._realisticCareerSystemLoaded) return;
+  window._realisticCareerSystemLoaded = true;
+
+  // 1. applyForJob ve quitJob Fonksiyonlarını İK Mülakatı ve Kıdem Tazminatı Masasına Bağla
+  applyForJob = function (jobId) {
+    startHRJobInterview(jobId);
+  };
+  quitJob = function () {
+    openQuitOrSeveranceModal();
+  };
+
+  // 2. Terfi Çarpanı, Sertifika Maaş Farkı, Yemek Kartı, 657 Memur Maaşı, İşsizlik ve Emekli Maaşını Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensureRealisticCareerState();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison) return fin;
+
+    const c = getCountry();
+    const cr = G.career;
+    let extraGross = 0;
+    let mealSupport = 0;
+
+    // A) Özel Sektör Terfi Kademesi + Maaş Pazarlığı + Sertifika Farkı + Yemek Kartı
+    if (G.jobId) {
+      const job = JOBS.find(j => j.id === G.jobId);
+      if (job) {
+        const baseG = getJobMonthlyGross(job);
+        const rankMult = RANK_SALARY_MULTS[clamp(cr.rankIndex, 0, 3)] || 1.0;
+        const certBoostPct = cr.certificates.reduce((sum, cid) => {
+          const ct = CERTIFICATES_DB.find(x => x.id === cid);
+          return sum + (ct ? ct.salaryBoostPct * 0.35 : 0);
+        }, 0);
+        const totalMult = rankMult * (1 + (cr.negotiatedBonusPct + certBoostPct) / 100);
+        extraGross += Math.max(0, Math.round(baseG * (totalMult - 1)));
+        mealSupport += Math.round(c.monthlyMinWage * getJobPerksInfo(job).mealMult);
+      }
+    }
+
+    // B) 657 KPSS Kamu Memuru Maaşı
+    if (cr.isCivilServant && cr.publicJobId) {
+      const pj = KPSS_PUBLIC_JOBS_DB.find(x => x.id === cr.publicJobId);
+      if (pj) {
+        const rankMult = RANK_SALARY_MULTS[clamp(cr.rankIndex, 0, 3)] || 1.0;
+        extraGross += Math.round(c.monthlyMinWage * pj.mult * rankMult);
+        mealSupport += Math.round(c.monthlyMinWage * 0.15);
+      }
+    }
+
+    const extraNet = Math.round(extraGross * 0.78) + mealSupport;
+    const pensionNet = cr.isRetired ? (cr.pensionMonthly || 0) : 0;
+    const unempNet = (!G.jobId && !cr.isCivilServant && cr.unemploymentYearsLeft > 0) ? (cr.unemploymentMonthlyPay || 0) : 0;
+
+    fin.monthlyGrossSalary += extraGross;
+    fin.monthlyNetSalary += (extraNet + pensionNet + unempNet);
+    fin.monthlyNetCashflow += (extraNet + pensionNet + unempNet);
+    fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    return fin;
+  };
+
+  // 3. Her +1 Yaşta 360 SGK Prim Günü, Kıdem Tazminatı Birikimi ve Hizmet Dökümü Kaydı
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureRealisticCareerState();
+    const cr = G.career;
+    const c = getCountry();
+    cr.overtimeThisYear = 0;
+    cr.auditDoneThisYear = 0;
+
+    if (G && !G.inPrison && (G.jobId || cr.isCivilServant)) {
+      const fin = calculateFinances();
+      const info = getActiveJobLadderInfo();
+      cr.sgkDays += 360;
+      cr.yearsInCurrentFirm += 1;
+      cr.perfScore = clamp(cr.perfScore + randInt(5, 11));
+      cr.accumulatedSeverance += Math.max(c.monthlyMinWage, fin.monthlyGrossSalary);
+
+      cr.sgkHistory.push({
+        age: G.age + 1,
+        employer: info ? info.employer : 'Kurumsal A.Ş.',
+        gross: fin.monthlyGrossSalary
+      });
+    } else if (cr.unemploymentYearsLeft > 0) {
+      cr.unemploymentYearsLeft = Math.max(0, cr.unemploymentYearsLeft - 1);
+    }
+
+    _prevAdvanceAge();
+  };
+
+  // 4. Kariyer Sekmesini 4 Sekmeli Yapıya ve Yan Haklı İlan Kartlarına Dönüştür
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureRealisticCareerState();
+    if (tab === 'career' && G && !G.inPrison) {
+      const customHtml = renderRealisticCareerHubHTML();
+      if (customHtml !== null) {
+        const sheet = document.getElementById('bottomSheet');
+        sheet.classList.remove('hidden');
+        document.getElementById('sheetTitle').textContent = '💼 Kariyer, İŞKUR, KPSS & SGK Merkezi';
+        document.getElementById('sheetSubtitle').textContent = `CV Gücü: %${G.career.cvScore} • SGK Prim: ${G.career.sgkDays} Gün • KPSS: ${G.career.kpssScore || '-'}`;
+        document.getElementById('sheetBody').innerHTML = customHtml;
+        return;
+      }
+    }
+
+    _prevOpenNav(tab);
+
+    // Varsayılan 'portal' sekmesindeyken üst sekmeleri ve ilan yan hak rozetlerini enjekte et
+    if (tab === 'career' && G && !G.inPrison && careerMainSubTab === 'portal') {
+      const body = document.getElementById('sheetBody');
+      if (!body) return;
+
+      const topTabs = `
+        <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[10px] font-extrabold">
+          <button onclick="careerMainSubTab='portal'; openNavSheet('career')" class="py-2 rounded-xl bg-emerald-500 text-slate-950 shadow">💼 İlan &amp; İK</button>
+          <button onclick="careerMainSubTab='workplace'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">📈 İşyeri ${(G.jobId || G.career.isCivilServant) ? '✓' : ''}</button>
+          <button onclick="careerMainSubTab='edu_kpss'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">🎓 Okul &amp; KPSS</button>
+          <button onclick="careerMainSubTab='sgk_cv'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">📋 SGK &amp; CV</button>
+        </div>
+      `;
+      const banner = body.querySelector('.sheet-hero-banner');
+      if (banner) banner.insertAdjacentHTML('afterend', topTabs);
+      else body.insertAdjacentHTML('afterbegin', topTabs);
+
+      // İlan Kartlarına Yan Hak (Multinet / ÖSS / İkramiye) Rozetleri Ekle
+      const jobSection = document.getElementById('filteredJobBoardSection');
+      if (jobSection) {
+        jobSection.querySelectorAll('.p-3.rounded-2xl.bg-slate-900').forEach(card => {
+          const btn = card.querySelector('button[onclick^="applyForJob"]');
+          if (!btn) return;
+          const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
+          const jobObj = m ? JOBS.find(x => x.id === m[1]) : null;
+          if (jobObj && !card.querySelector('.perk-badge')) {
+            const pk = getJobPerksInfo(jobObj);
+            const infoBox = card.querySelector('.min-w-0');
+            if (infoBox) {
+              infoBox.insertAdjacentHTML('beforeend', `
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <span class="perk-badge">🍽️ ${pk.transport}</span>
+                  <span class="perk-badge">🏥 ${pk.healthIns}</span>
+                  <span class="perk-badge">🎁 ${pk.bonusText}</span>
+                </div>
+              `);
+            }
+          }
+        });
+      }
+    }
+  };
+})();
