@@ -7607,3 +7607,173 @@ function renderRealisticCareerHubHTML() {
     }
   };
 })();
+
+/* ============================================================================
+   9'LU GELİŞTİRME PAKETİ MANTIK VE GRAFİK MOTORU (GAME)
+   ============================================================================ */
+
+let activeLogFilter = 'all'; // 'all' | 'finance' | 'football' | 'official'
+
+function ensureAdvancedMechanicsState() {
+  if (!G) return;
+  if (typeof G.energy !== 'number') G.energy = 100;
+  if (typeof G.maxEnergy !== 'number') G.maxEnergy = 100;
+  if (!G.mortgageDebt) G.mortgageDebt = 0;
+}
+
+// 7. Yıllık 100 Efor / Enerji Bütçesi Kontrolü
+function consumeEnergy(cost = 15) {
+  ensureAdvancedMechanicsState();
+  if (G.energy < cost) {
+    showToast(`Bu eylem için yeterli enerjin kalmadı! (+1 Yaş ilerle veya dinlen)`);
+    return false;
+  }
+  G.energy -= cost;
+  return true;
+}
+
+// 8. TÜFE Enflasyon Endeksi & Ocak Ayı Otomatik Maaş/Asgari Ücret Zammı
+function applyJanuaryInflationAndWageRaise() {
+  const c = getCountry();
+  const raiseRate = Math.max(0.12, c.inflation * 0.92);
+  c.monthlyMinWage = Math.round(c.monthlyMinWage * (1 + raiseRate));
+  addLog(G.age, `📈 **OCAK AYI ENFLASYON ZAMMI:** Ülke enflasyonu (%${Math.round(c.inflation * 100)}) oranında asgari ücrete ve maaşlara **%${Math.round(raiseRate * 100)} refah zami** yansıtıldı! Yeni asgari ücret: ${fmtMoney(c.monthlyMinWage)}/ay.`, 'milestone');
+}
+
+// 9. Tapu ve Şirket Özsermayesine Dayalı İpotekli Ticari Kredi
+window.takeMortgageLoan = function (amtMult) {
+  ensureAdvancedMechanicsState();
+  const c = getCountry();
+  const propertyVal = G.houses.reduce((a, x) => a + (x.value || 0), 0) + G.businesses.reduce((a, x) => a + (x.typeId ? 1500000 : 0), 0);
+  const maxLimit = Math.max(c.monthlyMinWage * 12, propertyVal * 0.75);
+
+  const loanAmt = Math.round(c.monthlyMinWage * amtMult);
+  if (loanAmt > maxLimit) {
+    showToast(`Tapulu mülk ve şirket teminatın bu kredi limitine yetmiyor! (Max Limit: ${fmtMoney(maxLimit)})`);
+    return;
+  }
+
+  G.money += loanAmt;
+  G.mortgageDebt = (G.mortgageDebt || 0) + Math.round(loanAmt * 1.32);
+  G.creditScore = clamp(G.creditScore + 40, 300, 1900);
+  playSfx('coin');
+  addLog(G.age, `🏦 **İPOTEKLİ TİCARİ KREDİ:** Gayrimenkul teminatı göstererek bankadan **+${fmtMoney(loanAmt)}** ipotekli ticari kredi çektin.`, 'good');
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+(function attachAdvancedMechanicsPatch() {
+  if (window._advancedMechanicsLoaded) return;
+  window._advancedMechanicsLoaded = true;
+
+  // A) Her +1 Yaşta 100 Enerji Yenilenmesi & Ocak Zammı Tetiklemesi
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureAdvancedMechanicsState();
+    G.energy = G.maxEnergy;
+    applyJanuaryInflationAndWageRaise();
+    _prevAdvanceAge();
+  };
+
+  // B) Çekmece İçine Sticky Mini-HUD ve Alt Menü Bildirim Rozetleri Enjeksiyonu
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureAdvancedMechanicsState();
+    _prevOpenNav(tab);
+
+    const sheetBody = document.getElementById('sheetBody');
+    if (sheetBody && G) {
+      const netW = getNetWorth();
+      const miniHud = `
+        <div class="sticky-modal-hud">
+          <span class="text-emerald-400">💵 ${fmtMoney(G.money)}</span>
+          <span class="text-sky-400">📊 Net: ${fmtMoney(netW)}</span>
+          <span class="text-amber-400">⚡ Efor: ${G.energy}/${G.maxEnergy}</span>
+        </div>
+      `;
+      if (!sheetBody.querySelector('.sticky-modal-hud')) {
+        sheetBody.insertAdjacentHTML('afterbegin', miniHud);
+      }
+    }
+
+    // Alt Menü Bildirim Rozetleri (Badge)
+    const navBtns = document.querySelectorAll('#appShell > nav button');
+    const badgeMap = {
+      career: (G.proPlayer && G.proPlayer.pendingOffers && G.proPlayer.pendingOffers.length > 0) ? G.proPlayer.pendingOffers.length : 0,
+      finance: G.mortgageDebt > 0 ? 1 : 0
+    };
+    navBtns.forEach((btn, idx) => {
+      const keys = ['career', 'finance', 'plus', 'relations', 'menu'];
+      const k = keys[idx];
+      const count = badgeMap[k] || 0;
+      let existing = btn.querySelector('.nav-badge-pill');
+      if (count > 0) {
+        if (!existing) {
+          btn.insertAdjacentHTML('beforeend', `<span class="nav-badge-pill">${count}</span>`);
+        }
+      } else if (existing) {
+        existing.remove();
+      }
+    });
+  };
+
+  // C) Zaman Tüneline Hızlı Filtre Çubuğu Enjeksiyonu
+  const _prevRenderLogs = renderLogs;
+  renderLogs = function () {
+    _prevRenderLogs();
+    const container = document.getElementById('logContainer');
+    if (!container || !G) return;
+
+    if (!document.getElementById('logFilterBarContainer')) {
+      const filterBar = `
+        <div id="logFilterBarContainer" class="log-filter-bar">
+          <button onclick="setLogFilter('all')" class="log-filter-btn ${activeLogFilter === 'all' ? 'active' : ''}">Tümü</button>
+          <button onclick="setLogFilter('finance')" class="log-filter-btn ${activeLogFilter === 'finance' ? 'active' : ''}">💳 Finans</button>
+          <button onclick="setLogFilter('football')" class="log-filter-btn ${activeLogFilter === 'football' ? 'active' : ''}">⚽ Futbol</button>
+          <button onclick="setLogFilter('official')" class="log-filter-btn ${activeLogFilter === 'official' ? 'active' : ''}">⚖️ Resmi</button>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforebegin', filterBar);
+    }
+
+    // Filtreleme mantığı
+    container.querySelectorAll('.timeline-age-block').forEach(block => {
+      let hasVisible = false;
+      block.querySelectorAll('.space-y-2 > div').forEach(item => {
+        const txt = item.textContent || '';
+        let show = true;
+        if (activeLogFilter === 'finance') show = /💳|🏦|📈|📉|📊|mevduat|kredi|maaş|nakit/i.test(txt);
+        else if (activeLogFilter === 'football') show = /⚽|🏆|🏟️|gol|asist|maç|transfer|scout/i.test(txt);
+        else if (activeLogFilter === 'official') show = /🚨|⛓️|⚖️|MAHKEME|İCRA|MASAK|tebligat|askerlik/i.test(txt);
+        item.style.display = show ? 'block' : 'none';
+        if (show) hasVisible = true;
+      });
+      block.style.display = hasVisible ? 'block' : 'none';
+    });
+  };
+
+  window.setLogFilter = function (flt) {
+    activeLogFilter = flt;
+    renderLogs();
+  };
+
+  // D) Portre Çevresine SVG Yaşam Halkası Enjeksiyonu
+  const _prevRenderAll = renderAll;
+  renderAll = function () {
+    _prevRenderAll();
+    const avatar = document.getElementById('charAvatar');
+    if (avatar && !avatar.parentElement.classList.contains('avatar-ring-container')) {
+      const parent = avatar.parentElement;
+      parent.classList.add('avatar-ring-container');
+      const healthPct = clamp(G ? G.health : 100);
+      const strokeClr = healthPct >= 70 ? '#10b981' : (healthPct >= 40 ? '#f59e0b' : '#f43f5e');
+      const offset = (100 - healthPct).toFixed(1);
+
+      parent.insertAdjacentHTML('beforeend', `
+        <svg viewBox="0 0 44 44" class="avatar-ring-svg">
+          <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(30,41,59,0.8)" stroke-width="3.5" />
+          <circle cx="22" cy="22" r="19" fill="none" stroke="${strokeClr}" stroke-width="3.5" stroke-dasharray="100" stroke-dashoffset="${offset}" stroke-linecap="round" />
+        </svg>
+      `);
+    }
+  };
+})();
