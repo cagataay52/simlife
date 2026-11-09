@@ -922,3 +922,77 @@ ACHIEVEMENTS_DB.push(
   { id: 'top_streamer', title: 'Yılın Yayıncısı', desc: 'Canlı yayınlarda 100.000 abone ve tam donanımlı stüdyoya ulaştın.', icon: '🎙️' },
   { id: 'media_mogul', title: 'Medya İmparatoru', desc: 'Dijital Spor Medyası veya Ulusal TV Kanalı sahibi oldun.', icon: '📺' }
 );
+
+/* ============================================================================
+   ÖN LİSANS, KPSS KAMU KADROLARI, SERTİFİKALAR VE TERFİ BASAMAKLARI VERİTABANI
+   ============================================================================ */
+
+// 1. 2 Yıllık Ön Lisans Bölümleri (TYT ile Girilen & DGS ile 4 Yıllığa Tamamlanabilen)
+const ASSOCIATE_MAJORS_DB = [
+  { id: 'on_lojistik', name: 'Lojistik (Ön Lisans - 2 Yıl)', years: 2, minScore: 225, dgsTarget: 'lojistik', icon: '🚛', desc: 'Tedarik zinciri, gümrük, depo ve filo operasyonları uzmanlığı.' },
+  { id: 'on_muhasebe', name: 'Muhasebe ve Vergi (Ön Lisans - 2 Yıl)', years: 2, minScore: 220, dgsTarget: 'isletme', icon: '🧾', desc: 'Tekdüzen hesap planı, fatura/mizan, maliyet kontrol ve vergi mevzuatı.' },
+  { id: 'on_turizm', name: 'Turizm ve Otel İşletmeciliği (2 Yıl)', years: 2, minScore: 210, dgsTarget: 'isletme', icon: '🏨', desc: 'Otel yönetimi, yiyecek-içecek maliyet kontrolü (Cost Control) ve satınalma.' },
+  { id: 'on_bilgisayar', name: 'Bilgisayar Programcılığı (2 Yıl)', years: 2, minScore: 255, dgsTarget: 'muhendislik', icon: '💻', desc: 'Web/mobil uygulama geliştirme, veritabanı ve sistem yönetimi.' }
+];
+
+// 2. CV Gücünü ve Maaş Pazarlığını Artıran Mesleki Sertifikalar
+const CERTIFICATES_DB = [
+  { id: 'cert_luca', name: 'Luca & Luca Net E-Fatura / Muhasebe Uzmanlığı', icon: '🧾', costMult: 0.55, cvBoost: 18, salaryBoostPct: 12, desc: 'Muhasebe, finans ve tekstil/üretim şirketlerinde işe kabul ve maaşı artırır.' },
+  { id: 'cert_cost', name: 'Materials Control (MC) & Otel Cost Control ERP', icon: '📊', costMult: 0.65, cvBoost: 20, salaryBoostPct: 15, desc: 'Otel zincirleri ve kurumsal şirketlerde Maliyet Kontrolörü unvanının anahtarı.' },
+  { id: 'cert_udy', name: 'ÜDY / ODY & SRC-3 Uluslararası Lojistik Belgesi', icon: '🚛', costMult: 0.70, cvBoost: 20, salaryBoostPct: 15, desc: 'Lojistik, gümrük ve filo yönetiminde üst düzey yönetici şartını sağlar.' },
+  { id: 'cert_excel', name: 'İleri Excel, Finansal Modelleme & PowerBI', icon: '📈', costMult: 0.45, cvBoost: 14, salaryBoostPct: 10, desc: 'Tüm beyaz yaka ve kurumsal ofis mülakatlarında +14 CV puanı sağlar.' },
+  { id: 'cert_eng', name: 'YDS / İş İngilizcesi (C1) Sertifikası', icon: '🌍', costMult: 0.80, cvBoost: 22, salaryBoostPct: 18, desc: 'Uluslararası şirketler, havacılık ve dış ticarette yüksek maaş farkı verir.' }
+];
+
+// 3. KPSS Kamu Atama Kadroları (657 Devlet Memurluğu - İş Güvenceli)
+const KPSS_PUBLIC_JOBS_DB = [
+  { id: 'kpss_gumruk', title: 'T.C. Ticaret Bakanlığı — Gümrük Muayene / Muhafaza Memuru', icon: '🛃', reqKpss: 76, reqDeg: 'any', mult: 3.1, employer: 'T.C. Ticaret Bakanlığı Gümrükler Gn. Md.' },
+  { id: 'kpss_maliye', title: 'Gelir İdaresi Başkanlığı (GİB) — Vergi & Gelir Uzmanı', icon: '🏛️', reqKpss: 78, reqDeg: 'any', mult: 3.3, employer: 'Hazine ve Maliye Bakanlığı GİB' },
+  { id: 'kpss_sgk', title: 'SGK — Sosyal Güvenlik Denetmeni / Memuru', icon: '📋', reqKpss: 74, reqDeg: 'any', mult: 2.8, employer: 'Sosyal Güvenlik Kurumu (4C)' },
+  { id: 'kpss_tcdd', title: 'TCDD Taşımacılık — Lojistik & Hareket Memuru', icon: '🚆', reqKpss: 72, reqDeg: 'any', mult: 2.9, employer: 'TCDD Lojistik Dairesi Başkanlığı' },
+  { id: 'kpss_belediye', title: 'Büyükşehir Belediyesi — İdari Memur / Zabıta', icon: '🏢', reqKpss: 68, reqDeg: 'any', mult: 2.6, employer: 'İstanbul Büyükşehir Belediyesi' }
+];
+
+// 4. Sektörel 4 Kademeli Terfi Basamakları ve Gerçekçi İşveren İsimleri
+const CAREER_LADDERS_DB = {
+  lojistik: {
+    employers: ['Kuzey Global Lojistik A.Ş.', 'Marmara Konteyner & Gümrükleme A.Ş.', 'Ekol Транспорт & Antrepo A.Ş.'],
+    ranks: ['Lojistik Operasyon Uzman Yrd.', 'Gümrük & Filo Operasyon Sorumlusu', 'Lojistik & Depo Müdürü', 'Tedarik Zinciri Direktörü (COO)']
+  },
+  isletme: {
+    employers: ['RKN Süzer Tekstil & Dış Tic. A.Ş.', 'Wyndham & Grand Otelcilik Grubu', 'Anadolu Holding Finans A.Ş.'],
+    ranks: ['Ön Muhasebe & Fatura Uzmanı', 'Cost Controller (Maliyet Kontrol Uzmanı)', 'Muhasebe & Finansman Müdürü', 'Finans Direktörü (CFO)']
+  },
+  muhendislik: {
+    employers: ['Aselsan Savunma Teknolojileri A.Ş.', 'Bosphorus Tech Yazılım A.Ş.', 'TUSAŞ Mühendislik Grubu'],
+    ranks: ['Junior Yazılım / Sistem Mühendisi', 'Mid-Level Proje Mühendisi', 'Senior Başmühendis / Takım Lideri', 'Teknoloji Direktörü (CTO)']
+  },
+  denizcilik: {
+    employers: ['Arkas Denizcilik & Nakliyat A.Ş.', 'Yıldırım Ro-Ro Deniz Taşımacılığı'],
+    ranks: ['4. Zabitan / Vardiya Zabiti', '2. Kaptan (Birinci Zabit)', 'Uzakyol Gemi Süvarisi (Kaptan)', 'Filo Denizcilik Operasyon Direktörü']
+  },
+  havacilik: {
+    employers: ['Türk Hava Yolları (THY) A.O.', 'Pegasus Hava Taşımacılığı A.Ş.'],
+    ranks: ['İkinci Pilot (First Officer)', 'Kıdemli First Officer', ' Sorumlu Kaptan Pilot', 'Filo Uçuş İşletme Başpilotu']
+  },
+  hukuk: {
+    employers: ['Kılıç & Ortakları Hukuk Bürosu', 'Adalet Bakanlığı Adliyesi'],
+    ranks: ['Stajyer / Genç Avukat', 'Kıdemli Dava Avukatı', 'Yönetici Ortak (Managing Partner)', 'Başhukuk Müşaviri / Kıdemli Hakim']
+  },
+  tip: {
+    employers: ['Acıbadem Sağlık Grubu', 'Şehir Hastanesi Başhekimliği'],
+    ranks: ['Pratisyen / Asistan Hekim', 'Uzman Doktor (Operatör)', 'Klinik Şefi / Doçent Doktor', 'Hastane Başhekimi / Profesör']
+  },
+  default: {
+    employers: ['Kurumsal Hizmetler ve Ticaret A.Ş.', 'Marmara Üretim ve Pazarlama A.Ş.'],
+    ranks: ['Başlangıç Kademesi Personel', 'Kıdemli Uzman / Vardiya Amiri', 'Bölüm / Şube Şefi', 'Operasyon Müdürü']
+  }
+};
+
+const RANK_SALARY_MULTS = [1.0, 1.32, 1.75, 2.35];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'cost_master', title: 'Maliyet ve Finans Üstadı', desc: 'Mesleğinde 3. veya 4. kademeye (Cost Controller / Müdür / CFO) terfi ettin.', icon: '📊' },
+  { id: 'civil_servant_657', title: 'Kadrolu Devlet Memuru', desc: 'KPSS puanınla merkezi atamada memur kadrosuna yerleşerek iş güvencesi aldın.', icon: '🏛️' },
+  { id: 'retired_boss', title: 'SGK Emeklisi', desc: 'Prim gününü doldurup emekli maaşı ve kıdem tazminatını aldın!', icon: '🏖️' }
+);
