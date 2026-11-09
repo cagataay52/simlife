@@ -636,3 +636,99 @@ button:active {
   border-radius: 18px;
   padding: 14px;
 }
+
+/* ============================================================================
+   9'LU TASARIMSAL, GRAFİKSEL VE MANTIKSAL GELİŞTİRME PAKETİ (STYLE)
+   ============================================================================ */
+
+/* 1. Çekmece İçi Sticky Mini-HUD */
+.sticky-modal-hud {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+  padding: 8px 12px;
+  margin: -14px -14px 12px -14px;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+
+/* 2. Akıllı Bildirim Rozetleri (Notification Badge) */
+.nav-badge-pill {
+  position: absolute;
+  top: 4px;
+  right: 18px;
+  background: #f43f5e;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 4px;
+  border-radius: 99px;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.8);
+  pointer-events: none;
+}
+
+/* 3. Zaman Tüneli Filtre Çubuğu */
+.log-filter-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #060911;
+  border-radius: 12px;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+.log-filter-btn {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  cursor: pointer;
+}
+.log-filter-btn.active {
+  background: #10b981;
+  color: #090d16;
+}
+
+/* 6. Portre Çerçevesi ve Yaşam Halkası */
+.avatar-ring-container {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.avatar-ring-svg {
+  position: absolute;
+  inset: -4px;
+  width: 72px;
+  height: 72px;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+/* 7. 100 Efor / Enerji Barı */
+.energy-bar-track {
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(30, 41, 59, 0.9);
+  overflow: hidden;
+  width: 100%;
+}
+.energy-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
