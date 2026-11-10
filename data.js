@@ -996,3 +996,107 @@ ACHIEVEMENTS_DB.push(
   { id: 'civil_servant_657', title: 'Kadrolu Devlet Memuru', desc: 'KPSS puanınla merkezi atamada memur kadrosuna yerleşerek iş güvencesi aldın.', icon: '🏛️' },
   { id: 'retired_boss', title: 'SGK Emeklisi', desc: 'Prim gününü doldurup emekli maaşı ve kıdem tazminatını aldın!', icon: '🏖️' }
 );
+
+/* ============================================================================
+   6'LI GERÇEKÇİ PAKET VERİTABANI (2. EL EKSPERTİZ, UYAP, DOSTLAR, COST CONTROL)
+   ============================================================================ */
+
+// 1. 2. El Oto Pazarı ve Ekspertiz / Sanayi Al-Sat Araç Havuzu
+const USED_CAR_MARKET_DB = [
+  {
+    id: 'uc_blueberry',
+    name: 'Kuba Blueberry 50cc Scooter',
+    icon: '🛵',
+    baseMult: 0.95,
+    tramerMult: 0,
+    parts: { kaput: 'Orijinal', tavan: 'Orijinal', solYan: 'Lokal Boya', sagYan: 'Orijinal', bagaj: 'Orijinal' },
+    sellerNote: 'Mahalle içi az yakar, B ehliyetle kullanılır, ilk gelen alır.',
+    repairCostMult: 0.08,
+    flipMult: 1.22
+  },
+  {
+    id: 'uc_c3_aircross',
+    name: 'Citroën C3 Aircross 1.2 PureTech',
+    icon: '🚙',
+    baseMult: 16.5,
+    tramerMult: 0.8,
+    parts: { kaput: 'Orijinal', tavan: 'Orijinal', solYan: 'Boyalı', sagYan: 'Boyalı', bagaj: 'Değişen' },
+    sellerNote: 'Yetkili servis bakımlı SUV, bagaj kapağı park halinde değişti.',
+    repairCostMult: 1.2,
+    flipMult: 20.5
+  },
+  {
+    id: 'uc_tiggo8',
+    name: 'Chery Tiggo 8 Pro Max Avantgarde',
+    icon: '🚘',
+    baseMult: 26.0,
+    tramerMult: 0.4,
+    parts: { kaput: 'Orijinal', tavan: 'Orijinal', solYan: 'Orijinal', sagYan: 'Boyalı', bagaj: 'Orijinal' },
+    sellerNote: '7 kişilik tam dolu paket, cam tavan, hatasız ayarında.',
+    repairCostMult: 1.5,
+    flipMult: 31.8
+  },
+  {
+    id: 'uc_egea_sanayi',
+    name: 'Fiat Egea 1.6 MJet (Çıtır Hasarlı Fırsat)',
+    icon: '🚗',
+    baseMult: 10.2,
+    tramerMult: 2.1,
+    parts: { kaput: 'Değişen', tavan: 'Orijinal', solYan: 'Boyalı', sagYan: 'Boyalı', bagaj: 'Orijinal' },
+    sellerNote: 'Sanayide kaporta-mekanik toplanırsa yüksek kâr bırakır!',
+    repairCostMult: 1.8,
+    flipMult: 15.8
+  },
+  {
+    id: 'uc_bmw_f30',
+    name: 'BMW 320i ED M Sport (Sanayi Проект)',
+    icon: '🏎️',
+    baseMult: 24.0,
+    tramerMult: 3.5,
+    parts: { kaput: 'Değişen', tavan: 'Orijinal', solYan: 'Değişen', sagYan: 'Boyalı', bagaj: 'Boyalı' },
+    sellerNote: 'Acil nakit ihtiyacından kelepir, motor yürüyen saat gibi.',
+    repairCostMult: 3.2,
+    flipMult: 34.5
+  }
+];
+
+// 2. UYAP E-İhale (İcradan %40 İndirimli Araç ve Gayrimenkul Havuzu)
+const UYAP_AUCTIONS_DB = [
+  { id: 'uyap_sarkoy_yazlik', type: 'house', houseId: 'apt31', name: 'Şarköy Sahil 2+1 Yazlık Daire (İcradan)', icon: '🏖️', marketMult: 48, bidMult: 29, rentMult: 1.65 },
+  { id: 'uyap_antrepo', type: 'house', houseId: 'lojistik_depo', name: 'Gümrük Yanı İcralık Lojistik Antrepo', icon: '🏭', marketMult: 110, bidMult: 68, rentMult: 2.85 },
+  { id: 'uyap_rezidans', type: 'house', houseId: 'studio', name: 'Merkez 1+1 Rezidans Dairesi (Bankadan)', icon: '🏢', marketMult: 24, bidMult: 14.5, rentMult: 0.72 },
+  { id: 'uyap_tir', type: 'car', carId: 'volvo_fh16', name: 'İcralık Volvo FH16 750 Çekici Tır', icon: '🚛', marketMult: 52, bidMult: 31, prestige: 18 }
+];
+
+// 3. Kiracı Profilleri
+const TENANT_PROFILES_DB = [
+  { id: 'memur', name: '🏛️ Memur Kefilli Aile', rentBonusMult: 1.0, defaultRisk: 0.0, desc: 'Kira günü şaşmaz, evi yıpratmaz, tahliye krizi yaşatmaz.' },
+  { id: 'kurumsal', name: '💼 Kurumsal Beyaz Yaka', rentBonusMult: 1.18, defaultRisk: 0.06, desc: '+%18 daha yüksek kira öder, düşük gecikme riski vardır.' },
+  { id: 'spekulatif', name: '💸 Yüksek Kira Veren Kiracı', rentBonusMult: 1.40, defaultRisk: 0.24, desc: '+%40 yüksek kira verir ancak kirayı takma ve mahkemelik olma riski yüksektir!' }
+];
+
+// 4. Dost Çevresi (Kankalar) & Ortak Girişim Projeleri
+const CLOSE_FRIENDS_DB = [
+  { id: 'fr_muhammed', name: 'Muhammed', role: 'Yazılım & E-Ticaret Uzmanı', ventureName: 'Swipper Sosyal Ağ & Eşleşme Uygulaması', ventureCostMult: 14, monthlyReturnMult: 3.4 },
+  { id: 'fr_cagri', name: 'Çağrı', role: 'Lojistik & Filo Operasyoncusu', ventureName: 'Marmara Ekspres Nakliyat & Depo Ortaklığı', ventureCostMult: 22, monthlyReturnMult: 5.2 },
+  { id: 'fr_emin', name: 'Emin', role: 'Müzik Prodüksiyon & Dijital Medya', ventureName: 'Ritim & Dijital Stüdyo Yapım A.Ş.', ventureCostMult: 12, monthlyReturnMult: 2.8 }
+];
+
+// 5. Şirket İçi Cost Control (Maliyet Kontrol) Tedarikçileri ve İhaleler
+const COST_CONTROL_SUPPLIERS_DB = [
+  { id: 'sup_premium', name: 'Kurumsal Garantili A-Sınıfı Tedarikçi', costCutPct: 4, baseWastePct: 3, desc: 'Düşük fire (%3), yüksek kalite ve sıfır tedarik gecikmesi.' },
+  { id: 'sup_mc_erp', name: 'Materials Control (MC) & Luca Entegreli Kontrat', costCutPct: 14, baseWastePct: 4, desc: 'Stok/maliyet kontrolüyle birim maliyeti %14 düşürür, kârlılığı patlatır!' },
+  { id: 'sup_spot', name: 'Spot Piyasa Ucuz Tedarikçi', costCutPct: 20, baseWastePct: 15, desc: 'Hammadde ucuzdur ancak fire oranı (%15) yüksektir, sık denetim ister.' }
+];
+
+const CORPORATE_TENDERS_DB = [
+  { id: 'tnd_tekirdag_eu', title: 'Tekirdağ - Avrupa 24 Tır İhracat Konteyner İhalesi', reqFleet: 2, costMult: 6.0, payoutMult: 11.5 },
+  { id: 'tnd_hotel_supply', title: 'Sultanahmet & Pera Otel Grubu Yıllık Tedarik İhalesi', reqFleet: 1, costMult: 4.5, payoutMult: 8.8 },
+  { id: 'tnd_textile_export', title: 'Avrupa Tekstil & Konfeksiyon Sevkiyat Kontratı', reqFleet: 2, costMult: 8.0, payoutMult: 15.2 }
+];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'sanayi_galerici', title: 'Sanayi & Al-Sat Kurdu', desc: '2. el pazarda ekspertizle araç alıp sanayide toplayarak kârla sattın!', icon: '🚗' },
+  { id: 'tegmen_terhis', title: 'Yedek Subay (Teğmen)', desc: 'Askerliğini 12 ay maaşlı Yedek Subay olarak tamamlayıp terhis belgeni aldın.', icon: '🪖' },
+  { id: 'uyap_hunter', title: 'İcra & İhale Avcısı', desc: 'UYAP E-İhale üzerinden piyasa değerinin altında mülk veya araç kazandın.', icon: '🔨' }
+);
