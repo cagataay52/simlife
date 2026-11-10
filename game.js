@@ -7777,3 +7777,1020 @@ window.takeMortgageLoan = function (amtMult) {
     }
   };
 })();
+
+/* ============================================================================
+   6'LI GERÇEKÇİ SİMÜLASYON MOTORU (GAME.JS TAM ENTEGRASYON)
+   ============================================================================ */
+
+function ensureSixRealismState() {
+  if (!G) return;
+
+  // 1. 2. El Oto Ekspertiz & Al-Sat Durumu
+  if (!G.usedCarTrade) {
+    G.usedCarTrade = {
+      inventory: [], // Alınıp sanayide toplanan 2. el araçlar
+      flipsCount: 0
+    };
+  }
+
+  // 2. e-Devlet Askerlik Şubesi Durumu
+  if (!G.military) {
+    G.military = {
+      status: 'exempt_age', // 'exempt_age' | 'deferred' | 'bakaya' | 'completed'
+      deferUntilAge: 22,
+      doneType: null,       // 'bedelli' | 'yedek_subay' | 'er'
+      dischargeAge: null
+    };
+  }
+
+  // 3. Kiracı Yönetimi & UYAP E-İhale Durumu
+  if (!G.realEstateExtra) {
+    G.realEstateExtra = {
+      houseTenants: {},     // uid -> { profileId: 'memur', unpaid: false }
+      wonAuctionsThisYear: 0
+    };
+  }
+
+  // 4. Dost Çevresi (Kankalar) & Ortak Girişimler
+  if (!G.friendsHub) {
+    G.friendsHub = {
+      list: CLOSE_FRIENDS_DB.map(f => ({ ...f, trust: 78, partnered: false })),
+      hangoutsThisYear: 0
+    };
+  }
+
+  // 5. Altın, Döviz, Vadeli Mevduat & Kredi Kartı Ekstresi
+  if (!G.fxGold) {
+    G.fxGold = {
+      gramGold: 0,
+      usdBalance: 0,
+      termDeposit: 0,       // Vadeli mevduat (Yıllık %48 faiz getirisi)
+      goldPriceMult: 0.14,  // 1 Gram Altın = 0.14x Asgari Ücret
+      usdPriceMult: 0.0018, // 100 USD paketi üzerinden işlem
+      ccLimitMult: 2.5,
+      ccStatementDebt: 0,
+      ccPaidThisYear: true
+    };
+  }
+
+  // 6. Şirket İçi Cost Control (Maliyet/Fire Kontrolü) & İhale
+  if (!G.costControl) {
+    G.costControl = {
+      supplierId: 'sup_mc_erp',
+      wastePct: 6,          // Fire oranı (%) - düştükçe kâr artar
+      auditsThisYear: 0,
+      tendersThisYear: 0
+    };
+  }
+
+  updateMilitaryStatusCheck();
+}
+
+function updateMilitaryStatusCheck() {
+  if (!G || !G.military || G.gender === 'Kadın') return;
+  const m = G.military;
+  if (m.status === 'completed') return;
+
+  if (G.age < 20) {
+    m.status = 'exempt_age';
+  } else if (G.eduStage === 'Üniversite' || G.eduStage === 'Lise') {
+    m.status = 'deferred';
+    m.deferUntilAge = Math.max(m.deferUntilAge, G.age + 2);
+  } else if (G.age <= m.deferUntilAge) {
+    m.status = 'deferred';
+  } else {
+    m.status = 'bakaya'; // Yoklama kaçağı!
+  }
+}
+
+/* ============================================================================
+   1. SİSTEM: 🚗 2. EL İLAN PAZARI, EKSPERTİZ RAPORU VE SANAYİ AL-SAT
+   ============================================================================ */
+
+function renderUsedCarExpertiseMarketHTML() {
+  ensureSixRealismState();
+  const c = getCountry();
+  const inv = G.usedCarTrade.inventory;
+
+  const myFlipBox = inv.length === 0 ? '' : `
+    <div class="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-2 mb-3">
+      <div class="text-xs font-extrabold text-emerald-300">🔧 Sanayi &amp; Al-Sat Garajındaki Araçlar (${inv.length})</div>
+      ${inv.map((item, idx) => {
+        const repCost = Math.round(c.monthlyMinWage * item.repairCostMult);
+        const sellVal = Math.round(c.monthlyMinWage * (item.repaired ? item.flipMult : item.baseMult * 1.05));
+        return `
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-extrabold text-white">${item.icon} ${item.name} ${item.repaired ? '<span class="text-emerald-400">(Sanayide Toplandı ✨)</span>' : '<span class="text-amber-400">(Ekspertizli)</span>'}</div>
+                <div class="text-[10px] text-slate-400">Alış: ${fmtMoney(item.boughtPrice)} &bull; Tahmini İlan Değeri: <strong class="text-emerald-400">${fmtMoney(sellVal)}</strong></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5">
+              ${!item.repaired ? `
+                <button onclick="repairUsedCarInSanayi(${idx}, ${repCost})" class="py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-extrabold">
+                  🔧 Sanayide Topla (${fmtMoney(repCost)})
+                </button>
+              ` : `
+                <button onclick="keepUsedCarInPersonalGarage(${idx})" class="py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[10px] font-bold">
+                  🚘 Şahsi Garaja Çek
+                </button>
+              `}
+              <button onclick="sellUsedCarWithBargain(${idx}, ${sellVal})" class="py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-[10px] font-extrabold">
+                🤝 İlana Koy &amp; Pazarlıkla Sat
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  return myFlipBox + `
+    <div class="space-y-2.5">
+      <div class="flex items-center justify-between">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-400">🔍 2. El İlan Pazarı &amp; TSE Oto Ekspertiz Raporu</h4>
+        <span class="text-[10px] text-slate-400">Al-Sat Kârı: ${G.usedCarTrade.flipsCount} Araç</span>
+      </div>
+      ${USED_CAR_MARKET_DB.map((uc, idx) => {
+        const askPrice = Math.round(c.monthlyMinWage * uc.baseMult);
+        const bargainPrice = Math.round(askPrice * 0.88);
+        const tramerAmt = Math.round(c.monthlyMinWage * uc.tramerMult);
+        const getCls = (st) => st === 'Orijinal' ? 'exp-orig' : (st.includes('Boya') ? 'exp-paint' : 'exp-changed');
+
+        return `
+          <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${uc.icon} ${uc.name}</div>
+                <div class="text-[10px] text-slate-400 italic">"${uc.sellerNote}"</div>
+                <div class="text-[10px] text-rose-400 font-mono-num mt-0.5">📋 SBM Tramer Kaydı: ${tramerAmt === 0 ? 'Kayıtsız (0 ₺)' : fmtMoney(tramerAmt)}</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-xs font-mono-num font-extrabold text-emerald-400">${fmtMoney(askPrice)}</div>
+                <div class="text-[9px] text-amber-300">Pazarlıklı: ${fmtMoney(bargainPrice)}</div>
+              </div>
+            </div>
+
+            <!-- 5 Bölgeli Kaporta Ekspertiz Şeması -->
+            <div class="grid grid-cols-5 gap-1">
+              <div class="exp-part-box ${getCls(uc.parts.kaput)}">Kaput<br>${uc.parts.kaput}</div>
+              <div class="exp-part-box ${getCls(uc.parts.tavan)}">Tavan<br>${uc.parts.tavan}</div>
+              <div class="exp-part-box ${getCls(uc.parts.solYan)}">Sol Yan<br>${uc.parts.solYan}</div>
+              <div class="exp-part-box ${getCls(uc.parts.sagYan)}">Sağ Yan<br>${uc.parts.sagYan}</div>
+              <div class="exp-part-box ${getCls(uc.parts.bagaj)}">Bagaj<br>${uc.parts.bagaj}</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="buyUsedCarWithBargain(${idx}, false)" class="py-2 rounded-xl bg-slate-800 text-white text-[10px] font-bold">
+                İlan Fiyatına Al (${fmtMoney(askPrice)})
+              </button>
+              <button onclick="buyUsedCarWithBargain(${idx}, true)" class="py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold">
+                🤝 Sıkı Pazarlık Yap (-%12)
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window.buyUsedCarWithBargain = function (idx, doBargain) {
+  ensureSixRealismState();
+  if (!G.licenses.B) { showToast('Araç alım-satımı için B Sınıfı Ehliyet gerekir!'); return; }
+  const uc = USED_CAR_MARKET_DB[idx];
+  if (!uc) return;
+  const c = getCountry();
+  const basePrice = Math.round(c.monthlyMinWage * uc.baseMult);
+  let finalPrice = basePrice;
+
+  if (doBargain) {
+    if (Math.random() < 0.72) {
+      finalPrice = Math.round(basePrice * 0.88);
+      showToast(`Satıcı pazarlığı kabul etti! İndirimli fiyat: ${fmtMoney(finalPrice)}`);
+    } else {
+      showToast('Satıcı "Son fiyatım kardeşim" dedi, liste fiyatından işlem yapılıyor.');
+    }
+  }
+
+  if (G.money < finalPrice) { showToast('Nakit bakiyen bu araç için yetersiz!'); return; }
+  G.money -= finalPrice;
+  G.usedCarTrade.inventory.push({
+    ...uc,
+    boughtPrice: finalPrice,
+    repaired: false
+  });
+  playSfx('coin');
+  addLog(G.age, `🚗 **2. EL OTO ALIMI:** Ekspertiz raporunu kontrol ederek **${uc.name}** aracını **${fmtMoney(finalPrice)}** bedelle satın aldın.`, 'good');
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+window.repairUsedCarInSanayi = function (invIdx, repCost) {
+  const item = G.usedCarTrade.inventory[invIdx];
+  if (!item || item.repaired) return;
+  if (G.money < repCost) { showToast('Sanayi kaporta ve mekanik ustası için bakiye yetersiz!'); return; }
+  G.money -= repCost;
+  item.repaired = true;
+  item.boughtPrice += repCost;
+  playSfx('coin');
+  addLog(G.age, `🔧 **SANAYİ REKTİFİYE & PASTA CİLA:** **${item.name}** aracının tüm kaporta, boya ve ağır bakımlarını sanayide tamamladın! Piyasa değeri fırladı.`, 'good');
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+window.keepUsedCarInPersonalGarage = function (invIdx) {
+  const item = G.usedCarTrade.inventory[invIdx];
+  if (!item) return;
+  G.cars.push({
+    uid: uid(),
+    carId: 'egea_cross',
+    name: item.name,
+    icon: item.icon,
+    value: Math.round(getCountry().monthlyMinWage * item.flipMult),
+    cond: 96,
+    prestige: 14,
+    INS: 0.08
+  });
+  G.usedCarTrade.inventory.splice(invIdx, 1);
+  playSfx('trophy');
+  showToast(`${item.name} şahsi garajına eklendi!`);
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+window.sellUsedCarWithBargain = function (invIdx, targetVal) {
+  const item = G.usedCarTrade.inventory[invIdx];
+  if (!item) return;
+  const highOffer = Math.round(targetVal * 1.08);
+  const fastOffer = Math.round(targetVal * 0.96);
+
+  openEventModal({
+    badge: `📲 SARI SİTE İLAN MESAJLARI • ${item.name}`,
+    title: 'Aracına Ciddi Bir Alıcı Çıktı!',
+    desc: `Aracın toplam maliyeti (Alış + Sanayi): ${fmtMoney(item.boughtPrice)}. Noterde nakit hazır bekleyen alıcı ${fmtMoney(fastOffer)} teklif ediyor. Nasıl yanıt vereceksin?`,
+    choices: [
+      {
+        label: `🤝 Tok Satıcı Oyna ve ${fmtMoney(highOffer)} İste (%65 Şans)`,
+        action: () => {
+          const soldPrice = Math.random() < 0.65 ? highOffer : fastOffer;
+          const profit = soldPrice - item.boughtPrice;
+          G.money += soldPrice;
+          G.usedCarTrade.inventory.splice(invIdx, 1);
+          G.usedCarTrade.flipsCount += 1;
+          if (profit > 0) unlockAchievement('sanayi_galerici');
+          playSfx('trophy');
+          addLog(G.age, `💸 **NOTER ARAÇ SATIŞI:** **${item.name}** aracını **${fmtMoney(soldPrice)}** fiyata sattın! (Net Al-Sat Kârı: **+${fmtMoney(profit)}**)`, 'good');
+          saveGame(); renderAll(); openMenuSection('cars');
+        }
+      },
+      {
+        label: `💵 Hemen Notere Gidip ${fmtMoney(fastOffer)} Nakite Devret`,
+        action: () => {
+          const profit = fastOffer - item.boughtPrice;
+          G.money += fastOffer;
+          G.usedCarTrade.inventory.splice(invIdx, 1);
+          G.usedCarTrade.flipsCount += 1;
+          if (profit > 0) unlockAchievement('sanayi_galerici');
+          playSfx('coin');
+          addLog(G.age, `💸 **NOTER ARAÇ SATIŞI:** **${item.name}** aracını **${fmtMoney(fastOffer)}** bedelle devrettin (Net Kâr: +${fmtMoney(profit)}).`, 'good');
+          saveGame(); renderAll(); openMenuSection('cars');
+        }
+      }
+    ]
+  });
+};
+
+/* ============================================================================
+   2. SİSTEM: 🪖 E-DEVLET ASKERLİK ŞUBESİ (TECİL, BEDELLİ, YEDEK SUBAY/TEĞMEN)
+   ============================================================================ */
+
+function renderMilitaryServiceBranchHTML() {
+  ensureSixRealismState();
+  const c = getCountry();
+  const m = G.military;
+  const bedelliCost = Math.round(c.monthlyMinWage * 10.5);
+  const tegmenMonthly = Math.round(c.monthlyMinWage * 3.1);
+
+  const statusLabels = {
+    exempt_age: '⏳ Askerlik Çağına Girmedi (20 Yaş Altı)',
+    deferred: `📄 Öğrenci / Mezun Tecilli (${m.deferUntilAge} Yaşına Kadar Tecilli)`,
+    bakaya: '🚨 YOKLAMA KAÇAĞI (BAKAYA) — Kurumsal İş Başvurularında Engel!',
+    completed: `🎖️ Muvazzaf Askerlik Hizmetini Tamamladı (${m.doneType === 'yedek_subay' ? 'Yedek Subay / Teğmen' : (m.doneType === 'bedelli' ? 'Bedelli Er' : 'Er/Erbaş')})`
+  };
+
+  return `
+    <div class="military-doc-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between border-b border-emerald-500/30 pb-2">
+        <div>
+          <div class="text-[9px] font-extrabold text-emerald-400 uppercase">T.C. MİLLÎ SAVUNMA BAKANLIĞI &bull; ASAL Dairesi</div>
+          <div class="text-xs font-extrabold text-white">Barkodlu Askerlik Durum Belgesi</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono-num font-bold">MSB-${G.age}04</span>
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-bold ${m.status === 'bakaya' ? 'text-rose-400' : 'text-emerald-300'}">
+        ${statusLabels[m.status] || statusLabels.deferred}
+      </div>
+
+      ${m.status !== 'completed' ? `
+        <div class="space-y-2 pt-1">
+          <button onclick="doMilitaryAction('defer')" class="w-full p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-300 text-xs font-bold text-left flex justify-between items-center">
+            <span>📅 Mezuniyet / Eğitim Hakkıyla 2 Yıl Tecil Ettir</span>
+            <span class="text-[10px] font-extrabold">Ücretsiz</span>
+          </button>
+
+          <button onclick="doMilitaryAction('bedelli', ${bedelliCost})" class="w-full p-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold text-left flex justify-between items-center">
+            <span>💳 1 Ay Bedelli Askerlik Yap (İş Kaybı Olmaz)</span>
+            <span class="font-mono-num">${fmtMoney(bedelliCost)}</span>
+          </button>
+
+          <button onclick="doMilitaryAction('yedek_subay', ${tegmenMonthly})" class="w-full p-2.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold text-left flex justify-between items-center">
+            <span>⭐ 12 Ay Yedek Subay / Astsubay (Teğmen Maaşlı + 360 SGK Günü)</span>
+            <span class="font-mono-num">+${fmtMoney(tegmenMonthly * 12)}</span>
+          </button>
+
+          <button onclick="doMilitaryAction('er', 0)" class="w-full p-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold text-left flex justify-between items-center">
+            <span>🪖 6 Ay Er / Erbaş Olarak Hizmeti Tamamla</span>
+            <span class="text-[10px] text-emerald-400">Terhis Belgesi</span>
+          </button>
+        </div>
+      ` : `
+        <div class="text-[11px] text-slate-300">Askerlik yükümlülüğünü ${m.dischargeAge} yaşında tamamladın. Tüm kamu ve kurumsal pozisyonlarda askerlik şartın onaylıdır.</div>
+      `}
+    </div>
+  `;
+}
+
+window.doMilitaryAction = function (act, amount) {
+  ensureSixRealismState();
+  const m = G.military;
+  if (m.status === 'completed') { showToast('Askerlik görevini zaten tamamladın!'); return; }
+
+  if (act === 'defer') {
+    if (G.age >= 29) { showToast('29 yaş üstünde tecil hakkın doldu! Askerlik hizmetini yapmalısın.'); return; }
+    m.status = 'deferred';
+    m.deferUntilAge = G.age + 2;
+    playSfx('coin');
+    addLog(G.age, `📅 **ASKERLİK TECİLİ:** e-Devlet ASAL üzerinden askerlik yoklamanı **${m.deferUntilAge} yaşına kadar** tecil ettirdin.`, 'normal');
+  } else if (act === 'bedelli') {
+    if (G.money < amount) { showToast('Bedelli askerlik ücreti için banka bakiyen yetersiz!'); return; }
+    G.money -= amount;
+    m.status = 'completed';
+    m.doneType = 'bedelli';
+    m.dischargeAge = G.age;
+    playSfx('trophy');
+    addLog(G.age, `🪖 **BEDELLİ ASKERLİK TERHİSİ:** **-${fmtMoney(amount)}** bedelli ücretini yatırıp 28 günlük temel askerlik eğitimini tamamlayarak terhis oldun!`, 'milestone');
+  } else if (act === 'yedek_subay') {
+    if (!G.uniGrad && (!G.career || G.career.degreeType !== 'onlisans')) {
+      showToast('Yedek Subay / Astsubay (Teğmen) olmak için Ön Lisans veya Lisans mezunu olmalısın!');
+      return;
+    }
+    const annualPay = amount * 12;
+    G.money += annualPay;
+    m.status = 'completed';
+    m.doneType = 'yedek_subay';
+    m.dischargeAge = G.age;
+    if (G.career) {
+      G.career.sgkDays += 360;
+      G.career.cvScore = clamp(G.career.cvScore + 12, 20, 100);
+    }
+    unlockAchievement('tegmen_terhis');
+    playSfx('trophy');
+    addLog(G.age, `⭐ **YEDEK SUBAY (TEĞMEN) TERHİSİ:** 12 ay boyunca takım komutanı olarak görev yapıp **+${fmtMoney(annualPay)}** subay maaşı ve **+360 gün 4C SGK primi** kazanarak terhis oldun!`, 'fame');
+  } else if (act === 'er') {
+    m.status = 'completed';
+    m.doneType = 'er';
+    m.dischargeAge = G.age;
+    G.health = clamp(G.health + 6);
+    playSfx('trophy');
+    addLog(G.age, `🪖 **TERHİS BELGESİ:** 6 aylık vatani görevini başarıyla tamamlayıp tezkereni aldın!`, 'milestone');
+  }
+
+  saveGame(); renderAll(); openMenuSection('license');
+};
+
+/* ============================================================================
+   3. SİSTEM: 🏠 KİRACI YÖNETİMİ, TAHLİYE DAVASI VE UYAP E-İHALE (İCRADAN SATIŞ)
+   ============================================================================ */
+
+function renderTenantAndUyapPanelHTML() {
+  ensureSixRealismState();
+  const c = getCountry();
+  const re = G.realEstateExtra;
+
+  // 1. Mevcut Evlerin Kiracı Profili ve Tahliye Yönetimi
+  const tenantHtml = G.houses.length === 0 ? '' : `
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2.5 mb-3">
+      <div class="text-xs font-extrabold text-emerald-300">🔑 Kiracı Profili Seçimi &amp; Tahliye / İcra Yönetimi</div>
+      ${G.houses.map(h => {
+        if (!re.houseTenants[h.uid]) re.houseTenants[h.uid] = { profileId: 'memur', unpaid: false };
+        const tState = re.houseTenants[h.uid];
+        const prof = TENANT_PROFILES_DB.find(p => p.id === tState.profileId) || TENANT_PROFILES_DB[0];
+        const effRent = Math.round(h.monthlyRent * prof.rentBonusMult);
+
+        return `
+          <div class="p-2.5 rounded-xl bg-slate-950 border ${tState.unpaid ? 'border-rose-500' : 'border-slate-800'} space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-extrabold text-white">${h.icon} ${h.name}</div>
+                <div class="text-[10px] ${tState.unpaid ? 'text-rose-400 font-bold' : 'text-emerald-400'}">
+                  ${tState.unpaid ? '🚨 Kiracı Kirayı Taktı! (Tahliye Davası Aç)' : `Aktif Kiracı: ${prof.name} (+${fmtMoney(effRent)}/ay)`}
+                </div>
+              </div>
+              ${tState.unpaid ? `
+                <button onclick="evictBadTenant('${h.uid}')" class="px-2.5 py-1.5 rounded-lg bg-rose-500 text-white text-[10px] font-extrabold">
+                  ⚖️ İcra İle Tahliye Et
+                </button>
+              ` : ''}
+            </div>
+            <div class="grid grid-cols-3 gap-1 text-[9px]">
+              ${TENANT_PROFILES_DB.map(tp => `
+                <button onclick="setHouseTenantProfile('${h.uid}', '${tp.id}')" class="py-1 px-1.5 rounded border font-bold ${tState.profileId === tp.id ? 'border-emerald-400 bg-emerald-500/20 text-white' : 'border-slate-800 text-slate-400'}">
+                  ${tp.name.split(' ')[1]} (x${tp.rentBonusMult})
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  // 2. UYAP E-İhale İcradan Kelepir Gayrimenkul ve Araç Müzayedesi
+  const uyapHtml = `
+    <div class="uyap-auction-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-indigo-300 uppercase tracking-widest">⚖️ T.C. ADALET BAKANLIĞI &bull; UYAP E-İHALE PORTALI</div>
+          <div class="text-xs font-extrabold text-white">İcradan %40 İndirimli Gayrimenkul &amp; Araç Satışları</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-bold">Canlı İhale</span>
+      </div>
+
+      <div class="space-y-2">
+        ${UYAP_AUCTIONS_DB.map((au, idx) => {
+          const marketVal = Math.round(c.monthlyMinWage * au.marketMult);
+          const bidCost = Math.round(c.monthlyMinWage * au.bidMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold text-white">${au.icon} ${au.name}</div>
+                <div class="text-[10px] text-slate-400">Rayiç Değer: <span class="line-through">${fmtMoney(marketVal)}</span> &bull; İhale Bedeli: <strong class="text-emerald-400">${fmtMoney(bidCost)}</strong></div>
+              </div>
+              <button onclick="bidOnUyapAuction(${idx}, ${bidCost}, ${marketVal})" class="px-3 py-1.5 rounded-xl bg-indigo-500 text-white text-[10px] font-extrabold shrink-0">
+                🔨 Teklif Ver
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  return tenantHtml + uyapHtml;
+}
+
+window.setHouseTenantProfile = function (houseUid, profileId) {
+  ensureSixRealismState();
+  G.realEstateExtra.houseTenants[houseUid] = { profileId, unpaid: false };
+  playSfx('coin');
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+window.evictBadTenant = function (houseUid) {
+  ensureSixRealismState();
+  const c = getCountry();
+  const backRent = Math.round(c.monthlyMinWage * 3.2);
+  G.realEstateExtra.houseTenants[houseUid] = { profileId: 'memur', unpaid: false };
+  G.money += backRent;
+  playSfx('trophy');
+  addLog(G.age, `⚖️ **İCRA & TAHLİYE KARARI:** İcra memuru eşliğinde kiracıyı tahliye ettin ve birikmiş **+${fmtMoney(backRent)}** kira alacağını faiziyle tahsil ettin!`, 'good');
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+window.bidOnUyapAuction = function (idx, bidCost, marketVal) {
+  ensureSixRealismState();
+  if (G.realEstateExtra.wonAuctionsThisYear >= 2) {
+    showToast('Bu yıl en fazla 2 UYAP E-İhalesine katılabilirsin!');
+    return;
+  }
+  if (G.money < bidCost) { showToast('UYAP E-İhale teminatı ve nakit bedeli için bakiye yetersiz!'); return; }
+
+  const au = UYAP_AUCTIONS_DB[idx];
+  G.money -= bidCost;
+  G.realEstateExtra.wonAuctionsThisYear += 1;
+
+  if (Math.random() < 0.78) {
+    const c = getCountry();
+    if (au.type === 'house') {
+      G.houses.push({
+        uid: uid(),
+        houseId: au.houseId,
+        name: au.name.replace(' (İcradan)', '').replace(' (Bankadan)', ''),
+        icon: au.icon,
+        value: marketVal,
+        monthlyRent: Math.round(c.monthlyMinWage * au.rentMult)
+      });
+    } else {
+      G.cars.push({
+        uid: uid(),
+        carId: au.carId,
+        name: au.name.replace('İcralık ', ''),
+        icon: au.icon,
+        value: marketVal,
+        cond: 92,
+        prestige: au.prestige || 15,
+        INS: 0.1
+      });
+    }
+    unlockAchievement('uyap_hunter');
+    playSfx('trophy');
+    addLog(G.age, `🔨 **UYAP E-İHALE ZAFERİ!** Rayiç değeri ${fmtMoney(marketVal)} olan **${au.name}** varlığını icradan **${fmtMoney(bidCost)}** bedelle satın aldın!`, 'fame');
+  } else {
+    G.money += bidCost; // İhaleyi başkası artırdı, teminat iade edildi
+    showToast('Son saniyede başka bir yatırımcı teklifi yükseltti! Teminatın iade edildi.');
+  }
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+/* ============================================================================
+   4. SİSTEM: 🤝 DOST ÇEVRESİ (KANKALAR), ORTAK GİRİŞİM & KEFİLLİK
+   ============================================================================ */
+
+function renderCloseFriendsAndVenturesHTML() {
+  ensureSixRealismState();
+  const c = getCountry();
+  const fh = G.friendsHub;
+  const hangoutCost = Math.round(c.monthlyMinWage * 0.25);
+
+  return `
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/40 space-y-2.5 mt-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs font-extrabold text-sky-400">🤝 Dost Çevresi (Kankalar) &amp; Ortak Girişimler</div>
+          <div class="text-[10px] text-slate-400">Arkadaşlarınla sosyalleşerek stresi sıfırla veya %50-%50 ortak proje kur!</div>
+        </div>
+        <button onclick="hangoutWithFriends(${hangoutCost})" class="px-3 py-1.5 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-extrabold shrink-0">
+          ⚽ Halı Saha / Tatil (${fmtMoney(hangoutCost)})
+        </button>
+      </div>
+
+      <div class="space-y-2 pt-1">
+        ${fh.list.map((fr, idx) => {
+          const vCost = Math.round(c.monthlyMinWage * fr.ventureCostMult);
+          const vRev = Math.round(c.monthlyMinWage * fr.monthlyReturnMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950 border ${fr.partnered ? 'border-emerald-500/50' : 'border-slate-800'} space-y-1.5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-extrabold text-white">👤 ${fr.name} <span class="text-[10px] text-sky-400 font-normal">(${fr.role})</span></div>
+                  <div class="text-[10px] text-slate-400">Ortak Proje: <strong>${fr.ventureName}</strong></div>
+                  <div class="text-[10px] text-emerald-400 font-mono-num">Senin %50 Kâr Payın: +${fmtMoney(vRev)}/ay</div>
+                </div>
+                <button onclick="startFriendJointVenture(${idx}, ${vCost})" class="px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold shrink-0 ${fr.partnered ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-500 text-slate-950'}">
+                  ${fr.partnered ? 'Ortaklık Aktif ✓' : `Ortak Ol (${fmtMoney(vCost)})`}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.hangoutWithFriends = function (cost) {
+  ensureSixRealismState();
+  if (G.friendsHub.hangoutsThisYear >= 3) { showToast('Bu yıl arkadaşlarla yeterince etkinlik yaptın!'); return; }
+  if (G.money < cost) { showToast('Etkinlik için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  G.friendsHub.hangoutsThisYear += 1;
+  G.happy = clamp(G.happy + 16);
+  G.stress = clamp((G.stress || 20) - 22, 0, 100);
+  G.friendsHub.list.forEach(f => { f.trust = clamp(f.trust + 8); });
+  playSfx('coin');
+  addLog(G.age, `⚽ **DOSTLARLA BULUŞMA:** Muhammed, Çağrı ve Emin ile halı saha maçı yapıp hafta sonu kaçamağı organize ettiniz! Stresin düştü, moralin tavan yaptı.`, 'good');
+  saveGame(); renderAll(); openNavSheet('relations');
+};
+
+window.startFriendJointVenture = function (idx, cost) {
+  ensureSixRealismState();
+  const fr = G.friendsHub.list[idx];
+  if (!fr || fr.partnered) return;
+  if (G.money < cost) { showToast('Ortak girişim sermayesi için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  fr.partnered = true;
+  playSfx('trophy');
+  addLog(G.age, `🚀 **%50-%50 ORTAK GİRİŞİM:** Yakın dostun **${fr.name}** ile **${fr.ventureName}** projesini kurup hayata geçirdiniz!`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('relations');
+};
+
+/* ============================================================================
+   5. SİSTEM: 🪙 GRAM ALTIN, DÖVİZ, VADELİ MEVDUAT & KREDİ KARTI EKSTRESİ
+   ============================================================================ */
+
+function renderGoldFxAndDepositPanelHTML() {
+  ensureSixRealismState();
+  const c = getCountry();
+  const fg = G.fxGold;
+
+  const goldUnitPrice = Math.round(c.monthlyMinWage * fg.goldPriceMult);
+  const fxPackPrice = Math.round(c.monthlyMinWage * 0.5); // 1 Döviz Sepeti Paketi
+  const goldTotalVal = fg.gramGold * goldUnitPrice;
+  const fxTotalVal = fg.usdBalance * fxPackPrice;
+  const annualInterest = Math.round(fg.termDeposit * 0.48);
+  const ccMax = Math.round(c.monthlyMinWage * fg.ccLimitMult);
+
+  return `
+    <div class="fx-gold-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-amber-400 uppercase tracking-widest">🪙 KAPALIÇARŞI ALTIN, DÖVİZ &amp; VADELİ MEVDUAT SEPETİ</div>
+          <div class="text-xs font-extrabold text-white">Enflasyon Korumalı Varlık Yönetimi</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-mono-num font-bold">%48 Mevduat Faizi</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-amber-400">GRAM ALTIN (24K)</div>
+          <div class="font-extrabold font-mono-num text-white">${fg.gramGold} Gr</div>
+          <div class="text-[9px] text-emerald-400">${fmtMoney(goldTotalVal)}</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-sky-400">DÖVİZ SEPETİ ($/€)</div>
+          <div class="font-extrabold font-mono-num text-white">${fg.usdBalance} Lot</div>
+          <div class="text-[9px] text-emerald-400">${fmtMoney(fxTotalVal)}</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-emerald-400">VADELİ MEVDUAT</div>
+          <div class="font-extrabold font-mono-num text-white">${fmtMoney(fg.termDeposit)}</div>
+          <div class="text-[9px] text-amber-300">+${fmtMoney(Math.round(annualInterest / 12))}/ay</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-[10px] font-extrabold">
+        <button onclick="tradeGoldOrFx('buy_gold', ${goldUnitPrice * 5})" class="py-2 rounded-xl bg-amber-400 text-slate-950">+5 Gr Altın Al</button>
+        <button onclick="tradeGoldOrFx('buy_fx', ${fxPackPrice * 2})" class="py-2 rounded-xl bg-sky-500 text-slate-950">+Döviz Al</button>
+        <button onclick="tradeGoldOrFx('deposit_add', ${ c.monthlyMinWage * 2 })" class="py-2 rounded-xl bg-emerald-500 text-slate-950">+Vadeliye Yatır</button>
+      </div>
+      ${(fg.gramGold > 0 || fg.usdBalance > 0 || fg.termDeposit > 0) ? `
+        <button onclick="tradeGoldOrFx('liquidate_all', 0)" class="w-full py-1.5 rounded-xl bg-slate-800 text-amber-300 text-[10px] font-bold">
+          💱 Tüm Altın, Döviz ve Vadeli Mevduatı Nakite Çevir (+${fmtMoney(goldTotalVal + fxTotalVal + fg.termDeposit)})
+        </button>
+      ` : ''}
+    </div>
+
+    <!-- Kredi Kartı Ekstre & Findeks Yönetimi -->
+    <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2 mb-3">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-extrabold text-white">💳 Kredi Kartı Ekstresi: <strong class="text-rose-400 font-mono-num">${fmtMoney(fg.ccStatementDebt)}</strong></span>
+        <span class="text-[10px] text-slate-400">Limit: ${fmtMoney(ccMax)}</span>
+      </div>
+      <div class="grid grid-cols-3 gap-1.5 text-[10px] font-extrabold">
+        <button onclick="manageCreditCard('spend', ${Math.round(c.monthlyMinWage * 0.8)})" class="py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">Karttan Nakit Avans</button>
+        <button onclick="manageCreditCard('pay_min', 0)" class="py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300">Asgari Öde (%20)</button>
+        <button onclick="manageCreditCard('pay_full', 0)" class="py-2 rounded-xl bg-emerald-500 text-slate-950">Tam Ekstre Kapat</button>
+      </div>
+    </div>
+  `;
+}
+
+window.tradeGoldOrFx = function (act, cost) {
+  ensureSixRealismState();
+  const c = getCountry();
+  const fg = G.fxGold;
+
+  if (act === 'buy_gold') {
+    if (G.money < cost) { showToast('5 Gram Altın almak için nakit yetersiz!'); return; }
+    G.money -= cost;
+    fg.gramGold += 5;
+    playSfx('coin');
+  } else if (act === 'buy_fx') {
+    if (G.money < cost) { showToast('Döviz sepeti için nakit yetersiz!'); return; }
+    G.money -= cost;
+    fg.usdBalance += 2;
+    playSfx('coin');
+  } else if (act === 'deposit_add') {
+    if (G.money < cost) { showToast('Vadeli mevduat hesabı için nakit yetersiz!'); return; }
+    G.money -= cost;
+    fg.termDeposit += cost;
+    playSfx('coin');
+  } else if (act === 'liquidate_all') {
+    const goldVal = fg.gramGold * Math.round(c.monthlyMinWage * fg.goldPriceMult);
+    const fxVal = fg.usdBalance * Math.round(c.monthlyMinWage * 0.5);
+    const total = goldVal + fxVal + fg.termDeposit;
+    G.money += total;
+    fg.gramGold = 0;
+    fg.usdBalance = 0;
+    fg.termDeposit = 0;
+    playSfx('trophy');
+    addLog(G.age, `💱 Altın, döviz ve vadeli mevduat birikimlerini bozdurarak **+${fmtMoney(total)}** nakit elde ettin!`, 'good');
+  }
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+window.manageCreditCard = function (act, amt) {
+  ensureSixRealismState();
+  const c = getCountry();
+  const fg = G.fxGold;
+  const maxLim = Math.round(c.monthlyMinWage * fg.ccLimitMult);
+
+  if (act === 'spend') {
+    if (fg.ccStatementDebt + amt > maxLim) { showToast('Kredi kartı kullanılabilir limitin doldu!'); return; }
+    G.money += amt;
+    fg.ccStatementDebt += Math.round(amt * 1.08);
+    playSfx('coin');
+  } else if (act === 'pay_min') {
+    if (fg.ccStatementDebt <= 0) return;
+    const minPay = Math.round(fg.ccStatementDebt * 0.20);
+    if (G.money < minPay) { showToast('Asgari ödeme tutarı için bakiye yetersiz!'); return; }
+    G.money -= minPay;
+    fg.ccStatementDebt = Math.round((fg.ccStatementDebt - minPay) * 1.15);
+    G.creditScore = clamp(G.creditScore + 15, 300, 1900);
+    playSfx('coin');
+  } else if (act === 'pay_full') {
+    if (fg.ccStatementDebt <= 0) return;
+    if (G.money < fg.ccStatementDebt) { showToast('Tam ekstre borcunu kapatmak için bakiye yetersiz!'); return; }
+    G.money -= fg.ccStatementDebt;
+    fg.ccStatementDebt = 0;
+    fg.ccLimitMult = Math.min(12, fg.ccLimitMult + 0.5);
+    G.creditScore = clamp(G.creditScore + 65, 300, 1900);
+    playSfx('trophy');
+    showToast('Ekstre tam ödendi! Findeks notun ve kart limitin yükseldi.');
+  }
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+/* ============================================================================
+   6. SİSTEM: 📊 ŞİRKET İÇİ COST CONTROL, TEDARİKÇİ VE İHALE MASASI
+   ============================================================================ */
+
+function renderCompanyCostControlPanelHTML() {
+  ensureSixRealismState();
+  if (G.businesses.length === 0) return '';
+  const c = getCountry();
+  const cc = G.costControl;
+  const curSup = COST_CONTROL_SUPPLIERS_DB.find(s => s.id === cc.supplierId) || COST_CONTROL_SUPPLIERS_DB[1];
+
+  return `
+    <div class="cost-control-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-sky-400 uppercase tracking-widest">📊 COST CONTROL (MALİYET KONTROL) &amp; TEDARİK ZİNCİRİ</div>
+          <div class="text-xs font-extrabold text-white">Aktif Tedarikçi: ${curSup.name}</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono-num font-bold">Fire: %${cc.wastePct}</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1 text-[9.5px]">
+        ${COST_CONTROL_SUPPLIERS_DB.map(sup => `
+          <button onclick="selectCompanySupplier('${sup.id}')" class="p-2 rounded-xl border text-left ${cc.supplierId === sup.id ? 'border-sky-400 bg-sky-500/20 text-white font-extrabold' : 'border-slate-800 bg-slate-950 text-slate-400'}">
+            <div class="truncate">${sup.name.split(' ')[0]}</div>
+            <div class="text-emerald-400">-%${sup.costCutPct} Maliyet</div>
+          </button>
+        `).join('')}
+      </div>
+
+      <button onclick="runMaterialsCostAudit()" class="w-full py-2 rounded-xl bg-sky-500 text-slate-950 text-xs font-extrabold">
+        🔍 Materials Control &amp; Stok/Fire Denetimi Yap (Fireyi Düşür &amp; Net Kârı Artır)
+      </button>
+
+      <div class="border-t border-slate-800 pt-2 space-y-1.5">
+        <div class="text-[10px] font-extrabold text-amber-300 uppercase">📑 Kurumsal &amp; Uluslararası Sevkiyat İhaleleri</div>
+        ${CORPORATE_TENDERS_DB.map((tnd, idx) => {
+          const cost = Math.round(c.monthlyMinWage * tnd.costMult);
+          const pay = Math.round(c.monthlyMinWage * tnd.payoutMult);
+          return `
+            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-[11px] font-bold text-white">${tnd.title}</div>
+                <div class="text-[9.5px] text-slate-400">Operasyon Maliyeti: ${fmtMoney(cost)} &bull; İhale Hakedişi: <strong class="text-emerald-400">+${fmtMoney(pay)}</strong></div>
+              </div>
+              <button onclick="enterCorporateTender(${idx}, ${cost}, ${pay})" class="px-2.5 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">
+                İhaleye Gir
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.selectCompanySupplier = function (supId) {
+  ensureSixRealismState();
+  const sup = COST_CONTROL_SUPPLIERS_DB.find(x => x.id === supId);
+  if (!sup) return;
+  G.costControl.supplierId = sup.id;
+  G.costControl.wastePct = sup.baseWastePct;
+  playSfx('coin');
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+window.runMaterialsCostAudit = function () {
+  ensureSixRealismState();
+  const cc = G.costControl;
+  if (cc.auditsThisYear >= 2) { showToast('Bu yılki stok ve fire denetimlerini tamamladın!'); return; }
+  cc.auditsThisYear += 1;
+  cc.wastePct = Math.max(1, cc.wastePct - 3);
+  const c = getCountry();
+  const savingBonus = Math.round(c.monthlyMinWage * 1.8 * G.businesses.length);
+  G.money += savingBonus;
+  playSfx('trophy');
+  addLog(G.age, `📊 **COST CONTROL DENETİMİ:** Tedarikçi faturalarını ve depo stoklarını denetleyerek fire oranını **%${cc.wastePct}** seviyesine indirdin! Şirket kasasına **+${fmtMoney(savingBonus)}** maliyet tasarrufu sağlandı.`, 'good');
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+window.enterCorporateTender = function (idx, cost, payout) {
+  ensureSixRealismState();
+  const cc = G.costControl;
+  if (cc.tendersThisYear >= 2) { showToast('Bu yıl en fazla 2 büyük kurumsal ihaleye girebilirsin!'); return; }
+  const tnd = CORPORATE_TENDERS_DB[idx];
+  const totalFleet = G.businesses.reduce((s, b) => s + (b.fleet || 1), 0);
+  if (totalFleet < tnd.reqFleet) {
+    showToast(`Bu ihale için şirketlerinde toplam en az ${tnd.reqFleet} araç/filo kapasitesi olmalı!`);
+    return;
+  }
+  if (G.money < cost) { showToast('İhale operasyon ve yakıt/hammadde maliyeti için bakiye yetersiz!'); return; }
+
+  G.money -= cost;
+  cc.tendersThisYear += 1;
+  G.money += payout;
+  playSfx('trophy');
+  addLog(G.age, `📑 **KURUMSAL İHALE HAKEDİŞİ:** **${tnd.title}** operasyonunu zamanında teslim ederek **+${fmtMoney(payout - cost)} net ihale kârı** elde ettin!`, 'fame');
+  saveGame(); renderAll(); openNavSheet('finance');
+};
+
+/* ============================================================================
+   ANA EKONOMİ, YAŞ VE ARAYÜZ BAĞLANTI KANCALARI (TÜM 6 SİSTEM)
+   ============================================================================ */
+
+(function attachAllSixRealismHooks() {
+  if (window._sixRealismPackLoaded) return;
+  window._sixRealismPackLoaded = true;
+
+  // 1. Bakaya (Yoklama Kaçağı) Kontrolünü İş Başvurularına Bağla
+  const _prevStartInterview = window.startHRJobInterview;
+  window.startHRJobInterview = function (jobId) {
+    ensureSixRealismState();
+    if (G.military && G.military.status === 'bakaya') {
+      showToast('🚨 e-Devlet üzerinde Yoklama Kaçağı (Bakaya) görünüyorsun! Önce Askerlik Şubesinden tecil veya askerlik işlemini yapmalısın.');
+      edevletHubTab = 'military';
+      openMenuSection('license');
+      return;
+    }
+    if (typeof _prevStartInterview === 'function') _prevStartInterview(jobId);
+  };
+
+  // 2. Vadeli Mevduat Faizi, Ortak Girişim Geliri, Kiracı Çarpanı ve Cost Control Kârını Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensureSixRealismState();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison) return fin;
+    const c = getCountry();
+
+    // A) Vadeli Mevduat Aylık Faiz Geliri (%48 Yıllık = Aylık %4)
+    const monthlyDepositInt = Math.round((G.fxGold.termDeposit || 0) * 0.04);
+
+    // B) Dostlarla Kurulan %50-%50 Ortak Girişim Gelirleri
+    let ventureMonthly = 0;
+    G.friendsHub.list.forEach(fr => {
+      if (fr.partnered) ventureMonthly += Math.round(c.monthlyMinWage * fr.monthlyReturnMult);
+    });
+
+    // C) Kiracı Profili Kira Farkı veya Ödenmeyen Kira Kesintisi
+    let tenantDelta = 0;
+    G.houses.forEach(h => {
+      const tState = G.realEstateExtra.houseTenants[h.uid];
+      if (tState) {
+        if (tState.unpaid) {
+          tenantDelta -= h.monthlyRent;
+        } else {
+          const prof = TENANT_PROFILES_DB.find(p => p.id === tState.profileId);
+          if (prof && prof.rentBonusMult > 1) {
+            tenantDelta += Math.round(h.monthlyRent * (prof.rentBonusMult - 1));
+          }
+        }
+      }
+    });
+
+    // D) Şirket Cost Control (Tedarikçi Maliyet İndirimi & Düşük Fire Bonusu)
+    let costControlBoost = 0;
+    if (fin.monthlyBizProfit > 0 && G.costControl) {
+      const sup = COST_CONTROL_SUPPLIERS_DB.find(s => s.id === G.costControl.supplierId) || COST_CONTROL_SUPPLIERS_DB[1];
+      const netEfficiencyPct = Math.max(2, sup.costCutPct - G.costControl.wastePct);
+      costControlBoost = Math.round(fin.monthlyBizProfit * (netEfficiencyPct / 100));
+    }
+
+    const totalExtraMonthly = monthlyDepositInt + ventureMonthly + tenantDelta + costControlBoost;
+    fin.monthlyBizProfit += (ventureMonthly + costControlBoost);
+    fin.monthlyRentalIncome = Math.max(0, fin.monthlyRentalIncome + tenantDelta);
+    fin.monthlyNetCashflow += totalExtraMonthly;
+    fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    return fin;
+  };
+
+  // 3. Net Servete Gram Altın, Döviz ve Vadeli Mevduatı Dahil Et
+  const _prevGetNetWorth = getNetWorth;
+  getNetWorth = function () {
+    ensureSixRealismState();
+    const baseNw = _prevGetNetWorth();
+    if (!G || !G.fxGold) return baseNw;
+    const c = getCountry();
+    const goldVal = G.fxGold.gramGold * Math.round(c.monthlyMinWage * G.fxGold.goldPriceMult);
+    const fxVal = G.fxGold.usdBalance * Math.round(c.monthlyMinWage * 0.5);
+    return baseNw + goldVal + fxVal + (G.fxGold.termDeposit || 0) - (G.fxGold.ccStatementDebt || 0);
+  };
+
+  // 4. +1 Yaş İlerlediğinde Kiracı Riski, Askerlik Durumu ve Kefillik Olayı
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureSixRealismState();
+    G.realEstateExtra.wonAuctionsThisYear = 0;
+    G.friendsHub.hangoutsThisYear = 0;
+    G.costControl.auditsThisYear = 0;
+    G.costControl.tendersThisYear = 0;
+
+    // Kiracı kira takma kontrolü
+    G.houses.forEach(h => {
+      const tState = G.realEstateExtra.houseTenants[h.uid];
+      if (tState && !tState.unpaid) {
+        const prof = TENANT_PROFILES_DB.find(p => p.id === tState.profileId);
+        if (prof && Math.random() < prof.defaultRisk) {
+          tState.unpaid = true;
+          addLog(G.age + 1, `🚨 **KİRACI KRİZİ:** **${h.name}** mülkündeki kiracı bu yıl kirayı ödemedi! Emlak menüsünden icra ve tahliye davası açabilirsin.`, 'bad');
+        }
+      }
+    });
+
+    _prevAdvanceAge();
+    updateMilitaryStatusCheck();
+  };
+
+  // 5. e-Devlet Merkezine 4. Sekme Olarak "🪖 Askerlik Şubesi" Ekle
+  const _prevEdevletHub = window.renderUnifiedEdevletHub;
+  window.renderUnifiedEdevletHub = function () {
+    ensureSixRealismState();
+    if (edevletHubTab === 'military') {
+      return renderHeroBannerHTML('license') + `
+        <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[10px] font-extrabold">
+          <button onclick="edevletHubTab='id_lic'; openMenuSection('license')" class="py-2 rounded-xl text-slate-400">🪪 Kimlik</button>
+          <button onclick="edevletHubTab='military'; openMenuSection('license')" class="py-2 rounded-xl bg-emerald-500 text-slate-950 shadow">🪖 Askerlik</button>
+          <button onclick="edevletHubTab='passport'; openMenuSection('license')" class="py-2 rounded-xl text-slate-400">🛂 Pasaport</button>
+          <button onclick="edevletHubTab='portrait'; openMenuSection('license')" class="py-2 rounded-xl text-slate-400">📸 Foto</button>
+        </div>
+      ` + renderMilitaryServiceBranchHTML();
+    }
+
+    let html = _prevEdevletHub();
+    // Mevcut 3'lü sekmeyi 4'lü (Askerlik dahil) hale getir
+    html = html.replace(
+      'grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3',
+      'grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3'
+    );
+    html = html.replace(
+      `🛂 Pasaport &amp; Göç\n        </button>`,
+      `🛂 Pasaport\n        </button>\n        <button onclick="edevletHubTab='military'; openMenuSection('license')" class="py-2 rounded-xl text-[10px] font-extrabold transition text-emerald-400">🪖 Askerlik</button>`
+    );
+    return html;
+  };
+
+  // 6. Galeri, Emlak, Finans ve İlişkiler Menülerine Yeni Panelleri Enjekte Et
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureSixRealismState();
+    _prevOpenMenuSec(sec);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    if (sec === 'cars') {
+      body.insertAdjacentHTML('beforeend', `<div class="mt-3 pt-3 border-t border-slate-800">${renderUsedCarExpertiseMarketHTML()}</div>`);
+    }
+    if (sec === 'houses') {
+      body.insertAdjacentHTML('afterbegin', renderTenantAndUyapPanelHTML());
+    }
+  };
+
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureSixRealismState();
+    _prevOpenNav(tab);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    if (tab === 'finance') {
+      if (activeFinanceTab === 'bank' || activeFinanceTab === 'invest') {
+        const subBar = body.querySelector('.grid.grid-cols-3');
+        if (subBar) subBar.insertAdjacentHTML('afterend', renderGoldFxAndDepositPanelHTML());
+      } else if (activeFinanceTab === 'biz') {
+        const subBar = body.querySelector('.grid.grid-cols-3');
+        if (subBar) subBar.insertAdjacentHTML('afterend', renderCompanyCostControlPanelHTML());
+      }
+    }
+
+    if (tab === 'relations') {
+      body.insertAdjacentHTML('beforeend', renderCloseFriendsAndVenturesHTML());
+    }
+  };
+})();
