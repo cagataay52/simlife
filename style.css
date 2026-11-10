@@ -796,3 +796,104 @@ button:active {
   border-radius: 16px;
   padding: 13px;
 }
+
+/* ============================================================================
+   MEGA GÜNCELLEME v2.0 STİL PAKETİ (KALE, İDDAA, DYNO, YAP-SAT, OFİS & TATİL)
+   ============================================================================ */
+
+/* 1. 6 Köşeli İnteraktif Kale ve Penaltı / Frikik Ekranı */
+.goal-shoot-card {
+  background: radial-gradient(circle at center, #065f46 0%, #022c22 75%, #090d16 100%);
+  border: 2px solid rgba(52, 211, 153, 0.55);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+}
+.goal-frame-grid {
+  border: 4px solid #f8fafc;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 10px 10px 0 0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 10px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 10px),
+    rgba(9, 13, 22, 0.55);
+  padding: 8px;
+}
+.goal-corner-btn {
+  padding: 12px 6px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.goal-corner-btn:hover, .goal-corner-btn:active {
+  background: #facc15;
+  color: #090d16;
+  border-color: #fef08a;
+  transform: scale(1.04);
+}
+
+/* 2. Canlı İddaa & Spor Toto Kupon Kartı */
+.iddaa-bulletin-card {
+  background: linear-gradient(145deg, #052e16 0%, #090d16 80%);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  border-left: 4px solid #22c55e;
+  border-radius: 16px;
+  padding: 12px;
+}
+.iddaa-odd-btn {
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.iddaa-odd-btn.selected {
+  background: #22c55e;
+  color: #052e16;
+  border-color: #86efac;
+}
+
+/* 3. Dyno Modifiye, Ses Sistemi ve Taksi Plakası Kartı */
+.dyno-garage-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #090d16 80%);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-left: 4px solid #a855f7;
+  border-radius: 16px;
+  padding: 13px;
+}
+.taxi-plate-badge {
+  background: #facc15;
+  color: #090d16;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 2px solid #090d16;
+  font-size: 11px;
+}
+
+/* 4. Arsa İmarı & Kat Karşılığı Müteahhitlik (Yap-Sat) Kartı */
+.yapsat-card {
+  background: linear-gradient(135deg, #271709 0%, #090d16 80%);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-left: 4px solid #f97316;
+  border-radius: 16px;
+  padding: 13px;
+}
+
+/* 5. Serbest Meslek Ofisi & E-Ticaret Pazaryeri Kartı */
+.freelance-office-card {
+  background: linear-gradient(135deg, #082f49 0%, #090d16 80%);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-left: 4px solid #38bdf8;
+  border-radius: 16px;
+  padding: 13px;
+}
