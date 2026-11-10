@@ -8862,3 +8862,39 @@ window.enterCorporateTender = function (idx, cost, payout) {
   if (typeof saveGame === 'function') saveGame();
   if (typeof renderAll === 'function') renderAll();
 })();
+
+/* ============================================================================
+   ENFLASYON SİSTEMİ İPTALİ VE MAAŞ DENGELEME YAMASI (SİLMEDEN EN ALTA EKLE)
+   ============================================================================ */
+(function disableInflationAndFixSalaries() {
+  const ORIGINAL_MIN_WAGES = {
+    TR: 22104, US: 2400, DE: 2150, GB: 2050, FR: 1800, NL: 2100,
+    CH: 4200, NO: 32000, CA: 2600, AU: 3500, JP: 210000, KR: 2060000,
+    RU: 25000, BR: 1500, SA: 4500, AE: 5000, NG: 70000
+  };
+
+  function restoreBaseMinWages() {
+    if (typeof COUNTRIES !== 'undefined' && Array.isArray(COUNTRIES)) {
+      COUNTRIES.forEach(c => {
+        if (!c._origMinWage) c._origMinWage = ORIGINAL_MIN_WAGES[c.id] || c.monthlyMinWage;
+        c.monthlyMinWage = c._origMinWage;
+        c.inflation = 0;
+      });
+    }
+  }
+
+  // Enflasyon zammı fonksiyonunu boşalt (devre dışı bırak)
+  window.applyJanuaryInflationAndWageRaise = function () {
+    restoreBaseMinWages();
+  };
+
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    restoreBaseMinWages();
+    return _prevCalcFin();
+  };
+
+  restoreBaseMinWages();
+  if (typeof saveGame === 'function') saveGame();
+  if (typeof renderAll === 'function') renderAll();
+})();
