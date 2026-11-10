@@ -944,3 +944,234 @@ button:active {
 .shopping-item-card:hover {
   border-color: rgba(16, 185, 129, 0.5);
 }
+
+/* ============================================================================
+   GTA iFRUIT TELEFON, RPG DİYALOG SAHNESİ VE İNTERAKTİF ŞEHİR HARİTASI STİLLERİ
+   ============================================================================ */
+
+/* 1. Sağ Alt Yüzen GTA iFruit Telefon Butonu */
+.ifruit-fab-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 78px;
+  z-index: 45;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 60%, #1e1b4b 100%);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+}
+.ifruit-unread-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 2px solid #090d16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. GTA iFruit Akıllı Telefon Çerçevesi */
+.ifruit-phone-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(3, 7, 18, 0.78);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.ifruit-phone-shell {
+  width: 100%;
+  max-width: 350px;
+  height: 590px;
+  max-height: 88vh;
+  background: linear-gradient(165deg, #0f172a 0%, #020617 100%);
+  border: 5px solid #334155;
+  border-radius: 40px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: phoneSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes phoneSlideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ifruit-notch {
+  width: 110px;
+  height: 20px;
+  background: #000000;
+  border-radius: 999px;
+  margin: 6px auto 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+.ifruit-notch-cam {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: radial-gradient(circle, #38bdf8 0%, #1e3a8a 70%);
+}
+.ifruit-app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 6px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+.ifruit-app-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* WhatsChat Konuşma Balonları */
+.chat-bubble-npc {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f8fafc;
+  border-radius: 16px 16px 16px 4px;
+  padding: 9px 12px;
+  font-size: 11px;
+  max-width: 88%;
+}
+.chat-bubble-me {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #022c22;
+  font-weight: 700;
+  border-radius: 16px 16px 4px 16px;
+  padding: 8px 12px;
+  font-size: 11px;
+  margin-left: auto;
+  max-width: 85%;
+}
+
+/* 3. FIFA Kariyer / RPG Karakterli Diyalog Sahnesi */
+.rpg-dialogue-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(2, 6, 23, 0.86);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+.rpg-dialogue-stage {
+  width: 100%;
+  max-width: 410px;
+  background: linear-gradient(160deg, #0f172a 0%, #090d16 65%, #172554 100%);
+  border: 2px solid rgba(56, 189, 248, 0.45);
+  border-radius: 26px;
+  padding: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+  animation: phoneSlideUp 0.24s ease-out;
+}
+.rpg-speech-box {
+  position: relative;
+  background: rgba(2, 6, 23, 0.92);
+  border: 1.5px solid rgba(52, 211, 153, 0.45);
+  border-radius: 18px;
+  padding: 13px 14px;
+  margin: 12px 0;
+  min-height: 74px;
+}
+.rpg-choice-btn {
+  width: 100%;
+  text-align: left;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #f8fafc;
+  font-size: 11.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rpg-choice-btn:hover, .rpg-choice-btn:active {
+  border-color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+}
+
+/* 4. İnteraktif Şehir Haritası (Tycoon / GTA Harita Ekranı) */
+.city-map-wrapper {
+  background: linear-gradient(180deg, #071324 0%, #0a1e36 55%, #071923 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  border-radius: 20px;
+  padding: 10px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+.city-map-grid-surface {
+  position: relative;
+  border-radius: 14px;
+  padding: 10px 8px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(14, 165, 233, 0.16), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 22px),
+    linear-gradient(135deg, #062019 0%, #082032 50%, #0f172a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.city-building-pin {
+  position: relative;
+  background: rgba(9, 13, 22, 0.88);
+  border: 1.5px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  padding: 8px 6px;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+.city-building-pin:hover, .city-building-pin:active {
+  transform: translateY(-2px) scale(1.02);
+  border-color: #38bdf8;
+}
+.city-pin-owner-flag {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  background: #facc15;
+  color: #090d16;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 99px;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.6);
+}
