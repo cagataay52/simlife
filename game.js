@@ -10001,3 +10001,460 @@ window.goOnHolidayRoute = function (idx, cost) {
     }
   };
 })();
+
+/* ============================================================================
+   HATA AYIKLAMA MOTORU + MARKET, YİYECEK, TEMİZLİK VE FATURALAR SİSTEMİ
+   ============================================================================ */
+
+// 1. Mutfak / Beslenme Paketleri (Aylık Düzenli Gider)
+const FOOD_PLANS_DB = [
+  {
+    id: 'food_eko',
+    name: '🥖 İndirim Marketi & Öğrenci Mutfağı',
+    costMult: 0.18,
+    healthDelta: -3,
+    happyDelta: -2,
+    desc: 'Makarna, dondurulmuş gıda ve ucuz erzak. Bütçe dostudur ama sağlığı yorar.'
+  },
+  {
+    id: 'food_std',
+    name: '🍲 Standart Ev Mutfağı & Taze Pazar',
+    costMult: 0.36,
+    healthDelta: 4,
+    happyDelta: 4,
+    desc: 'Haftalık semt pazarı, kasap eti ve sıcak ev yemekleri. Dengeli yaşam.'
+  },
+  {
+    id: 'food_gurme',
+    name: '🥩 Organik Şarküteri, Balık & Gurme Mutfak',
+    costMult: 0.78,
+    healthDelta: 9,
+    happyDelta: 10,
+    desc: 'Birinci sınıf et, organik ürünler ve seçkin restoranlar. Yüksek sağlık ve mutluluk!'
+  }
+];
+
+// 2. Temizlik, Deterjan & Kişisel Bakım Paketleri (Aylık Düzenli Gider)
+const CLEANING_PLANS_DB = [
+  {
+    id: 'clean_basic',
+    name: '🧹 Kendi Temizliğin & Standart Deterjan',
+    costMult: 0.08,
+    looksDelta: 0,
+    stressDelta: 3,
+    desc: 'Temel çamaşır suyu, yüzey temizleyici ve hafta sonu kendi yaptığın ev temizliği.'
+  },
+  {
+    id: 'clean_care',
+    name: '🧴 Tam Hijyen, Kozmetik & Berber/Kuaför Paketi',
+    costMult: 0.22,
+    looksDelta: 6,
+    stressDelta: -2,
+    desc: 'Kaliteli deterjanlar, yumuşatıcı, cilt bakımı, parfüm ve düzenli kuaför bakımı.'
+  },
+  {
+    id: 'clean_vip',
+    name: '✨ Haftalık Temizlikçi, Kuru Temizleme & VIP Bakım',
+    costMult: 0.55,
+    looksDelta: 10,
+    stressDelta: -12,
+    desc: 'Eve her hafta profesyonel temizlik personeli gelir, kıyafetler kuru temizlemeye gider.'
+  }
+];
+
+// 3. Parayı Harcayabileceğin Anlık Market, Temizlik, Eşya & Giyim Alışverişleri
+const DIRECT_SHOPPING_ITEMS_DB = [
+  {
+    id: 'shop_erzak',
+    name: '🛒 Aylık Büyük Market & Mutfak Erzak Alışverişi',
+    icon: '🛍️',
+    costMult: 0.32,
+    desc: 'Buzdolabını ve kileri ağzına kadar doldurur (+8 Tokluk, +5 Mutluluk, +3 Sağlık).',
+    effect: () => { G.household.pantryLevel = 100; G.happy = clamp(G.happy + 5); G.health = clamp(G.health + 3); }
+  },
+  {
+    id: 'shop_detay_temizlik',
+    name: '🧼 Dip Köşe Ev Temizliği, Halı/Koltuk Yıkama & İlaçlama',
+    icon: '🫧',
+    costMult: 0.28,
+    desc: 'Evdeki tüm halı ve koltuklar yıkanır, ev pırıl pırıl olur (%100 Hijyen, -10 Stres).',
+    effect: () => { G.household.hygieneLevel = 100; G.stress = clamp((G.stress || 20) - 10, 0, 100); G.health = clamp(G.health + 4); }
+  },
+  {
+    id: 'shop_giyim',
+    name: '👔 Sezonluk Gardırop, Ayakkabı & Orijinal Parfüm Alışverişi',
+    icon: '🧥',
+    costMult: 0.65,
+    desc: 'Baştan aşağı yeni sezon kıyafetler ve imza parfüm (+9 Görünüm, +6 Mutluluk, +2 Şöhret).',
+    effect: () => { G.looks = clamp(G.looks + 9); G.happy = clamp(G.happy + 6); G.fame = clamp(G.fame + 2); }
+  },
+  {
+    id: 'shop_robovac',
+    name: '🤖 Akıllı Robot Süpürge, Dyson & Espresso Makinesi Al',
+    icon: '☕',
+    costMult: 1.45,
+    desc: 'Evdeki temizlik yükünü azaltır, her sabah taze kahve keyfi sunar (-15 Stres, +10 Mutluluk).',
+    oneTime: true,
+    effect: () => { G.household.hasSmartAppliances = true; G.stress = clamp((G.stress || 20) - 15, 0, 100); G.happy = clamp(G.happy + 10); }
+  },
+  {
+    id: 'shop_beyaz_esya',
+    name: '🧊 A+++ Çift Kapılı Buzdolabı, Çamaşır Kurutma & Klima Seti',
+    icon: '❄️',
+    costMult: 2.80,
+    desc: 'Evin tüm beyaz eşyalarını yeniler, elektrik faturasını düşürür ve yaşam kalitesini artırır.',
+    oneTime: true,
+    effect: () => { G.household.hasNewWhiteGoods = true; G.happy = clamp(G.happy + 14); G.health = clamp(G.health + 6); }
+  },
+  {
+    id: 'shop_restoran',
+    name: '🍽️ Boğaz / Sahil Restoranında Lüks Akşam Yemeği',
+    icon: '🥂',
+    costMult: 0.40,
+    desc: 'Ailenle veya dostlarınla mükellef bir masa kurarsın (-12 Stres, +8 Mutluluk).',
+    effect: () => { G.stress = clamp((G.stress || 20) - 12, 0, 100); G.happy = clamp(G.happy + 8); }
+  }
+];
+
+function ensureHouseholdState() {
+  if (!G) return;
+  if (!G.household) {
+    G.household = {
+      foodPlanId: 'food_std',
+      cleanPlanId: 'clean_basic',
+      hygieneLevel: 85,        // %0 - %100 Ev ve Kişisel Hijyen
+      pantryLevel: 80,         // %0 - %100 Kiler / Mutfak Doluluğu
+      fiberInternetSub: true,  // 1000 Mbps Fiber İnternet + TV Paketi
+      hasSmartAppliances: false,
+      hasNewWhiteGoods: false,
+      boughtOneTimeItems: []
+    };
+  }
+}
+
+function getMonthlyHouseholdCostBreakdown() {
+  ensureHouseholdState();
+  if (!G || G.age < 18 || G.inPrison) {
+    return { foodCost: 0, cleanCost: 0, billsCost: 0, totalMonthly: 0 };
+  }
+  const c = getCountry();
+  const hh = G.household;
+  const familySizeMult = 1 + (G.spouse ? 0.45 : 0) + ((G.children ? G.children.length : 0) * 0.25);
+
+  const foodPlan = FOOD_PLANS_DB.find(x => x.id === hh.foodPlanId) || FOOD_PLANS_DB[1];
+  const cleanPlan = CLEANING_PLANS_DB.find(x => x.id === hh.cleanPlanId) || CLEANING_PLANS_DB[0];
+
+  const foodCost = Math.round(c.monthlyMinWage * foodPlan.costMult * familySizeMult);
+  const cleanCost = Math.round(c.monthlyMinWage * cleanPlan.costMult * familySizeMult);
+
+  // Faturalar: Elektrik, Su, Doğalgaz + Fiber İnternet & Spor/Dizi Paketi
+  let billsMult = 0.14 + (G.houses.length * 0.05);
+  if (hh.hasNewWhiteGoods) billsMult *= 0.80; // A+++ beyaz eşya tasarrufu
+  if (hh.fiberInternetSub) billsMult += 0.06;
+  const billsCost = Math.round(c.monthlyMinWage * billsMult);
+
+  return {
+    foodCost,
+    cleanCost,
+    billsCost,
+    totalMonthly: foodCost + cleanCost + billsCost
+  };
+}
+
+// Market, Temizlik ve Ev Ekonomisi Paneli Oluşturucu
+window.renderHouseholdAndMarketHTML = function () {
+  ensureHouseholdState();
+  const c = getCountry();
+  const hh = G.household;
+  const costs = getMonthlyHouseholdCostBreakdown();
+
+  const hygColor = hh.hygieneLevel >= 75 ? 'bg-emerald-400' : (hh.hygieneLevel >= 45 ? 'bg-amber-400' : 'bg-rose-500');
+  const panColor = hh.pantryLevel >= 75 ? 'bg-sky-400' : (hh.pantryLevel >= 45 ? 'bg-amber-400' : 'bg-rose-500');
+
+  return `
+    <div class="household-hub-card space-y-3 mb-3" id="householdMarketHub">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div>
+          <div class="text-[9px] font-extrabold text-emerald-400 uppercase tracking-widest">🛒 EV EKONOMİSİ, MUTFAK &amp; TEMİZLİK MERKEZİ</div>
+          <div class="text-xs font-extrabold text-white">Aylık Toplam Ev &amp; Market Gideri: <span class="text-rose-400 font-mono-num">-${fmtMoney(costs.totalMonthly)}/ay</span></div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono-num font-bold">
+          ${1 + (G.spouse ? 1 : 0) + (G.children ? G.children.length : 0)} Kişilik Hane
+        </span>
+      </div>
+
+      <!-- Aylık Kalem Özeti -->
+      <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-slate-400">🍲 MUTFAK / GIDA</div>
+          <div class="font-extrabold font-mono-num text-rose-300">-${fmtMoney(costs.foodCost)}/ay</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-slate-400">🧼 TEMİZLİK / BAKIM</div>
+          <div class="font-extrabold font-mono-num text-rose-300">-${fmtMoney(costs.cleanCost)}/ay</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8px] text-slate-400">⚡ FATURA &amp; FİBER</div>
+          <div class="font-extrabold font-mono-num text-rose-300">-${fmtMoney(costs.billsCost)}/ay</div>
+        </div>
+      </div>
+
+      <!-- Ev Hijyeni ve Kiler Doluluk Göstergeleri -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="hygiene-meter-wrap">
+          <div class="flex justify-between text-[9.5px] font-bold mb-1">
+            <span class="text-slate-300">🧼 Ev &amp; Kişisel Hijyen</span>
+            <span class="font-mono-num text-emerald-400">%${hh.hygieneLevel}</span>
+          </div>
+          <div class="stat-track"><div class="stat-fill ${hygColor}" style="width:${hh.hygieneLevel}%"></div></div>
+        </div>
+        <div class="hygiene-meter-wrap">
+          <div class="flex justify-between text-[9.5px] font-bold mb-1">
+            <span class="text-slate-300">🥫 Mutfak &amp; Erzak Kileri</span>
+            <span class="font-mono-num text-sky-400">%${hh.pantryLevel}</span>
+          </div>
+          <div class="stat-track"><div class="stat-fill ${panColor}" style="width:${hh.pantryLevel}%"></div></div>
+        </div>
+      </div>
+
+      <!-- 1. Mutfak ve Beslenme Standardı Seçimi -->
+      <div class="space-y-1.5">
+        <div class="text-[10px] font-extrabold text-amber-300 uppercase">🍲 Aylık Mutfak &amp; Yiyecek Standardı</div>
+        ${FOOD_PLANS_DB.map(fp => {
+          const active = hh.foodPlanId === fp.id;
+          const mCost = Math.round(c.monthlyMinWage * fp.costMult);
+          return `
+            <button onclick="setHouseholdPlan('food', '${fp.id}')" class="w-full p-2.5 rounded-xl border text-left flex items-center justify-between gap-2 ${active ? 'border-emerald-500 bg-emerald-500/15' : 'border-slate-800 bg-slate-950'}">
+              <div>
+                <div class="text-xs font-extrabold text-white">${fp.name} ${active ? '<span class="text-emerald-400">✓</span>' : ''}</div>
+                <div class="text-[10px] text-slate-400">${fp.desc}</div>
+              </div>
+              <span class="text-[10px] font-mono-num font-extrabold text-amber-300 shrink-0">${fmtMoney(mCost)}/ay</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- 2. Temizlik, Deterjan ve Kişisel Bakım Standardı -->
+      <div class="space-y-1.5">
+        <div class="text-[10px] font-extrabold text-sky-300 uppercase">🧼 Aylık Temizlik, Deterjan &amp; Kişisel Bakım</div>
+        ${CLEANING_PLANS_DB.map(cp => {
+          const active = hh.cleanPlanId === cp.id;
+          const mCost = Math.round(c.monthlyMinWage * cp.costMult);
+          return `
+            <button onclick="setHouseholdPlan('clean', '${cp.id}')" class="w-full p-2.5 rounded-xl border text-left flex items-center justify-between gap-2 ${active ? 'border-sky-500 bg-sky-500/15' : 'border-slate-800 bg-slate-950'}">
+              <div>
+                <div class="text-xs font-extrabold text-white">${cp.name} ${active ? '<span class="text-sky-400">✓</span>' : ''}</div>
+                <div class="text-[10px] text-slate-400">${cp.desc}</div>
+              </div>
+              <span class="text-[10px] font-mono-num font-extrabold text-sky-300 shrink-0">${fmtMoney(mCost)}/ay</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- 3. Fiber İnternet & Dijital Abonelik Şalteri -->
+      <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+        <div>
+          <div class="text-xs font-extrabold text-white">🌐 1000 Mbps GigaFiber İnternet &amp; Spor/Dizi Paketi</div>
+          <div class="text-[10px] text-slate-400">Her yıl +5 Mutluluk ve yayıncı/ev konforu sağlar</div>
+        </div>
+        <button onclick="toggleHouseholdFiber()" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold ${hh.fiberInternetSub ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+          ${hh.fiberInternetSub ? 'Aktif ✓' : 'Kapalı'}
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. Anlık Market, Temizlik, Giyim & Beyaz Eşya Harcama Mağazası -->
+    <div class="space-y-2 mb-3">
+      <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">🛍️ Market, Temizlik, Giyim &amp; Ev Alışverişi (Anlık Harca)</h4>
+      ${DIRECT_SHOPPING_ITEMS_DB.map(item => {
+        const cost = Math.round(c.monthlyMinWage * item.costMult);
+        const alreadyOwned = item.oneTime && hh.boughtOneTimeItems.includes(item.id);
+        return `
+          <div class="shopping-item-card flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">${item.icon} ${item.name}</div>
+              <div class="text-[10px] text-slate-400">${item.desc}</div>
+            </div>
+            <button onclick="buyHouseholdShoppingItem('${item.id}', ${cost})" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${alreadyOwned ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-500 text-slate-950'}">
+              ${alreadyOwned ? 'Evde Var ✓' : `Satın Al (${fmtMoney(cost)})`}
+            </button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+};
+
+window.setHouseholdPlan = function (type, planId) {
+  ensureHouseholdState();
+  if (type === 'food') G.household.foodPlanId = planId;
+  if (type === 'clean') G.household.cleanPlanId = planId;
+  playSfx('coin');
+  saveGame();
+  renderAll();
+  refreshCurrentHouseholdView();
+};
+
+window.toggleHouseholdFiber = function () {
+  ensureHouseholdState();
+  G.household.fiberInternetSub = !G.household.fiberInternetSub;
+  playSfx('coin');
+  saveGame();
+  renderAll();
+  refreshCurrentHouseholdView();
+};
+
+window.buyHouseholdShoppingItem = function (itemId, cost) {
+  ensureHouseholdState();
+  const hh = G.household;
+  const item = DIRECT_SHOPPING_ITEMS_DB.find(x => x.id === itemId);
+  if (!item) return;
+  if (item.oneTime && hh.boughtOneTimeItems.includes(itemId)) {
+    showToast('Bu eşyayı zaten evine satın aldın!');
+    return;
+  }
+  if (G.money < cost) {
+    showToast(`Alışveriş için nakit bakiyen yetersiz! (${fmtMoney(cost)} gerekir)`);
+    return;
+  }
+
+  G.money -= cost;
+  if (item.oneTime) hh.boughtOneTimeItems.push(itemId);
+  if (typeof item.effect === 'function') item.effect();
+
+  playSfx('coin');
+  addLog(G.age, `${item.icon} **EV & YAŞAM ALIŞVERİŞİ:** **${item.name}** için **-${fmtMoney(cost)}** harcadın!`, 'good');
+  saveGame();
+  renderAll();
+  refreshCurrentHouseholdView();
+};
+
+function refreshCurrentHouseholdView() {
+  const title = (document.getElementById('sheetTitle') || {}).textContent || '';
+  if (title.includes('Market')) {
+    openMenuSection('market_expenses');
+  } else {
+    openNavSheet('finance');
+  }
+}
+
+/* ============================================================================
+   ANA HATA TEMİZLEYİCİ VE EKONOMİ ENTEGRASYON KANCASI
+   ============================================================================ */
+
+(function attachBugfixAndHouseholdEngine() {
+  if (window._bugfixAndHouseholdLoaded) return;
+  window._bugfixAndHouseholdLoaded = true;
+
+  // 1. DOM Üzerindeki Kötü Görünümlü Halkayı ve Sabit Para/Efor Barını Temizleyen Yardımcı
+  function cleanBrokenUIElements() {
+    document.querySelectorAll('.avatar-ring-svg, .sticky-modal-hud').forEach(el => el.remove());
+    const avatar = document.getElementById('charAvatar');
+    if (avatar && avatar.parentElement) {
+      avatar.parentElement.classList.remove('avatar-ring-container');
+    }
+  }
+
+  // 2. RenderAll Kancası: Her Çizimde Bozuk Halkayı Sil
+  const _prevRenderAll = renderAll;
+  renderAll = function () {
+    ensureHouseholdState();
+    _prevRenderAll();
+    cleanBrokenUIElements();
+  };
+
+  // 3. Aylık Mutfak, Temizlik ve Fatura Masraflarını Ana Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensureHouseholdState();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison || G.age < 18) return fin;
+
+    const hhCosts = getMonthlyHouseholdCostBreakdown();
+    fin.monthlyFoodCleanBills = hhCosts.totalMonthly;
+    fin.monthlyLivingCost += hhCosts.totalMonthly;
+    fin.monthlyNetCashflow -= hhCosts.totalMonthly;
+    fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    return fin;
+  };
+
+  // 4. +1 Yaş İlerlediğinde Beslenme, Temizlik ve Hijyen Etkilerini Uygula
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureHouseholdState();
+    if (G && G.age >= 18 && !G.inPrison) {
+      const hh = G.household;
+      const fp = FOOD_PLANS_DB.find(x => x.id === hh.foodPlanId) || FOOD_PLANS_DB[1];
+      const cp = CLEANING_PLANS_DB.find(x => x.id === hh.cleanPlanId) || CLEANING_PLANS_DB[0];
+
+      G.health = clamp(G.health + fp.healthDelta);
+      G.happy = clamp(G.happy + fp.happyDelta + (hh.fiberInternetSub ? 4 : 0));
+      G.looks = clamp(G.looks + cp.looksDelta);
+      G.stress = clamp((G.stress || 20) + cp.stressDelta, 0, 100);
+
+      // Yıllık doğal hijyen ve kiler azalması (Robot süpürge varsa hijyen düşmez)
+      const hygDrop = hh.hasSmartAppliances ? 4 : (hh.cleanPlanId === 'clean_vip' ? 0 : 12);
+      hh.hygieneLevel = clamp(hh.hygieneLevel - hygDrop, 20, 100);
+      hh.pantryLevel = clamp(hh.pantryLevel - (hh.foodPlanId === 'food_gurme' ? 5 : 15), 20, 100);
+
+      if (hh.hygieneLevel < 40) {
+        G.health = clamp(G.health - 5);
+        addLog(G.age + 1, `🧹 **HİJYEN UYARISI:** Evin temizliği ve hijyeni çok düştü (%${hh.hygieneLevel}). Market & Temizlik menüsünden detaylı temizlik yaptır!`, 'bad');
+      }
+    }
+    _prevAdvanceAge();
+    cleanBrokenUIElements();
+  };
+
+  // 5. Menüye ve Finans Sekmesine "🛒 Market, Temizlik & Faturalar" Ekranını Bağla
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureHouseholdState();
+    if (sec === 'market_expenses') {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '🛒 Market, Temizlik & Faturalar';
+      document.getElementById('sheetSubtitle').textContent = 'Mutfak Erzak, Deterjan/Hijyen, Giyim & Beyaz Eşya';
+      document.getElementById('sheetBody').innerHTML = renderHouseholdAndMarketHTML();
+      cleanBrokenUIElements();
+      return;
+    }
+    _prevOpenMenuSec(sec);
+    cleanBrokenUIElements();
+  };
+
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureHouseholdState();
+    _prevOpenNav(tab);
+    cleanBrokenUIElements();
+
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // Finans -> Banka sekmesine doğrudan Market & Temizlik Yönetimi ekle
+    if (tab === 'finance' && activeFinanceTab === 'bank' && !document.getElementById('householdMarketHub')) {
+      body.insertAdjacentHTML('beforeend', `<div class="mt-3 pt-3 border-t border-slate-800">${renderHouseholdAndMarketHTML()}</div>`);
+    }
+
+    // Ana Menüye büyük "🛒 Market, Yiyecek & Temizlik Harcamaları" kartı ekle
+    if (tab === 'menu' && !document.getElementById('menuMarketQuickBtn')) {
+      const grid = body.querySelector('.grid.grid-cols-2');
+      if (grid) {
+        grid.insertAdjacentHTML('afterbegin', `
+          <button id="menuMarketQuickBtn" onclick="openMenuSection('market_expenses')" class="col-span-2 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-sky-500/15 border border-emerald-500/50 text-left flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold text-emerald-300 uppercase">🛒 MARKET, MUTFAK &amp; TEMİZLİK GİDERLERİ</div>
+              <div class="text-sm font-extrabold text-white">Yiyecek, Deterjan, Faturalar, Giyim &amp; Beyaz Eşya</div>
+            </div>
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold shrink-0">Harcama Yap &rarr;</span>
+          </button>
+        `);
+      }
+    }
+  };
+
+  cleanBrokenUIElements();
+})();
