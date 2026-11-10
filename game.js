@@ -8794,3 +8794,71 @@ window.enterCorporateTender = function (idx, cost, payout) {
     }
   };
 })();
+
+/* ============================================================================
+   ENFLASYON SİSTEMİ İPTALİ VE MAAŞ DENGELEME YAMASI (HOTFIX)
+   ============================================================================ */
+(function disableInflationAndFixSalaries() {
+  // 1. Ülkelerin orijinal (sabit) baz asgari ücretlerini kilitle
+  const ORIGINAL_MIN_WAGES = {
+    TR: 22104,
+    US: 2400,
+    DE: 2150,
+    GB: 2050,
+    FR: 1800,
+    NL: 2100,
+    CH: 4200,
+    NO: 32000,
+    CA: 2600,
+    AU: 3500,
+    JP: 210000,
+    KR: 2060000,
+    RU: 25000,
+    BR: 1500,
+    SA: 4500,
+    AE: 5000,
+    NG: 70000
+  };
+
+  function restoreBaseMinWages() {
+    if (typeof COUNTRIES !== 'undefined' && Array.isArray(COUNTRIES)) {
+      COUNTRIES.forEach(c => {
+        if (!c._origMinWage) {
+          c._origMinWage = ORIGINAL_MIN_WAGES[c.id] || c.monthlyMinWage;
+        }
+        c.monthlyMinWage = c._origMinWage;
+        c.inflation = 0; // Yıllık otomatik fiyat/maaş şişmesini sıfırla
+      });
+    }
+  }
+
+  // 2. Ocak ayı enflasyon zammı fonksiyonunu tamamen devre dışı bırak
+  window.applyJanuaryInflationAndWageRaise = function () {
+    restoreBaseMinWages();
+  };
+
+  // 3. Yaş ilerlerken ve finans hesaplanırken baz maaşın sabit kalmasını garanti et
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    restoreBaseMinWages();
+    return _prevCalcFin();
+  };
+
+  // 4. Mevcut kayıtta (Save) enflasyon yüzünden şişmiş emekli/işsizlik maaşı varsa normale çek
+  restoreBaseMinWages();
+  if (typeof G !== 'undefined' && G && G.career) {
+    const c = getCountry();
+    if (G.career.pensionMonthly > c.monthlyMinWage * 3) {
+      G.career.pensionMonthly = Math.round(c.monthlyMinWage * 1.45);
+    }
+    if (G.career.unemploymentMonthlyPay > c.monthlyMinWage * 2) {
+      G.career.unemploymentMonthlyPay = Math.round(c.monthlyMinWage * 0.55);
+    }
+    if (G.career.accumulatedSeverance > c.monthlyMinWage * 40) {
+      G.career.accumulatedSeverance = Math.round(c.monthlyMinWage * 1.8 * Math.max(1, G.career.yearsInCurrentFirm || 1));
+    }
+  }
+
+  if (typeof saveGame === 'function') saveGame();
+  if (typeof renderAll === 'function') renderAll();
+})();
