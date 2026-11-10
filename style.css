@@ -732,3 +732,67 @@ button:active {
   border-radius: 99px;
   transition: width 0.3s ease;
 }
+
+/* ============================================================================
+   6'LI GERÇEKÇİ SİMÜLASYON PAKETİ STİLLERİ (EKSPERTİZ, UYAP, ASKERLİK, ALTIN & COST CONTROL)
+   ============================================================================ */
+
+/* 1. Oto Ekspertiz Kaporta Şeması Rozetleri */
+.exp-part-box {
+  padding: 5px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.exp-orig {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
+}
+.exp-paint {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+.exp-changed {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.55);
+  color: #fb7185;
+}
+
+/* 2. e-Devlet Askerlik Durum Belgesi Kartı */
+.military-doc-card {
+  background: linear-gradient(145deg, #14281d 0%, #090d16 80%);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  border-top: 3.5px solid #22c55e;
+  border-radius: 16px;
+  padding: 13px;
+}
+
+/* 3. UYAP E-İhale Elektronik Satış Kartı */
+.uyap-auction-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #090d16 75%);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  border-left: 4px solid #6366f1;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+/* 4. Altın, Döviz & Vadeli Mevduat Bandı */
+.fx-gold-card {
+  background: linear-gradient(145deg, #271f0b 0%, #090d16 75%);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+/* 5. Şirket Cost Control (Maliyet Kontrol) & ERP Tablosu */
+.cost-control-card {
+  background: linear-gradient(135deg, #0c192c 0%, #090d16 80%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-left: 4px solid #0ea5e9;
+  border-radius: 16px;
+  padding: 13px;
+}
