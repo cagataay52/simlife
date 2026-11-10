@@ -1172,3 +1172,183 @@ ACHIEVEMENTS_DB.push(
   { id: 'muteahhit_king', title: 'Ünlü Müteahhit', desc: 'Arsa imarı veya Kat Karşılığı Yap-Sat inşaat projesinden büyük vurgun yaptın!', icon: '🏗️' },
   { id: 'clutch_scorer', title: '90. Dakika Kahramanı', desc: 'İnteraktif kalede 90 köşeye şut göndererek kritik maçta golü attın!', icon: '🥅' }
 );
+
+/* ============================================================================
+   iFRUIT TELEFON MESAJ HAVUZU, RPG KARAKTERLERİ VE ŞEHİR HARİTASI VERİTABANI
+   ============================================================================ */
+
+// 1. İnteraktif Şehir Haritası Binaları ve Bölgeleri
+const CITY_MAP_DISTRICTS_DB = [
+  {
+    id: 'pin_stadium',
+    name: 'Arena Stadyum',
+    sub: 'Futbol & İddaa',
+    icon: '🏟️',
+    accent: 'border-amber-400/50',
+    actionType: 'menu',
+    target: 'sports'
+  },
+  {
+    id: 'pin_plaza',
+    name: 'Finans & İş Kule',
+    sub: 'Meslek, KPSS & Ofis',
+    icon: '🏢',
+    accent: 'border-emerald-400/50',
+    actionType: 'nav',
+    target: 'career'
+  },
+  {
+    id: 'pin_sanayi',
+    name: 'Oto Sanayi & Galeri',
+    sub: '2.El, Dyno & Plaka',
+    icon: '🔧',
+    accent: 'border-purple-400/50',
+    actionType: 'menu',
+    target: 'cars'
+  },
+  {
+    id: 'pin_residence',
+    name: 'Rezidans & Yap-Sat',
+    sub: 'Emlak, Arsa & UYAP',
+    icon: '🏗️',
+    accent: 'border-orange-400/50',
+    actionType: 'menu',
+    target: 'houses'
+  },
+  {
+    id: 'pin_state',
+    name: 'Meclis & e-Devlet',
+    sub: 'Siyaset & Askerlik',
+    icon: '🏛️',
+    accent: 'border-sky-400/50',
+    actionType: 'menu',
+    target: 'politics'
+  },
+  {
+    id: 'pin_media',
+    name: 'Skor Ağı & Stüdyo',
+    sub: 'Yayıncı & Medya',
+    icon: '🎙️',
+    accent: 'border-fuchsia-400/50',
+    actionType: 'menu',
+    target: 'social'
+  },
+  {
+    id: 'pin_mall',
+    name: 'AVM & Yaşam',
+    sub: 'Market & Temizlik',
+    icon: '🛒',
+    accent: 'border-teal-400/50',
+    actionType: 'menu',
+    target: 'market_expenses'
+  },
+  {
+    id: 'pin_bank_hosp',
+    name: 'Merkez Bankası',
+    sub: 'Altın, Borsa & Holding',
+    icon: '🏦',
+    accent: 'border-yellow-400/50',
+    actionType: 'nav',
+    target: 'finance'
+  }
+];
+
+// 2. RPG Diyalog Sahnesi İçin Otomatik NPC Karakter Profilleri
+const RPG_NPC_PERSONAS_DB = {
+  hr_manager: {
+    name: 'Selin Aksoy',
+    role: 'Kurumsal İK & Yetenek Direktörü',
+    avatar: '👩‍💼',
+    moodText: 'Analitik & Kurumsal',
+    patience: 82
+  },
+  car_dealer: {
+    name: 'Hacı Murat Usta',
+    role: 'Oto Galeri & Sanayi Eksperi',
+    avatar: '👨‍🔧',
+    moodText: 'Sıkı Pazarlıkçı',
+    patience: 68
+  },
+  judge_law: {
+    name: 'Hakim Kemal Bey',
+    role: 'Ağır Ceza & İcra Kurulu Başkanı',
+    avatar: '👨‍⚖️',
+    moodText: 'Tavizsiz & Resmi',
+    patience: 75
+  },
+  football_agent: {
+    name: 'Jorge Mendes TR',
+    role: 'FIFA Lisanslı Futbol Direktörü',
+    avatar: '🧥',
+    moodText: 'Taktiksel & Hırslı',
+    patience: 88
+  },
+  default_npc: {
+    name: 'Gündem Temsilcisi',
+    role: 'Karar & Müzakere Masası',
+    avatar: '🕴️',
+    moodText: 'Müzakereye Açık',
+    patience: 80
+  }
+};
+
+// 3. GTA iFruit Telefon — Canlı WhatsChat Mesaj Şablonları
+const IFRUIT_CHAT_TEMPLATES_DB = [
+  {
+    id: 'msg_muhammed_app',
+    sender: 'Muhammed (Kanka)',
+    avatar: '👨‍💻',
+    role: 'Yazılım & Uygulama Ortağı',
+    text: 'Kanka Swipper uygulamasında sunucu trafiği patladı! Ufak bir reklam bütçesi ateşlersek bu ay güzel nakit toplarız, ne diyorsun?',
+    costMult: 0.35,
+    rewardMult: 0.95,
+    replyYes: 'Ateşle kanka, bütçeyi gönderiyorum! 🚀',
+    replyNo: 'Bu ay nakit sıkışık, haftaya bakalım.'
+  },
+  {
+    id: 'msg_cagri_logistics',
+    sender: 'Çağrı (Kanka)',
+    avatar: '🚛',
+    role: 'Lojistik & Filo Operasyon',
+    text: 'Kardeşim gümrükte acil bir tekstil konteyner sevkiyatı var. Komisyonu yarı yarıya kırışırız, nakit teminatı yatıralım mı?',
+    costMult: 0.50,
+    rewardMult: 1.35,
+    replyYes: 'Hemen evrakları kes, giriyoruz bu işe! 📦',
+    replyNo: 'Risk almayalım şimdi kardeşim.'
+  },
+  {
+    id: 'msg_emin_studio',
+    sender: 'Emin (Kanka)',
+    avatar: '🎧',
+    role: 'Müzik & Stüdyo Prodüksiyon',
+    text: 'Bu akşam stüdyoda yeni parça kaydı ve canlı yayın var, sonrasında da halı saha! Geliyorsun değil mi?',
+    costMult: 0.12,
+    rewardMult: 0,
+    happyBoost: 15,
+    stressCut: 20,
+    replyYes: 'Oradayım kardeşim, kadroyu kur! ⚽🎶',
+    replyNo: 'Mesai var kanka, size iyi eğlenceler.'
+  },
+  {
+    id: 'msg_sari_site_buyer',
+    sender: 'SarıSite Alıcısı (Volkan)',
+    avatar: '🚘',
+    role: '2. El Araç & Al-Sat',
+    text: 'Selamünaleyküm usta, kelepir bir araç düştü ilana koymadan sana yazdım. Ufak bir kaporta masrafı var ama anında kârla okuturuz!',
+    costMult: 0.80,
+    rewardMult: 1.65,
+    replyYes: 'Konum at, ekspertize sokup alalım! 🤝',
+    replyNo: 'Garaj dolu usta, eyvallah.'
+  },
+  {
+    id: 'msg_headhunter',
+    sender: 'Kariyer.net VIP Avcısı',
+    avatar: '💼',
+    role: 'Üst Düzey Yönetici Transferi',
+    text: 'Merhaba, CV puanınız ve Luca / Cost Control yetkinlikleriniz dikkatimizi çekti. Özel bir denetim projesi için danışmanlık verir misiniz?',
+    costMult: 0,
+    rewardMult: 0.85,
+    replyYes: 'Memnuniyetle, raporları hazırlıyorum. 📊',
+    replyNo: 'Yoğunluğum nedeniyle kabul edemiyorum.'
+  }
+];
