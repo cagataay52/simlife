@@ -897,3 +897,50 @@ button:active {
   border-radius: 16px;
   padding: 13px;
 }
+
+/* ============================================================================
+   HATA AYIKLAMA (BUGFIX) VE MARKET / TEMİZLİK / YAŞAM GİDERLERİ STİLLERİ
+   ============================================================================ */
+
+/* 1. HATA DÜZELTME: Fotoğrafın Üstündeki Yuvarlağı ve Sabit Para/Efor Barını Kaldır */
+.avatar-ring-svg,
+.sticky-modal-hud {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+.avatar-ring-container {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* 2. Market, Temizlik ve Ev Giderleri Kart Tasarımları */
+.household-hub-card {
+  background: linear-gradient(145deg, #0f172a 0%, #090d16 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-left: 4px solid #10b981;
+  border-radius: 16px;
+  padding: 13px;
+}
+
+.hygiene-meter-wrap {
+  background: #060a12;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.shopping-item-card {
+  background: #0b111e;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease;
+}
+.shopping-item-card:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+}
