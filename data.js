@@ -1100,3 +1100,75 @@ ACHIEVEMENTS_DB.push(
   { id: 'tegmen_terhis', title: 'Yedek Subay (Teğmen)', desc: 'Askerliğini 12 ay maaşlı Yedek Subay olarak tamamlayıp terhis belgeni aldın.', icon: '🪖' },
   { id: 'uyap_hunter', title: 'İcra & İhale Avcısı', desc: 'UYAP E-İhale üzerinden piyasa değerinin altında mülk veya araç kazandın.', icon: '🔨' }
 );
+
+/* ============================================================================
+   MEGA GÜNCELLEME v2.0 VERİTABANI (TEKNİK DİREKTÖR, YAP-SAT, OFİS, DYNO, TATİL)
+   ============================================================================ */
+
+// 1. UEFA Teknik Direktörlük Lisansları ve Kulüp Teklifleri
+const COACH_LICENSES_DB = [
+  { id: 'uefa_b', name: 'TFF / UEFA B Antrenör Lisansı', costMult: 1.8, reqAge: 22, bonusTactic: 6, desc: 'Alt lig ve U19 takımlarını çalıştırma yetkisi verir.' },
+  { id: 'uefa_a', name: 'UEFA A Teknik Direktör Lisansı', costMult: 4.2, reqAge: 25, bonusTactic: 14, desc: '1. Lig ve Süper Lig kulüplerinde teknik direktörlük yetkisi.' },
+  { id: 'uefa_pro', name: 'UEFA Pro Lisans (Elit Taktisyen)', costMult: 9.5, reqAge: 27, bonusTactic: 25, desc: 'Avrupa devleri, Şampiyonlar Ligi ve Milli Takım çalıştırma yetkisi!' }
+];
+
+const COACH_JOBS_DB = [
+  { id: 'cj_anadolu', club: 'Anadolu Yıldızı FK', reqLic: 'uefa_b', salaryMult: 4.5, targetRank: 8 },
+  { id: 'cj_karadeniz', club: 'Karadeniz Fırtınası SK', reqLic: 'uefa_a', salaryMult: 9.0, targetRank: 4 },
+  { id: 'cj_sari_lacivert', club: 'Sarı-Lacivert Kanaryalar SK', reqLic: 'uefa_pro', salaryMult: 22.0, targetRank: 1 },
+  { id: 'cj_avrupa', club: 'Avrupa Elit SK', reqLic: 'uefa_pro', salaryMult: 38.0, targetRank: 1 }
+];
+
+// 2. Arsa / Tarla İmar Yatırımları & Kat Karşılığı Müteahhitlik (Yap-Sat)
+const LAND_PLOTS_DB = [
+  { id: 'land_sarkoy', name: 'Tekirdağ Şarköy Bağ & Zeytinlik Tarlası (5 Dönüm)', icon: '🌿', costMult: 9.5, zonedMult: 52.0, zoneChance: 0.35, desc: 'Turizm ve yazlık villa imarı geçtiğinde değeri 5.5 katına çıkar!' },
+  { id: 'land_catalca', name: 'Çatalca / Hadımköy Sanayi Çeperi Tarla (10 Dönüm)', icon: '🚜', costMult: 18.0, zonedMult: 98.0, zoneChance: 0.32, desc: 'Lojistik antrepo ve ticari imar geçtiğinde servet kazandırır.' },
+  { id: 'land_ordu', name: 'Ordu Boztepe Eteği Panoramik Arsa (3 Dönüm)', icon: '⛰️', costMult: 7.5, zonedMult: 36.0, zoneChance: 0.38, desc: 'Otel ve konut imarı beklentili yüksek potansiyelli arsa.' }
+];
+
+const YAPSAT_PROJECTS_DB = [
+  { id: 'ys_apartman', name: 'Kat Karşılığı 12 Dairelik Butik Apartman', icon: '🏢', costMult: 28, salePayoutMult: 46, durationYears: 1, desc: 'Arsa sahibiyle %50-%50 anlaşma; topraktan satışla hızlı nakit dönüşü.' },
+  { id: 'ys_site', name: 'Kentsel Dönüşüm 36 Dairelik Güvenlikli Site', icon: '🏗️', costMult: 68, salePayoutMult: 118, durationYears: 1, desc: 'Yüksek demir/beton maliyeti ama tamamlandığında devasa müteahhit kârı.' },
+  { id: 'ys_villa_kent', name: 'Sahil Hattı 16 Lüks Havuzlu Villa Projesi', icon: '🏡', costMult: 125, salePayoutMult: 225, durationYears: 1, desc: 'Milyarder alıcılara hitap eden prestijli yap-sat projesi.' }
+];
+
+// 3. Kendi Müşavirlik / Serbest Meslek Ofisini Açma & E-Ticaret Ürünleri
+const FREELANCE_OFFICES_DB = [
+  { id: 'of_smmm', name: 'SMMM Mali Müşavirlik & Cost Control Bürosu', icon: '🧾', reqCert: 'cert_luca', setupMult: 8.5, perClientMult: 0.38, maxClients: 40, desc: 'Luca & ERP sertifikanla şirketlerin aylık muhasebe defterlerini tutarsın.' },
+  { id: 'of_gumruk', name: 'Yetkilendirilmiş Gümrük & Lojistik Müşavirliği', icon: '🛃', reqCert: 'cert_udy', setupMult: 12.0, perClientMult: 0.55, maxClients: 35, desc: 'ÜDY/SRC belgenle ithalat-ihracat firmalarına beyanname ve antrepo danışmanlığı.' },
+  { id: 'of_yazilim', name: 'Dijital Yazılım, Mobil Uygulama & Medya Ajansı', icon: '💻', reqCert: null, setupMult: 10.0, perClientMult: 0.45, maxClients: 35, desc: 'Kurumsal firmalara web/mobil uygulama ve sosyal medya yönetimi satarsın.' }
+];
+
+const ECOMMERCE_CATEGORIES_DB = [
+  { id: 'ec_tekstil', name: 'Tekstil & Oversize Sokak Modası Mağazası', icon: '👕', stockCostMult: 2.5, marginMult: 1.75, returnRisk: 0.12 },
+  { id: 'ec_oto', name: 'Oto Aksesuar, LED Far & Ses Sistemi Mağazası', icon: '🔊', stockCostMult: 4.0, marginMult: 1.85, returnRisk: 0.06 },
+  { id: 'ec_gaming', name: 'Oyuncu Ekipmanları (Kulaklık/Klavye) Mağazası', icon: '🎧', stockCostMult: 5.5, marginMult: 1.90, returnRisk: 0.08 }
+];
+
+// 4. Garaj 2.0: Ticari Taksi Plakası & Sanayi Dyno / Ses Sistemi Paketleri
+const COMMERCIAL_PLATES_DB = [
+  { id: 'pl_servis', name: 'C Plaka Personel & Öğrenci Servis Hattı', code: '34 C 4821', costMult: 26, monthlyRentMult: 1.45, desc: 'Fabrika ve okullara sabit sözleşmeli garantili aylık plaka kirası.' },
+  { id: 'pl_minibus', name: 'M Plaka Şehir İçi Hatlı Minibüs Plakası', code: '34 M 1907', costMult: 48, monthlyRentMult: 2.65, desc: 'Yüksek yolcu sirkülasyonlu hat; her ay tıkır tıkır şoför kirası getirir.' },
+  { id: 'pl_taksi', name: 'T Plaka Sarı Ticari Taksi Plakası (Altın Yatırım)', code: '34 TJK 52', costMult: 95, monthlyRentMult: 5.20, desc: 'Değeri asla düşmeyen, çift vardiya şoför kirasıyla servet kazandıran plaka!' }
+];
+
+const CAR_TUNING_PACKS_DB = [
+  { id: 'mod_ecu', name: 'Stage 2 ECU Yazılım + Downpipe + Pop & Bang', icon: '💻', costMult: 0.85, hpGain: 48, valueBoostPct: 12 },
+  { id: 'mod_coil', name: 'Coilover Süspansiyon + 19" Jant & Bodykit', icon: '🛞', costMult: 1.15, hpGain: 10, valueBoostPct: 15 },
+  { id: 'mod_sound', name: 'Çift Subwoofer + 4 Midrange + 2 Amfi Ses Sistemi', icon: '🔊', costMult: 0.95, hpGain: 5, valueBoostPct: 14 },
+  { id: 'mod_stage3', name: 'Stage 3 Hybrid Turbo + Intercooler + Dyno Ayarı', icon: '🔥', costMult: 2.40, hpGain: 115, valueBoostPct: 28 }
+];
+
+// 5. Tatil Rotaları & Düğün Paketleri
+const HOLIDAY_ROUTES_DB = [
+  { id: 'hol_sarkoy', name: 'Tekirdağ Şarköy Sahil & Yazlık Kaçamağı', icon: '🏖️', costMult: 0.45, stressCut: 30, happyGain: 14, healthGain: 5 },
+  { id: 'hol_ordu', name: 'Ordu Boztepe & Çambaşı Yaylası Karadeniz Turu', icon: '🌲', costMult: 0.75, stressCut: 42, happyGain: 18, healthGain: 8 },
+  { id: 'hol_antalya', name: 'Antalya Belek 5 Yıldızlı Ultra Her Şey Dahil', icon: '☀️', costMult: 1.60, stressCut: 60, happyGain: 25, healthGain: 10 },
+  { id: 'hol_avrupa', name: 'Avrupa Kültür, Müze & Şampiyonlar Ligi Turu', icon: '✈️', costMult: 3.50, stressCut: 85, happyGain: 35, healthGain: 14 }
+];
+
+ACHIEVEMENTS_DB.push(
+  { id: 'taksi_agasi', title: 'Plaka Ağası', desc: 'Ticari Taksi (T Plaka) veya Servis Hattı satın alarak pasif gelir imparatorluğu kurdun.', icon: '🚕' },
+  { id: 'muteahhit_king', title: 'Ünlü Müteahhit', desc: 'Arsa imarı veya Kat Karşılığı Yap-Sat inşaat projesinden büyük vurgun yaptın!', icon: '🏗️' },
+  { id: 'clutch_scorer', title: '90. Dakika Kahramanı', desc: 'İnteraktif kalede 90 köşeye şut göndererek kritik maçta golü attın!', icon: '🥅' }
+);
