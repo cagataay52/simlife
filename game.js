@@ -8898,3 +8898,1106 @@ window.enterCorporateTender = function (idx, cost, payout) {
   if (typeof saveGame === 'function') saveGame();
   if (typeof renderAll === 'function') renderAll();
 })();
+
+/* ============================================================================
+   MEGA GÜNCELLEME v2.0 ANA MOTORU (6 DEV PAKET + ÇEKİRDEK ONARIM)
+   ============================================================================ */
+
+let garageSubTabV2 = 'dealer_my'; // 'dealer_my' | 'used_exp' | 'dyno_sound' | 'taxi_tuv'
+let realEstateSubTabV2 = 'houses'; // 'houses' | 'land_yapsat' | 'uyap'
+let selectedShotStyle = 'plase';   // 'plase' | 'power' | 'panenka'
+
+function ensureMegaV2State() {
+  if (!G) return;
+
+  // 0. Enflasyon Şişmesini Kalıcı Olarak Kilitle (100 Binden 1 Milyona Çıkma Hatasını Önler)
+  const FIXED_WAGES = {
+    TR: 22104, US: 2400, DE: 2150, GB: 2050, FR: 1800, NL: 2100,
+    CH: 4200, NO: 32000, CA: 2600, AU: 3500, JP: 210000, KR: 2060000,
+    RU: 25000, BR: 1500, SA: 4500, AE: 5000, NG: 70000
+  };
+  if (typeof COUNTRIES !== 'undefined' && Array.isArray(COUNTRIES)) {
+    COUNTRIES.forEach(c => {
+      if (FIXED_WAGES[c.id]) c.monthlyMinWage = FIXED_WAGES[c.id];
+      c.inflation = 0;
+    });
+  }
+
+  // 1. Teknik Direktörlük & İddaa Durumu
+  if (!G.coach) {
+    G.coach = {
+      licenses: [],
+      activeClub: null,
+      salaryMult: 0,
+      tacticStyle: '4-2-3-1 Gegenpress',
+      moraleBoost: 0,
+      winsThisSeason: 0,
+      trophies: 0
+    };
+  }
+  if (!G.iddaa) {
+    G.iddaa = {
+      selectedPicks: {}, // matchIdx -> { label, odd }
+      stakeMult: 0.5,
+      couponsWon: 0
+    };
+  }
+
+  // 2. Arsa İmarı & Kat Karşılığı Müteahhitlik (Yap-Sat)
+  if (!G.yapSat) {
+    G.yapSat = {
+      lands: [],          // { id, name, zoned, value }
+      activeProject: null // { id, name, payout }
+    };
+  }
+
+  // 3. Serbest Meslek Ofisi, E-Ticaret & Vergi Yapılandırma
+  if (!G.freelance) {
+    G.freelance = {
+      officeId: null,
+      clients: 0,
+      ecomStoreId: null,
+      ecomStockPacks: 0,
+      ecomAdLevel: 1,
+      taxWriteOffActive: false,
+      taxAuditPenalty: 0
+    };
+  }
+
+  // 4. Garaj 2.0: Taksi Plakası, Dyno Modifiye & TÜVTÜRK/Kasko
+  if (!G.garageV2) {
+    G.garageV2 = {
+      plates: [],         // Sahip olunan T/M/C plakalar
+      carMods: {},        // carUid -> ['mod_ecu', 'mod_sound']
+      carHp: {},          // carUid -> 185
+      tuvturkValidUntil: G.age + 2,
+      kaskoActive: false
+    };
+  }
+
+  // 5. Hanedan, Düğün Altını, Çocuk CEO & Sağlık/Tatil
+  if (!G.lifeV2) {
+    G.lifeV2 = {
+      ceoKids: [],        // Şirkete CEO/CFO atanan çocukların isimleri
+      holidaysThisYear: 0,
+      weddingDoneForSpouse: null
+    };
+  }
+
+  if (typeof ensureRealisticCareerState === 'function') ensureRealisticCareerState();
+  if (typeof ensureSixRealismState === 'function') ensureSixRealismState();
+}
+
+/* ============================================================================
+   PAKET 1: ÇEKİRDEK ONARIM — 4 SEKMELİ E-DEVLET (ASKERLİK DAHİL KUSURSUZ)
+   ============================================================================ */
+
+window.renderUnifiedEdevletHub = function () {
+  ensureMegaV2State();
+  const c = getCountry();
+  const costB = Math.round(c.monthlyMinWage * 0.7);
+  const costCE = Math.round(c.monthlyMinWage * 1.6);
+  const expungeCost = Math.round(c.monthlyMinWage * 4.5);
+
+  const nav4 = `
+    <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[10px] font-extrabold">
+      <button onclick="edevletHubTab='id_lic'; openMenuSection('license')" class="py-2 rounded-xl ${edevletHubTab === 'id_lic' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400'}">🪪 Kimlik</button>
+      <button onclick="edevletHubTab='military'; openMenuSection('license')" class="py-2 rounded-xl ${edevletHubTab === 'military' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400'}">🪖 Askerlik</button>
+      <button onclick="edevletHubTab='passport'; openMenuSection('license')" class="py-2 rounded-xl ${edevletHubTab === 'passport' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400'}">🛂 Pasaport</button>
+      <button onclick="edevletHubTab='portrait'; openMenuSection('license')" class="py-2 rounded-xl ${edevletHubTab === 'portrait' ? 'bg-indigo-500 text-white shadow' : 'text-slate-400'}">📸 Foto</button>
+    </div>
+  `;
+
+  if (edevletHubTab === 'military') {
+    return renderHeroBannerHTML('license') + nav4 + renderMilitaryServiceBranchHTML();
+  }
+  if (edevletHubTab === 'passport') {
+    const moveCost = Math.round(c.monthlyMinWage * 4);
+    return renderHeroBannerHTML('license') + nav4 + renderPassportVisaStampsHTML() + `
+      <div class="space-y-2">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">✈️ Konsolosluk Vize &amp; Ülke Göçü</h4>
+        ${COUNTRIES.filter(x => x.id !== G.countryId).map(target => `
+          <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">${target.flag} ${target.name} (${target.currency})</div>
+              <div class="text-[10px] text-slate-400">Asgari: ${target.monthlyMinWage.toLocaleString('tr-TR')} ${target.currency} &bull; Vergi: %${Math.round(target.taxRate * 100)}</div>
+            </div>
+            <button onclick="migrateToCountry('${target.id}', ${moveCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">Göç Et (${fmtMoney(moveCost)})</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  if (edevletHubTab === 'portrait') {
+    return renderHeroBannerHTML('license') + nav4 + `
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col items-center gap-3 text-center">
+        <img src="${getCurrentPortrait()}" class="w-24 h-28 rounded-2xl object-cover border-2 border-sky-400 shadow-lg" />
+        <button onclick="G.portraitIdx = (G.portraitIdx + 1) % 3; saveGame(); renderAll(); openMenuSection('license');" class="w-full py-2.5 rounded-xl bg-sky-500 text-slate-950 text-xs font-extrabold">🔄 Biyometrik Fotoğrafı Değiştir</button>
+      </div>
+    `;
+  }
+
+  return renderHeroBannerHTML('license') + nav4 + renderOfficialIdentityAndDocumentsHTML() + `
+    <div class="space-y-2">
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+        <div><div class="text-xs font-extrabold text-white">🚗 B Sınıfı Sürücü Belgesi</div><div class="text-[10px] text-slate-400">Otomobil, Kurye &amp; Hafif Ticari</div></div>
+        <button onclick="takeDrivingLicense('B', ${costB})" class="px-3 py-2 rounded-xl text-xs font-extrabold ${G.licenses.B ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-500 text-slate-950'}">${G.licenses.B ? 'Alındı ✓' : fmtMoney(costB)}</button>
+      </div>
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+        <div><div class="text-xs font-extrabold text-white">🚛 CE Sınıfı Ağır Vasıta (Tır) Ehliyeti</div><div class="text-[10px] text-slate-400">Uluslararası Tır &amp; Otobüs Kaptanlığı</div></div>
+        <button onclick="takeDrivingLicense('CE', ${costCE})" class="px-3 py-2 rounded-xl text-xs font-extrabold ${G.licenses.CE ? 'bg-slate-800 text-emerald-400' : 'bg-amber-400 text-slate-950'}">${G.licenses.CE ? 'Alındı ✓' : fmtMoney(costCE)}</button>
+      </div>
+      <div class="p-3 rounded-2xl bg-slate-900 border ${G.criminalRecord ? 'border-rose-500/40' : 'border-slate-800'} flex items-center justify-between">
+        <div><div class="text-xs font-extrabold text-white">⚖️ Adli Sicil &amp; Arşiv Kaydı Sildirme</div><div class="text-[10px] text-slate-400">Memuriyet ve başkanlık engelini kaldırır</div></div>
+        ${G.criminalRecord ? `<button onclick="clearCriminalRecord(${expungeCost})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">Sildir (${fmtMoney(expungeCost)})</button>` : `<span class="text-xs font-bold text-emerald-400">Sicil Temiz ✓</span>`}
+      </div>
+    </div>
+  `;
+};
+
+/* ============================================================================
+   PAKET 2: ULTRA FUTBOL — 6 KÖŞELİ İNTERAKTİF KALE, TEKNİK DİREKTÖR & İDDAA
+   ============================================================================ */
+
+// A) 6 Köşeli İnteraktif Kale ve Penaltı / Frikik Vuruş Sistemi
+window.openInteractiveGoalShotModal = function (mode = 'player') {
+  ensureMegaV2State();
+  const sheet = document.getElementById('bottomSheet');
+  const body = document.getElementById('sheetBody');
+  sheet.classList.remove('hidden');
+  document.getElementById('sheetTitle').textContent = '🥅 Kritik Pozisyon: Köşe Seç ve Vur!';
+  document.getElementById('sheetSubtitle').textContent = 'Dakika 89 • Kaleci Çizgide • Falsonu ve Köşeyi Seç!';
+
+  const corners = [
+    { id: 'top_left', name: '↖️ Sol Üst 90 (Çatal)', baseChance: 0.56, rewardMult: 1.6 },
+    { id: 'top_mid', name: '⬆️ Üst Ağlar (Tavan)', baseChance: 0.64, rewardMult: 1.3 },
+    { id: 'top_right', name: '↗️ Sağ Üst 90 (Çatal)', baseChance: 0.58, rewardMult: 1.6 },
+    { id: 'bot_left', name: '↙️ Sol Alt Köşe (Direk Dibi)', baseChance: 0.72, rewardMult: 1.2 },
+    { id: 'bot_mid', name: '🎯 Orta (Panenka / Yerden)', baseChance: 0.68, rewardMult: 1.25 },
+    { id: 'bot_right', name: '↘️ Sağ Alt Köşe (Direk Dibi)', baseChance: 0.72, rewardMult: 1.2 }
+  ];
+
+  body.innerHTML = `
+    <div class="goal-shoot-card space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-extrabold text-emerald-300">⚽ 89' KRİTİK FRİKİK / PENALTI VURUŞU</span>
+        <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono-num font-black text-[10px]">CANLI POZİSYON</span>
+      </div>
+
+      <!-- Vuruş Stili Seçimi -->
+      <div class="grid grid-cols-3 gap-1.5 text-[10px] font-extrabold">
+        <button onclick="selectedShotStyle='plase'; openInteractiveGoalShotModal('${mode}')" class="py-1.5 rounded-lg border ${selectedShotStyle === 'plase' ? 'border-amber-400 bg-amber-400/20 text-amber-300' : 'border-slate-700 bg-slate-900 text-slate-400'}">🌀 Plase (Falsolu)</button>
+        <button onclick="selectedShotStyle='power'; openInteractiveGoalShotModal('${mode}')" class="py-1.5 rounded-lg border ${selectedShotStyle === 'power' ? 'border-amber-400 bg-amber-400/20 text-amber-300' : 'border-slate-700 bg-slate-900 text-slate-400'}">🚀 Sert Füze</button>
+        <button onclick="selectedShotStyle='panenka'; openInteractiveGoalShotModal('${mode}')" class="py-1.5 rounded-lg border ${selectedShotStyle === 'panenka' ? 'border-amber-400 bg-amber-400/20 text-amber-300' : 'border-slate-700 bg-slate-900 text-slate-400'}">🎩 Panenka / Aşırtma</button>
+      </div>
+
+      <!-- 6 Bölgeli İnteraktif Kale Ağları -->
+      <div class="goal-frame-grid">
+        <div class="grid grid-cols-3 gap-2">
+          ${corners.map(cn => `
+            <button onclick="executeGoalCornerShot('${cn.id}', '${cn.name}', ${cn.baseChance}, ${cn.rewardMult}, '${mode}')" class="goal-corner-btn">
+              <div>${cn.name}</div>
+              <div class="text-[9px] text-emerald-300 font-mono-num mt-0.5">Gol Şansı: %${Math.round(cn.baseChance * 100)}</div>
+            </button>
+          `).join('')}
+        </div>
+        <div class="text-center text-[10px] font-bold text-slate-300 mt-2">🧤 Kaleci Hamle Bekliyor — Vurmak İstediğin Köşeye Dokun!</div>
+      </div>
+    </div>
+  `;
+};
+
+window.executeGoalCornerShot = function (cornerId, cornerName, baseChance, rewardMult, mode) {
+  ensureMegaV2State();
+  const c = getCountry();
+  const p = G.proPlayer;
+  const skillBonus = (p && p.active) ? ((p.shooting - 60) * 0.005) : 0.08;
+  const styleBonus = selectedShotStyle === 'plase' ? 0.06 : (selectedShotStyle === 'power' ? 0.04 : 0.02);
+  const isGoal = Math.random() < clamp(baseChance + skillBonus + styleBonus, 0.35, 0.92);
+
+  if (isGoal) {
+    const matchBonus = Math.round(c.monthlyMinWage * 1.4 * rewardMult);
+    G.money += matchBonus;
+    G.fame = clamp(G.fame + 5);
+    if (p && p.active) {
+      p.goals = (p.goals || 0) + 1;
+      p.scoutAttention = clamp((p.scoutAttention || 20) + 12, 0, 100);
+    }
+    if (G.club && G.club.active) {
+      G.club.fanTrust = clamp(G.club.fanTrust + 8);
+    }
+    if (cornerId.includes('top')) unlockAchievement('clutch_scorer');
+    playSfx('trophy');
+    addLog(G.age, `⚽ **GOOOOL! 90'A TAKTI!** Topu **${cornerName}** noktasına (${selectedShotStyle.toUpperCase()}) göndererek kaleciyi çaresiz bıraktın! Stadyum yıkılıyor (**+${fmtMoney(matchBonus)} Galibiyet Primi**)!`, 'fame');
+  } else {
+    playSfx('bad');
+    addLog(G.age, `🧤 **DİREKTEN DÖNDÜ!** **${cornerName}** köşesine gönderdiğin şutu kaleci parmaklarının ucuyla kornere çeldi!`, 'normal');
+  }
+
+  saveGame(); renderAll(); openMenuSection('sports');
+};
+
+// B) Teknik Direktörlük Kariyeri Görünümü
+function renderCoachCareerTabHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const ch = G.coach;
+
+  return `
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-sky-500/40 space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-extrabold text-sky-400 uppercase">🧥 TEKNİK DİREKTÖRLÜK &amp; TAKTİK KARİYERİ</div>
+          <div class="text-sm font-extrabold text-white">${ch.activeClub ? `🏟️ ${ch.activeClub} Teknik Direktörü` : 'Kulüp Çalıştırmıyor'}</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">Kupa: ${ch.trophies}</span>
+      </div>
+
+      ${ch.activeClub ? `
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="coachPlayMatchWithSpeech('aggressive')" class="p-2.5 rounded-xl bg-amber-400 text-slate-950 text-[11px] font-extrabold">
+            🔥 Soyunma Odası Ateşleyici Konuşma &amp; Maça Çık
+          </button>
+          <button onclick="openInteractiveGoalShotModal('coach')" class="p-2.5 rounded-xl bg-emerald-500 text-slate-950 text-[11px] font-extrabold">
+            🥅 Duran Top / Penaltı Taktik Vuruşu
+          </button>
+        </div>
+      ` : ''}
+    </div>
+
+    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">🎓 TFF / UEFA Antrenörlük Kursları</h4>
+    <div class="space-y-2 mb-3">
+      ${COACH_LICENSES_DB.map(lic => {
+        const has = ch.licenses.includes(lic.id);
+        const cost = Math.round(c.monthlyMinWage * lic.costMult);
+        return `
+          <div class="p-3 rounded-2xl bg-slate-900 border ${has ? 'border-emerald-500/50' : 'border-slate-800'} flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">${lic.name}</div>
+              <div class="text-[10px] text-slate-400">${lic.desc}</div>
+            </div>
+            <button onclick="takeCoachLicense('${lic.id}', ${cost})" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold shrink-0 ${has ? 'bg-slate-800 text-emerald-400' : 'bg-sky-500 text-slate-950'}">
+              ${has ? 'Alındı ✓' : fmtMoney(cost)}
+            </button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">📋 Teknik Direktörlük Teklifleri</h4>
+    <div class="space-y-2">
+      ${COACH_JOBS_DB.map(cj => {
+        const pay = Math.round(c.monthlyMinWage * cj.salaryMult);
+        const isCur = ch.activeClub === cj.club;
+        return `
+          <div class="p-3 rounded-2xl bg-slate-900 border ${isCur ? 'border-amber-400' : 'border-slate-800'} flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-white">🏟️ ${cj.club}</div>
+              <div class="text-[10px] text-slate-400">Şart: ${cj.reqLic.toUpperCase()} &bull; Maaş: <strong class="text-emerald-400">${fmtMoney(pay)}/ay</strong></div>
+            </div>
+            <button onclick="signCoachContract('${cj.id}')" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold shrink-0 ${isCur ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-400 text-slate-950'}">
+              ${isCur ? 'Görevde ✓' : 'İmzala'}
+            </button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window.takeCoachLicense = function (licId, cost) {
+  ensureMegaV2State();
+  if (G.coach.licenses.includes(licId)) return;
+  if (G.money < cost) { showToast('UEFA Antrenörlük kursu için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  G.coach.licenses.push(licId);
+  playSfx('trophy');
+  const lic = COACH_LICENSES_DB.find(x => x.id === licId);
+  addLog(G.age, `🎓 **ANTRENÖRLÜK ДİPLOMASI:** Riva TFF tesislerinde **${lic.name}** eğitimini başarıyla tamamladın!`, 'milestone');
+  saveGame(); renderAll(); openMenuSection('sports');
+};
+
+window.signCoachContract = function (cjId) {
+  ensureMegaV2State();
+  const cj = COACH_JOBS_DB.find(x => x.id === cjId);
+  if (!cj) return;
+  if (!G.coach.licenses.includes(cj.reqLic)) {
+    showToast(`Bu kulübü çalıştırmak için önce ${cj.reqLic.toUpperCase()} lisansını almalısın!`);
+    return;
+  }
+  G.coach.activeClub = cj.club;
+  G.coach.salaryMult = cj.salaryMult;
+  playSfx('trophy');
+  addLog(G.age, `🧥 **YENİ TEKNİK DİREKTÖR!** **${cj.club}** yönetimiyle teknik direktörlük sözleşmesi imzaladın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('sports');
+};
+
+window.coachPlayMatchWithSpeech = function () {
+  ensureMegaV2State();
+  const c = getCountry();
+  const winBonus = Math.round(c.monthlyMinWage * 1.8);
+  if (Math.random() < 0.72) {
+    G.coach.winsThisSeason += 1;
+    G.money += winBonus;
+    G.fame = clamp(G.fame + 4);
+    if (G.coach.winsThisSeason % 5 === 0) G.coach.trophies += 1;
+    playSfx('trophy');
+    addLog(G.age, `🧥 **TAKTİK ZAFERİ:** Soyunma odasındaki ateşleyici konuşmanla **${G.coach.activeClub}** sahadan 3-1 galip ayrıldı! (**+${fmtMoney(winBonus)} Prim**)`, 'good');
+  } else {
+    playSfx('bad');
+    addLog(G.age, `⚽ **ZORLU DEPLASMAN:** **${G.coach.activeClub}** deplasmanda 1-1 berabere kaldı.`, 'normal');
+  }
+  saveGame(); renderAll(); openMenuSection('sports');
+};
+
+// C) Canlı İddaa & Spor Toto Bülteni
+function renderIddaaBulletinTabHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const idd = G.iddaa;
+  const stakeAmt = Math.round(c.monthlyMinWage * idd.stakeMult);
+
+  const matches = [
+    { idx: 0, name: 'Sarı-Lacivert Kanaryalar vs Sarı-Kırmızı Aslanlar (Derbi)', o1: 1.95, o0: 3.40, o2: 2.65 },
+    { idx: 1, name: 'Siyah-Beyaz Kartallar vs Karadeniz Fırtınası', o1: 2.10, o0: 3.25, o2: 2.45 },
+    { idx: 2, name: 'Real Madrid vs Manchester City (Şampiyonlar Ligi)', o1: 2.25, o0: 3.50, o2: 2.20 }
+  ];
+
+  let totalOdd = 1.0;
+  Object.values(idd.selectedPicks).forEach(pk => { totalOdd *= pk.odd; });
+  const pickCount = Object.keys(idd.selectedPicks).length;
+  const maxWin = pickCount > 0 ? Math.round(stakeAmt * totalOdd) : 0;
+
+  return `
+    <div class="iddaa-bulletin-card space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-emerald-400 uppercase tracking-widest">🎯 HAFTALIK DERBİ &amp; AVRUPA İDDAA BÜLTENİ</div>
+          <div class="text-xs font-extrabold text-white">Seçilen Maç: ${pickCount}/3 &bull; Toplam Oran: <span class="text-amber-300 font-mono-num">${pickCount > 0 ? totalOdd.toFixed(2) : '0.00'}</span></div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 text-[10px] font-extrabold">MBS 1</span>
+      </div>
+
+      <div class="space-y-2">
+        ${matches.map(m => {
+          const cur = idd.selectedPicks[m.idx] ? idd.selectedPicks[m.idx].label : '';
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="text-[11px] font-extrabold text-white">${m.name}</div>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="toggleIddaaPick(${m.idx}, 'MS 1', ${m.o1})" class="iddaa-odd-btn ${cur === 'MS 1' ? 'selected' : ''}">MS 1 (${m.o1.toFixed(2)})</button>
+                <button onclick="toggleIddaaPick(${m.idx}, 'MS X', ${m.o0})" class="iddaa-odd-btn ${cur === 'MS X' ? 'selected' : ''}">MS X (${m.o0.toFixed(2)})</button>
+                <button onclick="toggleIddaaPick(${m.idx}, 'MS 2', ${m.o2})" class="iddaa-odd-btn ${cur === 'MS 2' ? 'selected' : ''}">MS 2 (${m.o2.toFixed(2)})</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between">
+        <div class="text-[11px] text-slate-300">
+          Kupon Bedeli: <strong>${fmtMoney(stakeAmt)}</strong><br>
+          Olası Kazanç: <strong class="text-emerald-400 font-mono-num">${fmtMoney(maxWin)}</strong>
+        </div>
+        <button onclick="playIddaaCoupon(${stakeAmt}, ${maxWin}, ${pickCount})" class="px-4 py-2.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">
+          🎟️ Kuponu Oyna
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+window.toggleIddaaPick = function (mIdx, label, odd) {
+  ensureMegaV2State();
+  if (G.iddaa.selectedPicks[mIdx] && G.iddaa.selectedPicks[mIdx].label === label) {
+    delete G.iddaa.selectedPicks[mIdx];
+  } else {
+    G.iddaa.selectedPicks[mIdx] = { label, odd };
+  }
+  openMenuSection('sports');
+};
+
+window.playIddaaCoupon = function (stakeAmt, maxWin, pickCount) {
+  ensureMegaV2State();
+  if (pickCount === 0) { showToast('Kupon oynamak için bültenden en az 1 maç oranı seçmelisin!'); return; }
+  if (G.money < stakeAmt) { showToast('Kupon bedeli için nakit bakiyen yetersiz!'); return; }
+  G.money -= stakeAmt;
+
+  const winChance = Math.max(0.24, 0.68 - (pickCount * 0.12));
+  if (Math.random() < winChance) {
+    G.money += maxWin;
+    G.iddaa.couponsWon += 1;
+    playSfx('trophy');
+    addLog(G.age, `🎟️ **İDDAA KUPONU TUTTU!** 90+4'te gelen golle kuponun kazandı ve **+${fmtMoney(maxWin)}** ikramiye hesabına yattı!`, 'good');
+  } else {
+    playSfx('bad');
+    addLog(G.age, `🎟️ **TEK MAÇTAN YATTI!** İddaa kuponun son dakika golüyle tek maçtan yattı (-${fmtMoney(stakeAmt)}).`, 'normal');
+  }
+  G.iddaa.selectedPicks = {};
+  saveGame(); renderAll(); openMenuSection('sports');
+};
+
+/* ============================================================================
+   PAKET 3: GAYRİMENKUL 2.0 — ARSA İMARI & KAT KARŞILIĞI MÜTEAHHİTLİK (YAP-SAT)
+   ============================================================================ */
+
+function renderLandAndYapSatHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const ys = G.yapSat;
+
+  const myLandsHtml = ys.lands.length === 0 ? '' : `
+    <div class="p-3 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2 mb-3">
+      <div class="text-xs font-extrabold text-emerald-300">📜 Tapulu Arsa &amp; Tarla Portföyün (${ys.lands.length})</div>
+      ${ys.lands.map((l, idx) => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-bold text-white">${l.icon} ${l.name} ${l.zoned ? '<span class="text-emerald-400">(İMAR GEÇTİ ✨)</span>' : '<span class="text-amber-300">(Tarla Vasıflı)</span>'}</div>
+            <div class="text-[10px] text-emerald-400 font-mono-num">Güncel Rayiç: ${fmtMoney(l.value)}</div>
+          </div>
+          <div class="flex gap-1">
+            ${!l.zoned ? `<button onclick="lobbyForLandZoning(${idx})" class="px-2 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-extrabold">🏛️ İmar Başvurusu</button>` : ''}
+            <button onclick="sellLandPlot(${idx})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-[10px] font-extrabold">Sat</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  return myLandsHtml + `
+    <div class="yapsat-card space-y-2.5 mb-3">
+      <div class="text-xs font-extrabold text-orange-400">🌿 Gelişen Bölgelerden Tarla / Arsa Yatırımı (İmar Piyangosu)</div>
+      <div class="space-y-2">
+        ${LAND_PLOTS_DB.map((lp, idx) => {
+          const cost = Math.round(c.monthlyMinWage * lp.costMult);
+          const zonedVal = Math.round(c.monthlyMinWage * lp.zonedMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-bold text-white">${lp.icon} ${lp.name}</div>
+                <div class="text-[10px] text-slate-400">${lp.desc}</div>
+                <div class="text-[10px] text-emerald-400 font-mono-num">Arsa Fiyatı: ${fmtMoney(cost)} &rarr; İmarlı Değeri: <strong>${fmtMoney(zonedVal)}</strong></div>
+              </div>
+              <button onclick="buyLandPlot(${idx}, ${cost})" class="px-3 py-1.5 rounded-xl bg-orange-500 text-slate-950 text-[10px] font-extrabold shrink-0">Tapu Al</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="yapsat-card space-y-2.5">
+      <div class="text-xs font-extrabold text-amber-300">🏗️ Kat Karşılığı Müteahhitlik &amp; Topraktan Yap-Sat Projeleri</div>
+      <div class="space-y-2">
+        ${YAPSAT_PROJECTS_DB.map((pr, idx) => {
+          const cost = Math.round(c.monthlyMinWage * pr.costMult);
+          const payout = Math.round(c.monthlyMinWage * pr.salePayoutMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-bold text-white">${pr.icon} ${pr.name}</div>
+                <div class="text-[10px] text-slate-400">Şantiye Maliyeti: ${fmtMoney(cost)} &bull; Daire Satış Hasılatı: <strong class="text-emerald-400">${fmtMoney(payout)}</strong></div>
+              </div>
+              <button onclick="executeYapSatProject(${idx}, ${cost}, ${payout})" class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">İnşaata Gir</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.buyLandPlot = function (idx, cost) {
+  ensureMegaV2State();
+  if (G.money < cost) { showToast('Arsa tapu bedeli için bakiye yetersiz!'); return; }
+  const lp = LAND_PLOTS_DB[idx];
+  G.money -= cost;
+  G.yapSat.lands.push({ ...lp, zoned: false, value: cost });
+  playSfx('coin');
+  addLog(G.age, `🌿 **ARSA YATIRIMI:** **${lp.name}** parselini **${fmtMoney(cost)}** bedelle satın aldın!`, 'good');
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+window.lobbyForLandZoning = function (lIdx) {
+  ensureMegaV2State();
+  const land = G.yapSat.lands[lIdx];
+  if (!land || land.zoned) return;
+  const c = getCountry();
+  const fee = Math.round(c.monthlyMinWage * 1.2);
+  if (G.money < fee) { showToast('Belediye imar komisyonu harcı için bakiye yetersiz!'); return; }
+  G.money -= fee;
+
+  const mayorBonus = (G.politics && G.politics.officeId) ? 0.35 : 0;
+  if (Math.random() < (land.zoneChance + mayorBonus)) {
+    land.zoned = true;
+    land.value = Math.round(c.monthlyMinWage * land.zonedMult);
+    unlockAchievement('muteahhit_king');
+    playSfx('trophy');
+    addLog(G.age, `🏛️ **BELEDİYEDEN İMAR GEÇTİ!** **${land.name}** arazisine konut/ticari imar çıktı! Değeri anında **${fmtMoney(land.value)}** seviyesine fırladı!`, 'fame');
+  } else {
+    showToast('Bu dönem belediye meclisinden imar onayı çıkmadı, tekrar deneyebilirsin.');
+  }
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+window.sellLandPlot = function (lIdx) {
+  ensureMegaV2State();
+  const land = G.yapSat.lands[lIdx];
+  if (!land) return;
+  G.money += land.value;
+  G.yapSat.lands.splice(lIdx, 1);
+  playSfx('coin');
+  addLog(G.age, `💸 **ARSA SATIŞI:** **${land.name}** arazisini **+${fmtMoney(land.value)}** bedelle sattın!`, 'good');
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+window.executeYapSatProject = function (idx, cost, payout) {
+  ensureMegaV2State();
+  if (G.money < cost) { showToast('İnşaat demir/beton sermayesi için bakiye yetersiz!'); return; }
+  const pr = YAPSAT_PROJECTS_DB[idx];
+  G.money -= cost;
+  G.money += payout;
+  unlockAchievement('muteahhit_king');
+  playSfx('trophy');
+  addLog(G.age, `🏗️ **YAP-SAT MÜTEAHHİTLİK ZAFERİ:** **${pr.name}** projesindeki daireleri topraktan satarak **+${fmtMoney(payout - cost)} net müteahhit kârı** kazandın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('houses');
+};
+
+/* ============================================================================
+   PAKET 4: SERBEST MESLEK OFİSİ, E-TİCARET PAZARYERİ & VERGİ DENETİMİ
+   ============================================================================ */
+
+function renderFreelanceAndEcommerceTabHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const fl = G.freelance;
+  const curOff = FREELANCE_OFFICES_DB.find(o => o.id === fl.officeId);
+
+  return `
+    <div class="freelance-office-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-sky-400 uppercase tracking-widest">🏢 SERBEST MESLEK &amp; DANIŞMANLIK OFİSİ</div>
+          <div class="text-xs font-extrabold text-white">${curOff ? `${curOff.icon} ${curOff.name}` : 'Henüz Kendi Ofisini Açmadın'}</div>
+        </div>
+        ${curOff ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">${fl.clients}/${curOff.maxClients} Müşteri Defteri</span>` : ''}
+      </div>
+
+      ${curOff ? `
+        <div class="text-[11px] text-slate-300">Aylık Müşteri Aidat Geliri: <strong class="text-emerald-400 font-mono-num">+${fmtMoney(Math.round(fl.clients * c.monthlyMinWage * curOff.perClientMult))}/ay</strong></div>
+        <button onclick="findNewOfficeClients()" class="w-full py-2 rounded-xl bg-sky-500 text-slate-950 text-xs font-extrabold">
+          🤝 Yeni Mükellef / Kurumsal Müşteri Bağla (+Defter Sayısı)
+        </button>
+      ` : `
+        <div class="space-y-2">
+          ${FREELANCE_OFFICES_DB.map(of => {
+            const cost = Math.round(c.monthlyMinWage * of.setupMult);
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-bold text-white">${of.icon} ${of.name}</div>
+                  <div class="text-[10px] text-slate-400">${of.desc}</div>
+                </div>
+                <button onclick="openFreelanceOffice('${of.id}', ${cost})" class="px-3 py-1.5 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-extrabold shrink-0">Aç (${fmtMoney(cost)})</button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+
+    <div class="freelance-office-card space-y-2.5">
+      <div class="text-xs font-extrabold text-amber-300">📦 E-Ticaret Pazaryeri Mağazası (Trendyol / Amazon / Hepsiburada)</div>
+      <div class="space-y-2">
+        ${ECOMMERCE_CATEGORIES_DB.map((ec, idx) => {
+          const stockCost = Math.round(c.monthlyMinWage * ec.stockCostMult);
+          const estSale = Math.round(stockCost * ec.marginMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-bold text-white">${ec.icon} ${ec.name}</div>
+                <div class="text-[10px] text-slate-400">Parti Mal Alımı: ${fmtMoney(stockCost)} &bull; Pazaryeri Cirosu: <strong class="text-emerald-400">+${fmtMoney(estSale)}</strong></div>
+              </div>
+              <button onclick="runEcommerceBatchSale(${idx}, ${stockCost}, ${estSale})" class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-extrabold shrink-0">Mal Çek &amp; Sat</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.openFreelanceOffice = function (ofId, cost) {
+  ensureMegaV2State();
+  const of = FREELANCE_OFFICES_DB.find(x => x.id === ofId);
+  if (!of) return;
+  if (of.reqCert && (!G.career || !G.career.certificates.includes(of.reqCert))) {
+    showToast(`Bu müşavirlik ofisini açmak için önce SGK & CV sekmesinden ilgili uzmanlık sertifikasını almalısın!`);
+    return;
+  }
+  if (G.money < cost) { showToast('Ofis açılışı ve demirbaşlar için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  G.freelance.officeId = of.id;
+  G.freelance.clients = 6;
+  playSfx('trophy');
+  addLog(G.age, `🏢 **KENDİ OFİSİNİ AÇTIN!** Vergi levhanı asarak **${of.name}** açılışını yaptın ve ilk 6 kurumsal müşterini bağladın!`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.findNewOfficeClients = function () {
+  ensureMegaV2State();
+  const fl = G.freelance;
+  const of = FREELANCE_OFFICES_DB.find(x => x.id === fl.officeId);
+  if (!of) return;
+  if (fl.clients >= of.maxClients) { showToast('Ofis maksimum müşteri kapasitesine ulaştı!'); return; }
+  const gain = randInt(3, 6);
+  fl.clients = Math.min(of.maxClients, fl.clients + gain);
+  playSfx('coin');
+  addLog(G.age, `🤝 Ofisine **+${gain} yeni kurumsal müşteri defteri** bağladın! Toplam mükellef sayın ${fl.clients} oldu.`, 'good');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+window.runEcommerceBatchSale = function (idx, stockCost, estSale) {
+  ensureMegaV2State();
+  if (G.money < stockCost) { showToast('Toptancıdan ürün çekmek için nakit yetersiz!'); return; }
+  const ec = ECOMMERCE_CATEGORIES_DB[idx];
+  G.money -= stockCost;
+  const netPayout = Math.random() < ec.returnRisk ? Math.round(estSale * 0.82) : estSale;
+  G.money += netPayout;
+  playSfx('coin');
+  addLog(G.age, `📦 **E-TİCARET KAMPANYASI:** **${ec.name}** üzerinden siparişleri kargoladın ve komisyonlar sonrası **+${fmtMoney(netPayout - stockCost)} net kâr** elde ettin!`, 'good');
+  saveGame(); renderAll(); openNavSheet('career');
+};
+
+/* ============================================================================
+   PAKET 5: GARAJ 2.0 — TAKSİ PLAKASI (M/T PLAKA), DYNO MODİFİYE & TÜVTÜRK
+   ============================================================================ */
+
+function renderGarageV2TabsHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const gv = G.garageV2;
+
+  if (garageSubTabV2 === 'dyno_sound') {
+    return `
+      <div class="dyno-garage-card space-y-2.5">
+        <div class="text-xs font-extrabold text-purple-300">🔥 Sanayi ECU Yazılım, Ses Sistemi (Subwoofer/Amfi) &amp; Canlı Dyno</div>
+        ${G.cars.length === 0 ? `<div class="text-xs text-slate-400">Modifiye ve ses sistemi kurmak için önce garajında en az 1 araç olmalı!</div>` : `
+          <div class="text-[11px] text-white font-bold">Seçili Araç: ${G.cars[0].icon} ${G.cars[0].name} <span class="text-amber-300 font-mono-num">(${gv.carHp[G.cars[0].uid] || 130} HP)</span></div>
+          <div class="space-y-2 pt-1">
+            ${CAR_TUNING_PACKS_DB.map(mod => {
+              const uid0 = G.cars[0].uid;
+              const installed = (gv.carMods[uid0] || []).includes(mod.id);
+              const cost = Math.round(c.monthlyMinWage * mod.costMult);
+              return `
+                <div class="p-2.5 rounded-xl bg-slate-950 border ${installed ? 'border-purple-500' : 'border-slate-800'} flex items-center justify-between gap-2">
+                  <div>
+                    <div class="text-xs font-bold text-white">${mod.icon} ${mod.name}</div>
+                    <div class="text-[10px] text-emerald-400">+${mod.hpGain} HP Güç &bull; +%${mod.valueBoostPct} Araç Değeri</div>
+                  </div>
+                  <button onclick="installCarTuningMod('${uid0}', '${mod.id}', ${cost})" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold shrink-0 ${installed ? 'bg-slate-800 text-purple-300' : 'bg-purple-500 text-white'}">
+                    ${installed ? 'Kurulu ✓' : fmtMoney(cost)}
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  if (garageSubTabV2 === 'taxi_tuv') {
+    const tuvCost = Math.round(c.monthlyMinWage * 0.18);
+    const kaskoCost = Math.round(c.monthlyMinWage * 0.65);
+    return `
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-400/50 space-y-2.5 mb-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold text-amber-300">🚕 Ticari Taksi (T Plaka) &amp; Hat Yatırımı</span>
+          <span class="taxi-plate-badge">${gv.plates.length} PLAKA</span>
+        </div>
+        <div class="space-y-2">
+          ${COMMERCIAL_PLATES_DB.map((pl, idx) => {
+            const owned = gv.plates.includes(pl.id);
+            const cost = Math.round(c.monthlyMinWage * pl.costMult);
+            const rent = Math.round(c.monthlyMinWage * pl.monthlyRentMult);
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950 border ${owned ? 'border-amber-400' : 'border-slate-800'} flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-extrabold text-white"><span class="taxi-plate-badge mr-1">${pl.code}</span> ${pl.name}</div>
+                  <div class="text-[10px] text-emerald-400 font-mono-num mt-0.5">Aylık Net Şoför Kirası: <strong>+${fmtMoney(rent)}/ay</strong></div>
+                </div>
+                <button onclick="buyCommercialTaxiPlate('${pl.id}', ${cost})" class="px-3 py-1.5 rounded-xl text-[10px] font-extrabold shrink-0 ${owned ? 'bg-amber-400/20 text-amber-300' : 'bg-amber-400 text-slate-950'}">
+                  ${owned ? 'Plaka Senin ✓' : fmtMoney(cost)}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+        <div class="text-xs font-extrabold text-white">🛠️ TÜVTÜRK Araç Muayenesi &amp; Tam Kasko</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="doTuvturkAndKasko('tuv', ${tuvCost})" class="p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[10px] font-extrabold">
+            📋 TÜVTÜRK Muayene (${fmtMoney(tuvCost)})
+          </button>
+          <button onclick="doTuvturkAndKasko('kasko', ${kaskoCost})" class="p-2.5 rounded-xl ${gv.kaskoActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-500 text-slate-950'} text-[10px] font-extrabold">
+            ${gv.kaskoActive ? '🛡️ Tam Kasko Aktif ✓' : `🛡️ Kasko Yaptır (${fmtMoney(kaskoCost)})`}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  return '';
+}
+
+window.installCarTuningMod = function (carUid, modId, cost) {
+  ensureMegaV2State();
+  const gv = G.garageV2;
+  if (!gv.carMods[carUid]) gv.carMods[carUid] = [];
+  if (gv.carMods[carUid].includes(modId)) return;
+  if (G.money < cost) { showToast('Modifiye ve ses sistemi için bakiye yetersiz!'); return; }
+
+  const mod = CAR_TUNING_PACKS_DB.find(x => x.id === modId);
+  const car = G.cars.find(c => c.uid === carUid);
+  if (!mod || !car) return;
+
+  G.money -= cost;
+  gv.carMods[carUid].push(modId);
+  gv.carHp[carUid] = (gv.carHp[carUid] || 130) + mod.hpGain;
+  car.value = Math.round(car.value * (1 + mod.valueBoostPct / 100));
+  G.happy = clamp(G.happy + 10);
+  playSfx('trophy');
+  addLog(G.age, `🔊 **SANAYİ DYNO & MODİFİYE:** **${car.name}** aracına **${mod.name}** uyguladın! Araç **${gv.carHp[carUid]} HP** güce ulaştı ve piyasa değeri **${fmtMoney(car.value)}** oldu!`, 'good');
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+window.buyCommercialTaxiPlate = function (plId, cost) {
+  ensureMegaV2State();
+  const gv = G.garageV2;
+  if (gv.plates.includes(plId)) return;
+  if (G.money < cost) { showToast('Ticari plaka devir bedeli için nakit yetersiz!'); return; }
+  G.money -= cost;
+  gv.plates.push(plId);
+  unlockAchievement('taksi_agasi');
+  playSfx('trophy');
+  const pl = COMMERCIAL_PLATES_DB.find(x => x.id === plId);
+  addLog(G.age, `🚕 **TİCARİ PLAKA YATIRIMI:** Noterden **${pl.code} (${pl.name})** plakasını satın alıp şoföre kiraladın!`, 'fame');
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+window.doTuvturkAndKasko = function (type, cost) {
+  ensureMegaV2State();
+  if (G.money < cost) { showToast('Bakiye yetersiz!'); return; }
+  G.money -= cost;
+  if (type === 'tuv') {
+    G.garageV2.tuvturkValidUntil = G.age + 2;
+    G.cars.forEach(c => { c.cond = clamp(c.cond + 12, 0, 100); });
+    showToast('TÜVTÜRK Muayenesi kusursuz onaylandı!');
+  } else {
+    G.garageV2.kaskoActive = true;
+    showToast('Tüm garajın Tam Kasko güvencesine alındı!');
+  }
+  playSfx('coin');
+  saveGame(); renderAll(); openMenuSection('cars');
+};
+
+/* ============================================================================
+   PAKET 6: DÜĞÜN ALTINI, ÇOCUK CEO ATAMA, MHRS vs ÖSS HASTANE & TATİL ROTALARI
+   ============================================================================ */
+
+function renderFamilyDynastyAndHolidaysHTML() {
+  ensureMegaV2State();
+  const c = getCountry();
+  const lv = G.lifeV2;
+  const adultKids = (G.children || []).filter(ch => ch.age >= 20);
+
+  return `
+    <!-- Düğün Takı Töreni & Çocukları Şirkete CEO Atama -->
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-amber-400/40 space-y-2.5 mt-3">
+      <div class="text-xs font-extrabold text-amber-300">👑 Hanedan Yönetimi: Düğün Takı Töreni &amp; Aile Holdingi</div>
+      ${G.spouse && lv.weddingDoneForSpouse !== G.spouse.name ? `
+        <button onclick="holdWeddingGoldCeremony()" class="w-full py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-extrabold">
+          💍 Düğün Takı Töreni Yap (Takılan Gram Altınları Kasaya Ekle!)
+        </button>
+      ` : ''}
+
+      ${adultKids.length > 0 && G.businesses.length > 0 ? `
+        <div class="space-y-1.5">
+          <div class="text-[10px] text-slate-300">Üniversite çağına gelen çocuklarını şirketlerine Genel Müdür (CEO/CFO) atayarak şirket kârını +%15 artır:</div>
+          ${adultKids.map(kd => {
+            const isCeo = lv.ceoKids.includes(kd.name);
+            return `
+              <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <span class="text-xs font-bold text-white">🎓 ${kd.name} (${kd.age} Yaş)</span>
+                <button onclick="assignChildAsCompanyCEO('${kd.name}')" class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isCeo ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-500 text-slate-950'}">
+                  ${isCeo ? 'Şirkette CEO ✓' : 'Şirkete CEO Ata (+%15 Kâr)'}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      ` : `<div class="text-[10px] text-slate-400">Çocukların 20 yaşına ulaştığında onları kurduğun şirketlerin başına CEO olarak atayabilirsin.</div>`}
+    </div>
+
+    <!-- Tatil Rotaları (Şarköy, Ordu Yaylası, Antalya, Avrupa) -->
+    <div class="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 space-y-2 mt-3">
+      <div class="text-xs font-extrabold text-emerald-300">🏖️ Yıllık Tatil &amp; Stres Sıfırlama Rotaları</div>
+      <div class="grid grid-cols-2 gap-2">
+        ${HOLIDAY_ROUTES_DB.map((hl, idx) => {
+          const cost = Math.round(c.monthlyMinWage * hl.costMult);
+          return `
+            <button onclick="goOnHolidayRoute(${idx}, ${cost})" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-left hover:border-emerald-500/50">
+              <div class="text-xs font-extrabold text-white truncate">${hl.icon} ${hl.name}</div>
+              <div class="text-[9.5px] text-emerald-400">-${hl.stressCut} Stres &bull; +${hl.happyGain} Mutluluk</div>
+              <div class="text-[10px] font-mono-num text-amber-300 mt-0.5">${fmtMoney(cost)}</div>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.holdWeddingGoldCeremony = function () {
+  ensureMegaV2State();
+  if (!G.spouse) return;
+  const giftedGrams = randInt(35, 85);
+  G.fxGold.gramGold = (G.fxGold.gramGold || 0) + giftedGrams;
+  G.lifeV2.weddingDoneForSpouse = G.spouse.name;
+  playSfx('trophy');
+  addLog(G.age, `💍 **DÜĞÜN TAKI TÖRENİ:** Akrabalar ve dostların düğünde toplam **+${giftedGrams} Gram Altın** taktı! Altınların doğrudan Kapalıçarşı Altın Hesabına eklendi.`, 'fame');
+  saveGame(); renderAll(); openNavSheet('relations');
+};
+
+window.assignChildAsCompanyCEO = function (kidName) {
+  ensureMegaV2State();
+  if (G.lifeV2.ceoKids.includes(kidName)) return;
+  G.lifeV2.ceoKids.push(kidName);
+  playSfx('trophy');
+  addLog(G.age, `👔 **AİLE HOLDİNGİ:** Çocuğun **${kidName}** şirketler grubunun başına **Genel Müdür (CEO)** olarak atandı! Şirket kârlılığın +%15 arttı.`, 'milestone');
+  saveGame(); renderAll(); openNavSheet('relations');
+};
+
+window.goOnHolidayRoute = function (idx, cost) {
+  ensureMegaV2State();
+  if (G.lifeV2.holidaysThisYear >= 2) { showToast('Bu yıl yeterince tatile çıktın!'); return; }
+  if (G.money < cost) { showToast('Tatil bütçesi için bakiye yetersiz!'); return; }
+  const hl = HOLIDAY_ROUTES_DB[idx];
+  G.money -= cost;
+  G.lifeV2.holidaysThisYear += 1;
+  G.stress = clamp((G.stress || 30) - hl.stressCut, 0, 100);
+  G.happy = clamp(G.happy + hl.happyGain);
+  G.health = clamp(G.health + hl.healthGain);
+  playSfx('trophy');
+  addLog(G.age, `${hl.icon} **TATİL KEYFİ:** **${hl.name}** tatiline çıkarak tüm yılın yorgunluğunu attın (-${hl.stressCut} Stres, +${hl.happyGain} Mutluluk)!`, 'good');
+  saveGame(); renderAll(); openNavSheet('relations');
+};
+
+/* ============================================================================
+   ANA EKONOMİ, MENÜ VE SEKME BİRLEŞTİRME KANCALARI (TÜM 6 PAKET)
+   ============================================================================ */
+
+(function attachMegaV2MasterHooks() {
+  if (window._megaV2MasterLoaded) return;
+  window._megaV2MasterLoaded = true;
+
+  // 1. Tüm Yeni Gelir Kalemlerini (Teknik Direktör, Serbest Ofis, Taksi Plakası, Çocuk CEO, Vergi Gideri) Ekonomiye Bağla
+  const _prevCalcFin = calculateFinances;
+  calculateFinances = function () {
+    ensureMegaV2State();
+    const fin = _prevCalcFin();
+    if (!G || G.inPrison) return fin;
+    const c = getCountry();
+
+    // A) Teknik Direktörlük Aylık Maaşı
+    if (G.coach && G.coach.activeClub && G.coach.salaryMult > 0) {
+      const coachGross = Math.round(c.monthlyMinWage * G.coach.salaryMult);
+      const coachNet = Math.round(coachGross * 0.80);
+      fin.monthlyGrossSalary += coachGross;
+      fin.monthlyNetSalary += coachNet;
+      fin.monthlyNetCashflow += coachNet;
+    }
+
+    // B) Kendi Müşavirlik / Danışmanlık Ofisi Aylık Müşteri Geliri
+    if (G.freelance && G.freelance.officeId && G.freelance.clients > 0) {
+      const of = FREELANCE_OFFICES_DB.find(x => x.id === G.freelance.officeId);
+      if (of) {
+        const officeRev = Math.round(G.freelance.clients * c.monthlyMinWage * of.perClientMult);
+        fin.monthlyBizProfit += officeRev;
+        fin.monthlyNetCashflow += officeRev;
+      }
+    }
+
+    // C) Ticari Taksi (T/M/C Plaka) Aylık Garantili Şoför Kirası
+    let plateRentTotal = 0;
+    if (G.garageV2 && Array.isArray(G.garageV2.plates)) {
+      G.garageV2.plates.forEach(pid => {
+        const pl = COMMERCIAL_PLATES_DB.find(x => x.id === pid);
+        if (pl) plateRentTotal += Math.round(c.monthlyMinWage * pl.monthlyRentMult);
+      });
+    }
+    if (plateRentTotal > 0) {
+      fin.monthlyRentalIncome += plateRentTotal;
+      fin.monthlyNetCashflow += plateRentTotal;
+    }
+
+    // D) Çocuk CEO Şirket Kâr Çarpanı (+%15)
+    if (G.lifeV2 && G.lifeV2.ceoKids.length > 0 && fin.monthlyBizProfit > 0) {
+      const ceoBonus = Math.round(fin.monthlyBizProfit * 0.15 * G.lifeV2.ceoKids.length);
+      fin.monthlyBizProfit += ceoBonus;
+      fin.monthlyNetCashflow += ceoBonus;
+    }
+
+    fin.annualNetCashflow = fin.monthlyNetCashflow * 12;
+    return fin;
+  };
+
+  // 2. Futbol & Spor Merkezini 5 Sekmeli Yap (Futbolcu, Teknik Direktör, Başkan, İddaa, Diğer) + İnteraktif Kale Butonu
+  const _prevUnifiedFb = window.renderUnifiedFootballHub;
+  window.renderUnifiedFootballHub = function () {
+    ensureMegaV2State();
+    const p = G.proPlayer;
+    const cl = G.club;
+
+    const nav5 = `
+      <div class="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[9.5px] font-extrabold">
+        <button onclick="unifiedSportsMainTab='player'; openMenuSection('sports')" class="py-2 rounded-xl ${unifiedSportsMainTab === 'player' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">⚽ Futbolcu</button>
+        <button onclick="unifiedSportsMainTab='coach'; openMenuSection('sports')" class="py-2 rounded-xl ${unifiedSportsMainTab === 'coach' ? 'bg-sky-500 text-slate-950' : 'text-slate-400'}">🧥 T.Direktör</button>
+        <button onclick="unifiedSportsMainTab='president'; openMenuSection('sports')" class="py-2 rounded-xl ${unifiedSportsMainTab === 'president' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🏟️ Başkan</button>
+        <button onclick="unifiedSportsMainTab='iddaa'; openMenuSection('sports')" class="py-2 rounded-xl ${unifiedSportsMainTab === 'iddaa' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🎯 İddaa</button>
+        <button onclick="unifiedSportsMainTab='other_sports'; openMenuSection('sports')" class="py-2 rounded-xl ${unifiedSportsMainTab === 'other_sports' ? 'bg-purple-500 text-white' : 'text-slate-400'}">🏀 Diğer</button>
+      </div>
+    `;
+
+    if (unifiedSportsMainTab === 'coach') {
+      return renderHeroBannerHTML('sports') + nav5 + renderCoachCareerTabHTML();
+    }
+    if (unifiedSportsMainTab === 'iddaa') {
+      return renderHeroBannerHTML('sports') + nav5 + renderIddaaBulletinTabHTML();
+    }
+
+    let baseHtml = _prevUnifiedFb();
+    // Eski 3'lü sekmeyi 5'li sekmeyle değiştir ve İnteraktif Kale butonunu ekle
+    baseHtml = baseHtml.replace(/<div class="grid grid-cols-3[\s\S]*?<\/div>/, nav5);
+
+    if (unifiedSportsMainTab === 'player' && p && p.active) {
+      const shotBtn = `
+        <button onclick="openInteractiveGoalShotModal('player')" class="w-full py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-amber-400 text-slate-950 text-xs font-black shadow-lg mb-2.5">
+          🥅 6 KÖŞELİ İNTERAKTİF KALE: FRİKİK &amp; PENALTI KULLAN!
+        </button>
+      `;
+      baseHtml = baseHtml.replace(nav5, nav5 + shotBtn);
+    }
+    return baseHtml;
+  };
+
+  // 3. Galeri ve Emlak Ekranlarını Alt Sekmeli Mega Merkez Haline Getir
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    ensureMegaV2State();
+
+    if (sec === 'cars') {
+      _prevOpenMenuSec(sec);
+      const body = document.getElementById('sheetBody');
+      if (!body) return;
+      const carTabs = `
+        <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[10px] font-extrabold">
+          <button onclick="garageSubTabV2='dealer_my'; openMenuSection('cars')" class="py-2 rounded-xl ${garageSubTabV2 === 'dealer_my' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🚘 Galeri &amp; 2.El</button>
+          <button onclick="garageSubTabV2='dyno_sound'; openMenuSection('cars')" class="py-2 rounded-xl ${garageSubTabV2 === 'dyno_sound' ? 'bg-purple-500 text-white' : 'text-slate-400'}">🔊 Dyno &amp; Ses</button>
+          <button onclick="garageSubTabV2='taxi_tuv'; openMenuSection('cars')" class="py-2 rounded-xl ${garageSubTabV2 === 'taxi_tuv' ? 'bg-amber-400 text-slate-950' : 'text-slate-400'}">🚕 Taksi Plaka</button>
+        </div>
+      `;
+      if (garageSubTabV2 !== 'dealer_my') {
+        body.innerHTML = renderHeroBannerHTML('cars') + carTabs + renderGarageV2TabsHTML();
+      } else {
+        body.insertAdjacentHTML('afterbegin', carTabs);
+      }
+      return;
+    }
+
+    if (sec === 'houses') {
+      _prevOpenMenuSec(sec);
+      const body = document.getElementById('sheetBody');
+      if (!body) return;
+      const houseTabs = `
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[10px] font-extrabold">
+          <button onclick="realEstateSubTabV2='houses'; openMenuSection('houses')" class="py-2 rounded-xl ${realEstateSubTabV2 === 'houses' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">🏠 Konut, Kiracı &amp; UYAP</button>
+          <button onclick="realEstateSubTabV2='land_yapsat'; openMenuSection('houses')" class="py-2 rounded-xl ${realEstateSubTabV2 === 'land_yapsat' ? 'bg-orange-500 text-slate-950' : 'text-slate-400'}">🏗️ Arsa İmar &amp; Müteahhitlik</button>
+        </div>
+      `;
+      if (realEstateSubTabV2 === 'land_yapsat') {
+        body.innerHTML = renderHeroBannerHTML('houses') + houseTabs + renderLandAndYapSatHTML();
+      } else {
+        body.insertAdjacentHTML('afterbegin', houseTabs);
+      }
+      return;
+    }
+
+    // Sağlık / Hastane Sekmesine Özel Sağlık Sigortası (ÖSS) Ücretsiz Check-Up Ekle
+    if (sec === 'doctor') {
+      _prevOpenMenuSec(sec);
+      const body = document.getElementById('sheetBody');
+      if (body && G.jobId) {
+        const ossCard = `
+          <div class="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 flex items-center justify-between mb-3">
+            <div>
+              <div class="text-xs font-extrabold text-emerald-300">🏥 Özel Sağlık Sigortası (ÖSS) VIP Poliçesi</div>
+              <div class="text-[10px] text-slate-300">İşyeri yan hakkın sayesinde özel hastanede sıra beklemeden ücretsiz tedavi!</div>
+            </div>
+            <button onclick="G.health=100; G.stress=Math.max(0,(G.stress||20)-25); playSfx('trophy'); showToast('ÖSS ile ücretsiz VIP tedavi oldun!'); saveGame(); renderAll(); openMenuSection('doctor');" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold shrink-0">
+              Ücretsiz VIP Tedavi
+            </button>
+          </div>
+        `;
+        body.insertAdjacentHTML('afterbegin', ossCard);
+      }
+      return;
+    }
+
+    _prevOpenMenuSec(sec);
+  };
+
+  // 4. Kariyer Sekmesine 5. Sekme Olarak "🏢 Ofis & E-Ticaret" ve İlişkiler Sekmesine "Tatil & Hanedan" Ekle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureMegaV2State();
+
+    if (tab === 'career' && careerMainSubTab === 'freelance_ecom') {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('hidden');
+      document.getElementById('sheetTitle').textContent = '🏢 Serbest Ofis & E-Ticaret Pazaryeri';
+      document.getElementById('sheetSubtitle').textContent = 'Mali/Gümrük Müşavirliği & Trendyol/Amazon Mağazası';
+      const nav5Career = `
+        <div class="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[9.5px] font-extrabold">
+          <button onclick="careerMainSubTab='portal'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">💼 İlan</button>
+          <button onclick="careerMainSubTab='workplace'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">📈 İşyeri</button>
+          <button onclick="careerMainSubTab='freelance_ecom'; openNavSheet('career')" class="py-2 rounded-xl bg-sky-500 text-slate-950 shadow">🏢 Ofis/E-Tic</button>
+          <button onclick="careerMainSubTab='edu_kpss'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">🎓 KPSS</button>
+          <button onclick="careerMainSubTab='sgk_cv'; openNavSheet('career')" class="py-2 rounded-xl text-slate-400">📋 SGK/CV</button>
+        </div>
+      `;
+      document.getElementById('sheetBody').innerHTML = renderHeroBannerHTML('career') + nav5Career + renderFreelanceAndEcommerceTabHTML();
+      return;
+    }
+
+    _prevOpenNav(tab);
+    const body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    if (tab === 'career') {
+      const old4Grid = body.querySelector('.grid.grid-cols-4');
+      if (old4Grid) {
+        old4Grid.className = 'grid grid-cols-5 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-2.5 text-[9.5px] font-extrabold';
+        old4Grid.insertAdjacentHTML('beforeend', `
+          <button onclick="careerMainSubTab='freelance_ecom'; openNavSheet('career')" class="py-2 rounded-xl text-sky-400">🏢 Ofis/E-Tic</button>
+        `);
+      }
+    }
+
+    if (tab === 'relations') {
+      body.insertAdjacentHTML('beforeend', renderFamilyDynastyAndHolidaysHTML());
+    }
+  };
+})();
