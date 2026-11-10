@@ -1175,3 +1175,5 @@ button:active {
   border-radius: 99px;
   box-shadow: 0 2px 8px rgba(250, 204, 21, 0.6);
 }
+
+#cityMapRootContainer, #menuMapSettingsBar { display: none !important; }
