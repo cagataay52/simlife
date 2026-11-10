@@ -10458,3 +10458,694 @@ function refreshCurrentHouseholdView() {
 
   cleanBrokenUIElements();
 })();
+
+/* ============================================================================
+   GTA iFRUIT TELEFON + RPG DİYALOG SAHNESİ + AYARLANABİLİR ŞEHİR HARİTASI MOTORU
+   ============================================================================ */
+
+let activePhoneApp = 'home'; // 'home' | 'chat' | 'sarisite' | 'cepbank' | 'settings'
+let _rpgTypewriterTimer = null;
+
+function ensureGameThemeV3State() {
+  if (!G) return;
+
+  // 1. Kullanıcı Arayüz & Harita Tercihleri (Ayarlardan Açılıp Kapatılabilir!)
+  if (!G.uiPrefs) {
+    G.uiPrefs = {
+      showCityMap: true,        // İnteraktif Şehir Haritası Açık/Kapalı
+      cityMapCompact: false,    // Küçültülmüş görünüm
+      rpgDialoguesEnabled: true // FIFA/RPG Karakterli Diyalog Sahnesi Açık/Kapalı
+    };
+  }
+
+  // 2. GTA iFruit Telefon & WhatsChat Durumu
+  if (!G.phone) {
+    G.phone = {
+      inbox: [],
+      operator: 'TurkNet 5G'
+    };
+    seedInitialPhoneMessages();
+  }
+}
+
+function seedInitialPhoneMessages() {
+  if (!G || !G.phone) return;
+  if (G.phone.inbox.length === 0) {
+    const firstMsgs = IFRUIT_CHAT_TEMPLATES_DB.slice(0, 3).map(t => ({
+      uid: uid(),
+      tplId: t.id,
+      sender: t.sender,
+      avatar: t.avatar,
+      role: t.role,
+      text: t.text,
+      costMult: t.costMult,
+      rewardMult: t.rewardMult,
+      happyBoost: t.happyBoost || 0,
+      stressCut: t.stressCut || 0,
+      replyYes: t.replyYes,
+      replyNo: t.replyNo,
+      answered: false,
+      myReplyText: null
+    }));
+    G.phone.inbox.push(...firstMsgs);
+  }
+}
+
+function getUnreadPhoneCount() {
+  if (!G || !G.phone || !Array.isArray(G.phone.inbox)) return 0;
+  return G.phone.inbox.filter(m => !m.answered).length;
+}
+
+/* ============================================================================
+   1. SİSTEM: 🗺️ İNTERAKTİF ŞEHİR HARİTASI (AYARLARDAN KALDIRILIP EKLENEBİLİR)
+   ============================================================================ */
+
+window.toggleCityMapPreference = function (forceState) {
+  ensureGameThemeV3State();
+  if (typeof forceState === 'boolean') {
+    G.uiPrefs.showCityMap = forceState;
+  } else {
+    G.uiPrefs.showCityMap = !G.uiPrefs.showCityMap;
+  }
+  playSfx('coin');
+  showToast(G.uiPrefs.showCityMap ? '🗺️ İnteraktif Şehir Haritası Açıldı!' : '🗺️ Şehir Haritası Gizlendi (Ayarlardan her zaman açabilirsin).');
+  saveGame();
+  renderAll();
+};
+
+window.toggleRpgDialoguePreference = function () {
+  ensureGameThemeV3State();
+  G.uiPrefs.rpgDialoguesEnabled = !G.uiPrefs.rpgDialoguesEnabled;
+  playSfx('coin');
+  saveGame();
+  renderAll();
+};
+
+window.clickCityMapBuilding = function (actionType, target) {
+  playSfx('coin');
+  if (actionType === 'nav') {
+    openNavSheet(target);
+  } else {
+    openMenuSection(target);
+  }
+};
+
+function renderInteractiveCityMapHTML() {
+  ensureGameThemeV3State();
+
+  // Eğer kullanıcı Ayarlardan Şehir Haritasını kapattıysa haritayı hiç gösterme
+  if (!G.uiPrefs.showCityMap) {
+    return `
+      <div class="flex items-center justify-between px-3 py-1.5 mb-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px]">
+        <span class="text-slate-400">🗺️ İnteraktif Şehir Haritası kapalı (Klasik Görünüm)</span>
+        <button onclick="toggleCityMapPreference(true)" class="text-sky-400 font-extrabold hover:underline">Haritayı Aç</button>
+      </div>
+    `;
+  }
+
+  const badgeCounts = {
+    pin_stadium: (G.club && G.club.active) ? '👑 BAŞKAN' : ((G.proPlayer && G.proPlayer.active) ? '⚽ PRO' : ''),
+    pin_plaza: (G.jobId || (G.career && G.career.isCivilServant)) ? '💼 AKTİF' : '',
+    pin_sanayi: G.cars && G.cars.length > 0 ? `🚘 ${G.cars.length}` : '',
+    pin_residence: G.houses && G.houses.length > 0 ? `🏠 ${G.houses.length}` : '',
+    pin_state: (G.deepPol && G.deepPol.mySeats > 0) ? `🏛️ ${G.deepPol.mySeats} MV` : '',
+    pin_media: (G.mediaStudio && G.mediaStudio.ownedOutlets.length > 0) ? `📡 ${G.mediaStudio.ownedOutlets.length}` : '',
+    pin_mall: (G.household && G.household.hygieneLevel < 50) ? '🧹 ACİL' : '',
+    pin_bank_hosp: G.businesses && G.businesses.length > 0 ? `🏭 ${G.businesses.length}` : ''
+  };
+
+  return `
+    <div class="city-map-wrapper" id="interactiveCityMapBox">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-sky-300">🗺️ İNTERAKTİF METROPOL HARİTASI</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openIfruitPhone('settings')" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-[9px] font-bold">⚙️ Ayarlar</button>
+          <button onclick="toggleCityMapPreference(false)" class="px-2 py-0.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[9px] font-bold">Gizle ✕</button>
+        </div>
+      </div>
+
+      <div class="city-map-grid-surface">
+        <!-- Boğaz / Deniz Hattı Süsü -->
+        <div class="text-[8.5px] font-extrabold text-sky-300/80 text-center mb-1.5 tracking-widest uppercase">
+          〰️ MARMARA &amp; BOĞAZ HATTI • BİNAYA DOKUNARAK MEKANA GİR 〰️
+        </div>
+
+        <div class="grid grid-cols-4 gap-1.5">
+          ${CITY_MAP_DISTRICTS_DB.map(b => {
+            const flagTxt = badgeCounts[b.id] || '';
+            return `
+              <div onclick="clickCityMapBuilding('${b.actionType}', '${b.target}')" class="city-building-pin ${b.accent}">
+                ${flagTxt ? `<span class="city-pin-owner-flag">${flagTxt}</span>` : ''}
+                <div class="text-xl leading-none mb-1">${b.icon}</div>
+                <div class="text-[9.5px] font-extrabold text-white truncate">${b.name}</div>
+                <div class="text-[8px] text-slate-400 truncate">${b.sub}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   2. SİSTEM: 📱 GTA iFRUIT AKILLI TELEFON VE CANLI MESAJLAŞMA (WHATSCHAT)
+   ============================================================================ */
+
+window.openIfruitPhone = function (app = 'home') {
+  ensureGameThemeV3State();
+  activePhoneApp = app;
+
+  let modal = document.getElementById('ifruitPhoneOverlay');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ifruitPhoneOverlay';
+    modal.className = 'ifruit-phone-backdrop hidden';
+    document.body.appendChild(modal);
+  }
+  modal.classList.remove('hidden');
+  renderIfruitPhoneContent();
+};
+
+window.closeIfruitPhone = function () {
+  const modal = document.getElementById('ifruitPhoneOverlay');
+  if (modal) modal.classList.add('hidden');
+  renderAll();
+};
+
+function renderIfruitPhoneContent() {
+  const modal = document.getElementById('ifruitPhoneOverlay');
+  if (!modal || !G) return;
+
+  const c = getCountry();
+  const unread = getUnreadPhoneCount();
+
+  let appBodyHtml = '';
+
+  // UYGULAMA 1: TELEFON ANA EKRANI (APP GRID)
+  if (activePhoneApp === 'home') {
+    appBodyHtml = `
+      <div class="p-3 space-y-3 flex-1 overflow-y-auto">
+        <!-- Telefon Üst Hava Durumu & Cüzdan Widget'ı -->
+        <div class="p-3 rounded-2xl bg-gradient-to-br from-sky-600/30 via-indigo-900/40 to-slate-900 border border-sky-400/30 flex items-center justify-between">
+          <div>
+            <div class="text-[9px] font-extrabold text-sky-300 uppercase">📍 ${c.name} • 21°C Açık</div>
+            <div class="text-sm font-extrabold text-white">${G.firstName} ${G.lastName}</div>
+            <div class="text-[10px] font-mono-num text-emerald-400">Cüzdan: ${fmtMoney(G.money)}</div>
+          </div>
+          <div class="text-2xl">📱</div>
+        </div>
+
+        <!-- Uygulama İkonları Grid -->
+        <div class="grid grid-cols-3 gap-2.5 pt-1">
+          <button onclick="openIfruitPhone('chat')" class="ifruit-app-icon">
+            ${unread > 0 ? `<span class="ifruit-unread-badge">${unread}</span>` : ''}
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-emerald-400 to-green-600 text-slate-950">💬</div>
+            <span class="text-[10px] font-extrabold text-white">WhatsChat</span>
+          </button>
+
+          <button onclick="openIfruitPhone('sarisite')" class="ifruit-app-icon">
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-amber-300 to-yellow-500 text-slate-950">🟡</div>
+            <span class="text-[10px] font-extrabold text-white">SarıSite</span>
+          </button>
+
+          <button onclick="openIfruitPhone('cepbank')" class="ifruit-app-icon">
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-sky-400 to-blue-600 text-white">🏦</div>
+            <span class="text-[10px] font-extrabold text-white">CepBank</span>
+          </button>
+
+          <button onclick="closeIfruitPhone(); openMenuSection('social')" class="ifruit-app-icon">
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-orange-500 to-amber-600 text-slate-950">🟠</div>
+            <span class="text-[10px] font-extrabold text-white">Skor Ağı</span>
+          </button>
+
+          <button onclick="closeIfruitPhone(); openMenuSection('sports')" class="ifruit-app-icon">
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-emerald-500 to-teal-700 text-white">🎯</div>
+            <span class="text-[10px] font-extrabold text-white">İddaa &amp; Maç</span>
+          </button>
+
+          <button onclick="openIfruitPhone('settings')" class="ifruit-app-icon">
+            <div class="ifruit-app-icon-box bg-gradient-to-br from-slate-600 to-slate-800 text-white">⚙️</div>
+            <span class="text-[10px] font-extrabold text-white">Ayarlar</span>
+          </button>
+        </div>
+
+        <!-- Son Gelen Mesaj Önizlemesi -->
+        <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between text-[10px] font-extrabold text-emerald-400">
+            <span>💬 SON WHATSAT MESAJLARI</span>
+            <button onclick="openIfruitPhone('chat')" class="underline">Tümünü Aç (${unread})</button>
+          </div>
+          ${G.phone.inbox.slice(0, 2).map(m => `
+            <div onclick="openIfruitPhone('chat')" class="p-2 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center gap-2 cursor-pointer">
+              <span class="text-lg">${m.avatar}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-[10px] font-extrabold text-white truncate">${m.sender}</div>
+                <div class="text-[9.5px] text-slate-400 truncate">${m.text}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // UYGULAMA 2: WHATSCHAT (CANLI MESAJLAŞMA VE TEKLİF YANITLAMA)
+  else if (activePhoneApp === 'chat') {
+    appBodyHtml = `
+      <div class="p-3 space-y-2.5 flex-1 overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div>
+            <div class="text-xs font-extrabold text-emerald-400">💬 WhatsChat Sohbetler</div>
+            <div class="text-[9.5px] text-slate-400">Arkadaşların, galericiler ve iş dünyasından gelen canlı mesajlar</div>
+          </div>
+          <button onclick="generateNewPhoneChatMsg(); renderIfruitPhoneContent();" class="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[9.5px] font-extrabold">+ Yeni Mesaj</button>
+        </div>
+
+        ${G.phone.inbox.map((msg, idx) => {
+          const costAmt = Math.round(c.monthlyMinWage * (msg.costMult || 0));
+          const rewAmt = Math.round(c.monthlyMinWage * (msg.rewardMult || 0));
+          return `
+            <div class="p-2.5 rounded-2xl bg-slate-900/95 border ${msg.answered ? 'border-slate-800' : 'border-emerald-500/50'} space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${msg.avatar}</span>
+                <div>
+                  <div class="text-[11px] font-extrabold text-white">${msg.sender}</div>
+                  <div class="text-[9px] text-slate-400">${msg.role}</div>
+                </div>
+              </div>
+
+              <div class="chat-bubble-npc">${msg.text}</div>
+
+              ${msg.answered ? `
+                <div class="chat-bubble-me">${msg.myReplyText} ✓✓</div>
+              ` : `
+                <div class="space-y-1 pt-1">
+                  <button onclick="replyWhatsChatMessage(${idx}, true)" class="w-full py-1.5 px-2.5 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-extrabold text-left flex items-center justify-between">
+                    <span>${msg.replyYes}</span>
+                    <span class="font-mono-num">${costAmt > 0 ? '-' + fmtMoney(costAmt) : 'Onayla'}</span>
+                  </button>
+                  <button onclick="replyWhatsChatMessage(${idx}, false)" class="w-full py-1.5 px-2.5 rounded-xl bg-slate-800 text-slate-300 text-[10px] font-bold text-left">
+                    ${msg.replyNo}
+                  </button>
+                </div>
+              `}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // UYGULAMA 3: SARI SİTE MOBİL (HIZLI AL-SAT & PAZARLIK DİYALOĞU)
+  else if (activePhoneApp === 'sarisite') {
+    appBodyHtml = `
+      <div class="p-3 space-y-2.5 flex-1 overflow-y-auto">
+        <div class="p-2.5 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-between">
+          <span class="text-xs font-black">🟡 sarısite.com Mobil İlanlar</span>
+          <span class="text-[9px] font-extrabold">Canlı Pazarlık</span>
+        </div>
+        ${(typeof USED_CAR_MARKET_DB !== 'undefined' ? USED_CAR_MARKET_DB : []).map((uc, idx) => {
+          const ask = Math.round(c.monthlyMinWage * uc.baseMult);
+          return `
+            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-extrabold text-white">${uc.icon} ${uc.name}</span>
+                <span class="text-xs font-mono-num font-extrabold text-amber-400">${fmtMoney(ask)}</span>
+              </div>
+              <div class="text-[9.5px] text-slate-400">"${uc.sellerNote}"</div>
+              <button onclick="closeIfruitPhone(); openRpgCarBargainScene(${idx})" class="w-full py-1.5 rounded-lg bg-amber-400 text-slate-950 text-[10px] font-extrabold">
+                💬 Satıcıyla Yüz Yüze Pazarlığa Otur (RPG Sahnesi)
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // UYGULAMA 4: CEPBANK MOBİL
+  else if (activePhoneApp === 'cepbank') {
+    const fin = calculateFinances();
+    appBodyHtml = `
+      <div class="p-3 space-y-2.5 flex-1 overflow-y-auto">
+        <div class="p-3 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-700 text-white space-y-1">
+          <div class="text-[9px] uppercase font-bold opacity-80">CEPBANK VADESİZ HESAP</div>
+          <div class="text-lg font-mono-num font-black">${fmtMoney(G.money)}</div>
+          <div class="text-[10px]">Aylık Net Akış: <strong>${fin.monthlyNetCashflow >= 0 ? '+' : ''}${fmtMoney(fin.monthlyNetCashflow)}/ay</strong></div>
+        </div>
+        <button onclick="closeIfruitPhone(); openNavSheet('finance')" class="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-extrabold">
+          🏦 Tam Banka, Altın &amp; Holding Ekranını Aç
+        </button>
+      </div>
+    `;
+  }
+
+  // UYGULAMA 5: TELEFON & OYUN AYARLARI (HARİTA VE DİYALOG AÇ/KAPAT)
+  else if (activePhoneApp === 'settings') {
+    appBodyHtml = `
+      <div class="p-3 space-y-3 flex-1 overflow-y-auto">
+        <div class="text-xs font-extrabold text-sky-400 border-b border-slate-800 pb-1.5">⚙️ Oyun Görünümü &amp; Harita Ayarları</div>
+
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-extrabold text-white">🗺️ İnteraktif Şehir Haritası</div>
+            <div class="text-[10px] text-slate-400">Ana ekranda binalara tıklanan şehir haritasını gösterir veya gizler.</div>
+          </div>
+          <button onclick="toggleCityMapPreference(); renderIfruitPhoneContent();" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${G.uiPrefs.showCityMap ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+            ${G.uiPrefs.showCityMap ? 'AÇIK ✓' : 'KAPALI'}
+          </button>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-extrabold text-white">🎭 Karakterli RPG Diyalog Sahnesi</div>
+            <div class="text-[10px] text-slate-400">Olayları ve pazarlıkları FIFA/RPG tarzı karakter portresi ve daktilo konuşma balonuyla açar.</div>
+          </div>
+          <button onclick="toggleRpgDialoguePreference(); renderIfruitPhoneContent();" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${G.uiPrefs.rpgDialoguesEnabled ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+            ${G.uiPrefs.rpgDialoguesEnabled ? 'AÇIK ✓' : 'KAPALI'}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  modal.innerHTML = `
+    <div class="ifruit-phone-shell">
+      <!-- Üst Çentik (Dynamic Island) & Durum Çubuğu -->
+      <div class="px-4 pt-2 pb-1 flex items-center justify-between text-[9.5px] font-mono-num text-slate-300">
+        <span>${G.phone.operator}</span>
+        <div class="ifruit-notch"><div class="ifruit-notch-cam"></div></div>
+        <span>🔋 96%</span>
+      </div>
+
+      <!-- Üst Uygulama Başlığı -->
+      <div class="px-3 py-1.5 border-b border-slate-800/80 flex items-center justify-between">
+        ${activePhoneApp !== 'home' ? `
+          <button onclick="openIfruitPhone('home')" class="text-[11px] font-extrabold text-sky-400">&larr; Ana Ekran</button>
+        ` : `<span class="text-[10px] font-extrabold text-slate-400">iFruit OS 18</span>`}
+        <button onclick="closeIfruitPhone()" class="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-bold">Kapat ✕</button>
+      </div>
+
+      ${appBodyHtml}
+
+      <!-- Alt Home Çubuğu -->
+      <div class="py-2 flex justify-center border-t border-slate-900 bg-slate-950">
+        <button onclick="openIfruitPhone('home')" class="w-28 h-1.5 rounded-full bg-slate-600 hover:bg-white transition"></button>
+      </div>
+    </div>
+  `;
+}
+
+window.replyWhatsChatMessage = function (idx, accepted) {
+  ensureGameThemeV3State();
+  const msg = G.phone.inbox[idx];
+  if (!msg || msg.answered) return;
+  const c = getCountry();
+  const cost = Math.round(c.monthlyMinWage * (msg.costMult || 0));
+  const reward = Math.round(c.monthlyMinWage * (msg.rewardMult || 0));
+
+  if (accepted) {
+    if (cost > 0 && G.money < cost) {
+      showToast(`Bu teklifi onaylamak için ${fmtMoney(cost)} nakit gerekiyor!`);
+      return;
+    }
+    G.money -= cost;
+    G.money += reward;
+    if (msg.happyBoost) G.happy = clamp(G.happy + msg.happyBoost);
+    if (msg.stressCut) G.stress = clamp((G.stress || 20) - msg.stressCut, 0, 100);
+    msg.answered = true;
+    msg.myReplyText = msg.replyYes;
+    playSfx('trophy');
+    addLog(G.age, `📱 **WHATSAT ANLAŞMASI (${msg.sender}):** Mesaj üzerinden teklifi onayladın! ${reward > cost ? `(**+${fmtMoney(reward - cost)} Net Kazanç**)` : ''}`, 'good');
+  } else {
+    msg.answered = true;
+    msg.myReplyText = msg.replyNo;
+    playSfx('coin');
+  }
+
+  saveGame();
+  renderAll();
+  renderIfruitPhoneContent();
+};
+
+window.generateNewPhoneChatMsg = function () {
+  ensureGameThemeV3State();
+  const tpl = pickRandom(IFRUIT_CHAT_TEMPLATES_DB);
+  G.phone.inbox.unshift({
+    uid: uid(),
+    tplId: tpl.id,
+    sender: tpl.sender,
+    avatar: tpl.avatar,
+    role: tpl.role,
+    text: tpl.text,
+    costMult: tpl.costMult,
+    rewardMult: tpl.rewardMult,
+    happyBoost: tpl.happyBoost || 0,
+    stressCut: tpl.stressCut || 0,
+    replyYes: tpl.replyYes,
+    replyNo: tpl.replyNo,
+    answered: false,
+    myReplyText: null
+  });
+  if (G.phone.inbox.length > 8) G.phone.inbox.pop();
+};
+
+/* ============================================================================
+   3. SİSTEM: 🎭 KARAKTERLİ RPG DİYALOG SAHNESİ VE KONUŞMA BALONLARI
+   ============================================================================ */
+
+function detectNpcPersonaFromConfig(cfg) {
+  const txt = ((cfg.badge || '') + ' ' + (cfg.title || '')).toLowerCase();
+  if (/ik|mülakat|terfi|iş|şirket/.test(txt)) return RPG_NPC_PERSONAS_DB.hr_manager;
+  if (/sarı site|araç|galeri|ekspertiz|noter|alıcı/.test(txt)) return RPG_NPC_PERSONAS_DB.car_dealer;
+  if (/mahkeme|icra|fesih|arabulucu|hakim|vergi/.test(txt)) return RPG_NPC_PERSONAS_DB.judge_law;
+  if (/futbol|kulüp|transfer|maç|scout|tff/.test(txt)) return RPG_NPC_PERSONAS_DB.football_agent;
+  return RPG_NPC_PERSONAS_DB.default_npc;
+}
+
+window.openRpgCarBargainScene = function (carIdx) {
+  if (typeof USED_CAR_MARKET_DB === 'undefined') return;
+  const uc = USED_CAR_MARKET_DB[carIdx];
+  if (!uc) return;
+  const c = getCountry();
+  const askPrice = Math.round(c.monthlyMinWage * uc.baseMult);
+  const lowPrice = Math.round(askPrice * 0.85);
+
+  openEventModal({
+    badge: `🚗 OTO SANAYİ & NOTER PAZARLIK MASASI`,
+    title: `${uc.name} — Satıcıyla Yüz Yüze Pazarlık`,
+    desc: `"Bak kardeşim, ${uc.name} çiçek gibi araba. ${uc.sellerNote} İlan fiyatım ${fmtMoney(askPrice)}, ama ciddi alıcıysan noterde biraz ikram yaparım. Teklifin nedir?"`,
+    choices: [
+      {
+        label: `🤝 "Usta nakit ${fmtMoney(lowPrice)} hazır, hemen notere gidelim!" (-%15 İndirim)`,
+        action: () => buyUsedCarWithBargain(carIdx, true)
+      },
+      {
+        label: `💵 "Uzun lafa gerek yok, ${fmtMoney(askPrice)} veriyorum, hayırlı olsun."`,
+        action: () => buyUsedCarWithBargain(carIdx, false)
+      },
+      {
+        label: `🚪 "Fiyat yüksek geldi usta, iyi satışlar." (Masadan Kalk)`,
+        action: () => {}
+      }
+    ]
+  });
+};
+
+function showRpgCharacterDialogueModal(cfg) {
+  const npc = cfg.npc || detectNpcPersonaFromConfig(cfg);
+  let overlay = document.getElementById('rpgDialogueOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'rpgDialogueOverlay';
+    overlay.className = 'rpg-dialogue-backdrop hidden';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.remove('hidden');
+
+  window._currentRpgChoices = cfg.choices || [];
+
+  overlay.innerHTML = `
+    <div class="rpg-dialogue-stage">
+      <!-- Üst Sahne: Senin Karakterin vs Karşı Karakter (NPC) -->
+      <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800">
+        <!-- Oyuncu Portresi -->
+        <div class="flex items-center gap-2">
+          <img src="${typeof getCurrentPortrait === 'function' ? getCurrentPortrait() : ''}" class="w-11 h-11 rounded-xl object-cover border-2 border-emerald-400" />
+          <div>
+            <div class="text-[9px] font-extrabold text-emerald-400 uppercase">SEN</div>
+            <div class="text-xs font-extrabold text-white">${G.firstName}</div>
+          </div>
+        </div>
+
+        <div class="px-2 py-0.5 rounded-full bg-slate-800 text-[9px] font-black text-amber-300">KARŞI KARŞIYA</div>
+
+        <!-- NPC Portresi ve Sabır Barı -->
+        <div class="flex items-center gap-2 text-right">
+          <div>
+            <div class="text-xs font-extrabold text-white">${npc.name}</div>
+            <div class="text-[9px] text-sky-400 font-bold">${npc.role}</div>
+            <div class="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden ml-auto mt-1">
+              <div class="h-full bg-amber-400" style="width:${npc.patience}%"></div>
+            </div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-slate-800 border-2 border-amber-400 flex items-center justify-center text-2xl shrink-0">
+            ${npc.avatar}
+          </div>
+        </div>
+      </div>
+
+      <!-- Sahne Başlığı -->
+      <div class="mt-2 flex items-center justify-between text-[10px]">
+        <span class="font-extrabold text-amber-300 uppercase">${cfg.badge || '🎭 DİYALOG SAHNESİ'}</span>
+        <span class="text-slate-400">Sabır: %${npc.patience} (${npc.moodText})</span>
+      </div>
+      <div class="text-sm font-extrabold text-white mt-0.5">${cfg.title || ''}</div>
+
+      <!-- Daktilo Efektli Konuşma Balonu -->
+      <div class="rpg-speech-box">
+        <div class="text-[10px] font-extrabold text-emerald-400 mb-1">💬 ${npc.name} diyor ki:</div>
+        <p id="rpgTypewriterText" class="text-xs text-slate-100 leading-relaxed font-medium"></p>
+      </div>
+
+      <!-- Diyalog Cevap Seçenekleri -->
+      <div class="space-y-2">
+        ${(cfg.choices || []).map((ch, idx) => `
+          <button onclick="selectRpgDialogueChoice(${idx})" class="rpg-choice-btn">
+            <span>💬 ${ch.label}</span>
+            <span class="text-emerald-400 text-xs">&rarr;</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Daktilo (Typewriter) Yazı Animasyonu
+  if (_rpgTypewriterTimer) clearInterval(_rpgTypewriterTimer);
+  const fullText = cfg.desc || '';
+  const textEl = document.getElementById('rpgTypewriterText');
+  let charIdx = 0;
+  _rpgTypewriterTimer = setInterval(() => {
+    if (!textEl) {
+      clearInterval(_rpgTypewriterTimer);
+      return;
+    }
+    charIdx += 3;
+    textEl.textContent = fullText.slice(0, charIdx);
+    if (charIdx >= fullText.length) {
+      clearInterval(_rpgTypewriterTimer);
+    }
+  }, 18);
+}
+
+window.selectRpgDialogueChoice = function (idx) {
+  if (_rpgTypewriterTimer) clearInterval(_rpgTypewriterTimer);
+  const overlay = document.getElementById('rpgDialogueOverlay');
+  if (overlay) overlay.classList.add('hidden');
+
+  const ch = (window._currentRpgChoices || [])[idx];
+  if (ch && typeof ch.action === 'function') {
+    ch.action();
+  }
+  saveGame();
+  renderAll();
+};
+
+/* ============================================================================
+   ANA ENTEGRASYON KANCALARI (HARİTA, TELEFON BUTONU, RPG DİYALOG & AYARLAR)
+   ============================================================================ */
+
+(function attachGameThemeV3Master() {
+  if (window._gameThemeV3MasterLoaded) return;
+  window._gameThemeV3MasterLoaded = true;
+
+  // 1. openEventModal Kancası: RPG Diyalog Sahnesi Açıksa Karakterli Sahneyi Göster
+  const _origOpenEventModal = window.openEventModal;
+  window.openEventModal = function (cfg) {
+    ensureGameThemeV3State();
+    if (G && G.uiPrefs && G.uiPrefs.rpgDialoguesEnabled && cfg && Array.isArray(cfg.choices)) {
+      showRpgCharacterDialogueModal(cfg);
+      return;
+    }
+    if (typeof _origOpenEventModal === 'function') {
+      _origOpenEventModal(cfg);
+    }
+  };
+
+  // 2. RenderAll Kancası: Şehir Haritasını ve Sağ Alt iFruit Telefon Butonunu Ekrana Yerleştir
+  const _prevRenderAll = renderAll;
+  renderAll = function () {
+    ensureGameThemeV3State();
+    _prevRenderAll();
+    if (!G) return;
+
+    // A) İnteraktif Şehir Haritasını Zaman Tünelinin Üstüne Yerleştir
+    const logFilterBar = document.getElementById('logFilterBarContainer');
+    const logContainer = document.getElementById('logContainer');
+    const anchorEl = logFilterBar || logContainer;
+
+    if (anchorEl) {
+      let mapContainer = document.getElementById('cityMapRootContainer');
+      if (!mapContainer) {
+        mapContainer = document.createElement('div');
+        mapContainer.id = 'cityMapRootContainer';
+        anchorEl.parentNode.insertBefore(mapContainer, anchorEl);
+      }
+      mapContainer.innerHTML = renderInteractiveCityMapHTML();
+    }
+
+    // B) Sağ Alt Yüzen GTA iFruit Telefon Butonu
+    let fab = document.getElementById('ifruitFloatingBtn');
+    if (!fab) {
+      fab = document.createElement('button');
+      fab.id = 'ifruitFloatingBtn';
+      fab.className = 'ifruit-fab-btn';
+      fab.setAttribute('onclick', "openIfruitPhone('home')");
+      document.body.appendChild(fab);
+    }
+    const unread = getUnreadPhoneCount();
+    fab.innerHTML = `📱${unread > 0 ? `<span class="ifruit-unread-badge">${unread}</span>` : ''}`;
+  };
+
+  // 3. +1 Yaş İlerlediğinde Telefona Yeni Canlı WhatsChat Mesajı Düşsün
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureGameThemeV3State();
+    _prevAdvanceAge();
+    if (G && G.age >= 16 && !G.inPrison) {
+      generateNewPhoneChatMsg();
+    }
+    renderAll();
+  };
+
+  // 4. Ana Menüye "⚙️ Oyun & Şehir Haritası Ayarları" Şalterini Ekle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureGameThemeV3State();
+    _prevOpenNav(tab);
+    if (tab === 'menu') {
+      const body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('menuMapSettingsBar')) {
+        body.insertAdjacentHTML('afterbegin', `
+          <div id="menuMapSettingsBar" class="p-3 rounded-2xl bg-slate-900 border border-sky-500/40 flex items-center justify-between gap-2 mb-3">
+            <div>
+              <div class="text-xs font-extrabold text-white">🗺️ İnteraktif Şehir Haritası &amp; RPG Sahnesi</div>
+              <div class="text-[10px] text-slate-400">Ana ekrandaki binalara tıklanan haritayı istediğin an açıp kapatabilirsin.</div>
+            </div>
+            <button onclick="toggleCityMapPreference(); openNavSheet('menu');" class="px-3 py-2 rounded-xl text-[10px] font-extrabold shrink-0 ${G.uiPrefs.showCityMap ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'}">
+              ${G.uiPrefs.showCityMap ? 'Harita: AÇIK ✓' : 'Harita: KAPALI'}
+            </button>
+          </div>
+        `);
+      }
+    }
+  };
+
+  if (typeof G !== 'undefined' && G) {
+    renderAll();
+  }
+})();
