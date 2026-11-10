@@ -11149,3 +11149,212 @@ window.selectRpgDialogueChoice = function (idx) {
     renderAll();
   }
 })();
+
+/* ============================================================================
+   AKILLI OLAY YÖNETMENİ, FUTBOL DENGELEYİCİ VE ZİNCİRLEME HİKAYE MOTORU
+   ============================================================================ */
+
+let _isInsideAdvanceAgeTurn = false;
+let _realLifeEventFiredThisTurn = false;
+
+function ensureLifeEventsDirectorState() {
+  if (!G) return;
+  if (!G.lifeEvents) {
+    G.lifeEvents = {
+      seenIds: [],          // Tekrarı önlemek için görülen olay ID'leri
+      pendingChains: [],    // [{ chainId, triggerAge }] -> 1-2 yıl sonra açılacak zincirleme olaylar
+      lastFootballAge: 0
+    };
+  }
+  // İstenmeyen eski harita veya refleks kalıntıları varsa kapat
+  if (G.uiPrefs) G.uiPrefs.showCityMap = false;
+}
+
+function isFootballRelatedModal(cfg) {
+  if (!cfg) return false;
+  const combined = `${cfg.badge || ''} ${cfg.title || ''} ${cfg.desc || ''}`.toLowerCase();
+  return /futbol|maç|gol|asist|stadyum|tff|transfer|kulüp|derbi|penaltı|frikik|lig|kupa|antrenman|scout/.test(combined);
+}
+
+// Karakterin Yaşına, Mesleğine, Aracına ve Evliliğine Göre En Uygun Olayı Seçer
+function pickContextualRealLifeEvent() {
+  ensureLifeEventsDirectorState();
+  const le = G.lifeEvents;
+
+  // 1. ÖNCELİK: Vakti Gelmiş Zincirleme (2. Perde) Hikaye Var mı?
+  const dueChainIdx = le.pendingChains.findIndex(item => G.age >= item.triggerAge);
+  if (dueChainIdx !== -1) {
+    const dueItem = le.pendingChains.splice(dueChainIdx, 1)[0];
+    const followUp = CHAINED_EVENTS_FOLLOWUPS_DB[dueItem.chainId];
+    if (followUp) return { ...followUp, id: dueItem.chainId, isFollowUp: true };
+  }
+
+  // 2. ÖNCELİK: Karakterin Durumuna Göre Havuz Oluşturma
+  let pool = [];
+
+  // A) Zincirleme hikaye başlangıçları (18+ yaş)
+  if (G.age >= 18) {
+    pool.push(...CHAINED_EVENTS_STARTERS_DB);
+  }
+
+  // B) İşyeri / Ofis / Ticaret olayları (Çalışıyorsa, memursa veya şirketi varsa yüksek ağırlık)
+  if (G.jobId || (G.career && G.career.isCivilServant) || (G.businesses && G.businesses.length > 0) || G.age >= 20) {
+    pool.push(...WORKPLACE_LIFE_EVENTS_DB);
+    if (G.jobId) pool.push(...WORKPLACE_LIFE_EVENTS_DB); // Çalışanlar için işyeri olasılığını artır
+  }
+
+  // C) Aile, Akraba, Ev Sahibi ve Komşu olayları
+  pool.push(...FAMILY_NEIGHBOR_EVENTS_DB);
+
+  // D) Trafik, Araç, Sanayi ve Yolculuk olayları (Aracı veya ehliyeti varsa yüksek ağırlık)
+  pool.push(...TRAFFIC_SANAYI_EVENTS_DB);
+  if ((G.cars && G.cars.length > 0) || (G.licenses && G.licenses.B)) {
+    pool.push(...TRAFFIC_SANAYI_EVENTS_DB);
+  }
+
+  // E) Sosyal Hayat, Fırsatlar ve Dolandırıcılık krizleri
+  pool.push(...SOCIAL_SCAM_EVENTS_DB);
+
+  // Daha önce görülmeyen olayları filtrele (Havuz biterse sıfırla)
+  let unseen = pool.filter(ev => !le.seenIds.includes(ev.id));
+  if (unseen.length === 0) {
+    le.seenIds = [];
+    unseen = pool;
+  }
+
+  const chosen = pickRandom(unseen);
+  if (chosen && chosen.id && !le.seenIds.includes(chosen.id)) {
+    le.seenIds.push(chosen.id);
+  }
+  return chosen;
+}
+
+// Seçilen Gerçek Hayat Olayını RPG Diyalog / Olay Penceresi Olarak Açar
+function launchRealLifeEventModal(evTemplate, rawOpenModalFn) {
+  if (!evTemplate || !G) return;
+  ensureLifeEventsDirectorState();
+  const c = getCountry();
+  const npcObj = REAL_LIFE_NPCS_DB[evTemplate.npcKey] || REAL_LIFE_NPCS_DB.boss;
+
+  const builtChoices = (evTemplate.choices || []).map(ch => {
+    const netCost = Math.round(c.monthlyMinWage * (ch.costMult || 0));
+    const netReward = Math.round(c.monthlyMinWage * (ch.rewardMult || 0));
+
+    let costSuffix = '';
+    if (netReward > netCost) costSuffix = ` (+${fmtMoney(netReward - netCost)})`;
+    else if (netCost > 0) costSuffix = ` (-${fmtMoney(netCost)})`;
+    else if (netCost < 0) costSuffix = ` (+${fmtMoney(Math.abs(netCost))})`;
+
+    return {
+      label: ch.label + costSuffix,
+      action: () => {
+        if (netCost > 0) {
+          G.money = Math.max(0, G.money - netCost);
+        } else if (netCost < 0) {
+          G.money += Math.abs(netCost);
+        }
+        if (netReward > 0) {
+          G.money += netReward;
+        }
+        if (ch.happyDelta) G.happy = clamp(G.happy + ch.happyDelta);
+        if (ch.stressDelta) G.stress = clamp((G.stress || 20) + ch.stressDelta, 0, 100);
+        if (ch.fameDelta) G.fame = clamp(G.fame + ch.fameDelta);
+        if (ch.perfBoost && G.career) {
+          G.career.perfScore = clamp((G.career.perfScore || 55) + ch.perfBoost, 0, 100);
+        }
+
+        // Eğer bu karar 1-2 yıl sonra devam edecek bir Zincirleme Hikaye başlatıyorsa kaydet!
+        if (ch.scheduleChain && ch.scheduleChain.chainId) {
+          G.lifeEvents.pendingChains.push({
+            chainId: ch.scheduleChain.chainId,
+            triggerAge: G.age + (ch.scheduleChain.delayYears || 1)
+          });
+        }
+
+        if (netReward > netCost || netCost < 0) playSfx('trophy');
+        else playSfx('coin');
+
+        if (ch.logText) {
+          addLog(G.age, ch.logText, (netReward > 0 || netCost < 0) ? 'good' : 'normal');
+        }
+        saveGame();
+        renderAll();
+      }
+    };
+  });
+
+  rawOpenModalFn({
+    npc: npcObj,
+    badge: evTemplate.badge,
+    title: evTemplate.title,
+    desc: evTemplate.desc,
+    choices: builtChoices
+  });
+}
+
+/* ============================================================================
+   ANA KANCALAR: FUTBOL SIKLIĞINI %15'E İNDİR VE HER +1 YAŞTA YENİ OLAY ÜRET
+   ============================================================================ */
+
+(function attachSmartLifeEventsAndFootballBalance() {
+  if (window._smartLifeEventsLoaded) return;
+  window._smartLifeEventsLoaded = true;
+
+  // İstenmeyen eski harita ve refleks pencerelerini temiz tut
+  document.querySelectorAll('#cityMapRootContainer, #menuMapSettingsBar, #reflexChallengeModal').forEach(el => el.remove());
+
+  const _rawOpenEventModal = window.openEventModal;
+
+  // 1. openEventModal Kancası: +1 Yaş Sırasında Çıkan Futbol Olaylarını %85 Oranında Gerçek Hayat Olayıyla Değiştir!
+  window.openEventModal = function (cfg) {
+    ensureLifeEventsDirectorState();
+
+    if (_isInsideAdvanceAgeTurn && isFootballRelatedModal(cfg)) {
+      const yearsSinceLastFb = G.age - (G.lifeEvents.lastFootballAge || 0);
+      // Üst üste yıllarda futbol çıkmasını engelle ve genel şansı %15 ile sınırla
+      if (yearsSinceLastFb < 2 || Math.random() > 0.15) {
+        _realLifeEventFiredThisTurn = true;
+        const lifeEv = pickContextualRealLifeEvent();
+        launchRealLifeEventModal(lifeEv, _rawOpenEventModal);
+        return;
+      } else {
+        G.lifeEvents.lastFootballAge = G.age;
+        _realLifeEventFiredThisTurn = true;
+      }
+    } else if (_isInsideAdvanceAgeTurn) {
+      // Eğer temel oyundan jenerik bir olay geldiyse %65 ihtimalle bizim yeni detaylı 5'li paketten bir olay göster
+      if (Math.random() < 0.65 && !_realLifeEventFiredThisTurn) {
+        _realLifeEventFiredThisTurn = true;
+        const lifeEv = pickContextualRealLifeEvent();
+        launchRealLifeEventModal(lifeEv, _rawOpenEventModal);
+        return;
+      }
+      _realLifeEventFiredThisTurn = true;
+    }
+
+    if (typeof _rawOpenEventModal === 'function') {
+      _rawOpenEventModal(cfg);
+    }
+  };
+
+  // 2. advanceAge (+1 Yaş) Kancası: Her Yaş İlerlemesinde Kesin Olarak Çeşitli Bir Olay Çıkmasını Garanti Et
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureLifeEventsDirectorState();
+    _isInsideAdvanceAgeTurn = true;
+    _realLifeEventFiredThisTurn = false;
+
+    _prevAdvanceAge();
+
+    _isInsideAdvanceAgeTurn = false;
+
+    // Eğer o yaşta hiçbir olay penceresi açılmadıysa (veya vadesi gelen zincirleme olay varsa) hemen yeni bir gerçek hayat olayı aç!
+    if (G && G.age >= 16 && !G.inPrison && !_realLifeEventFiredThisTurn) {
+      const lifeEv = pickContextualRealLifeEvent();
+      if (lifeEv) {
+        _realLifeEventFiredThisTurn = true;
+        launchRealLifeEventModal(lifeEv, _rawOpenEventModal);
+      }
+    }
+  };
+})();
