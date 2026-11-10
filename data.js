@@ -1352,3 +1352,424 @@ const IFRUIT_CHAT_TEMPLATES_DB = [
     replyNo: 'Yoğunluğum nedeniyle kabul edemiyorum.'
   }
 ];
+
+/* ============================================================================
+   5'Lİ GERÇEK HAYAT OLAY HAVUZU VE ZİNCİRLEME HİKAYE VERİTABANI (DATA.JS)
+   ============================================================================ */
+
+// RPG Diyalog Sahnesi İçin Yeni Gerçek Hayat Karakter Profilleri
+const REAL_LIFE_NPCS_DB = {
+  boss: { name: 'Genel Müdür Haluk Bey', role: 'Yönetim Kurulu & İK', avatar: '👔', moodText: 'Stresli & Otoriter', patience: 65 },
+  colleague: { name: 'Mert (Ofis Arkadaşı)', role: 'Departman Uzmanı', avatar: '🧑‍💻', moodText: 'Kurnaz & Rekabetçi', patience: 75 },
+  inspector: { name: 'Başmüfettiş Hakan Bey', role: 'Vergi & SGK Denetmeni', avatar: '🕵️‍♂️', moodText: 'Resmi & Kuralcı', patience: 60 },
+  landlord: { name: 'Ev Sahibi Nejla Teyze', role: 'Mülk Sahibi', avatar: '👵', moodText: 'İnatçı & Pazarlıkçı', patience: 55 },
+  cousin: { name: 'Kuzen Serkan', role: 'Akraba & Girişimci', avatar: '🧔', moodText: 'Heyecanlı & İkna Edici', patience: 85 },
+  neighbor: { name: 'Emekli Albay Rıza Bey', role: 'Apartman Yöneticisi', avatar: '👴', moodText: 'Sinirli & Disiplinli', patience: 50 },
+  mechanic: { name: 'İlyas Usta', role: 'Oto Sanayi Başustası', avatar: '👨‍🔧', moodText: 'Gözü Açık & Rahat', patience: 70 },
+  police: { name: 'Komiser Emre', role: 'Bölge Trafik Denetleme', avatar: '👮‍♂️', moodText: 'Disiplinli', patience: 65 },
+  scammer: { name: 'Bilinmeyen Numara', role: 'Şüpheli Teklif / Çağrı', avatar: '📲', moodText: 'Aceleci & Baskıcı', patience: 50 },
+  waiter: { name: 'Mekan Şefi', role: 'Lüks Restoran & Kulüp', avatar: '🤵', moodText: 'Kibirli', patience: 60 }
+};
+
+// 1. PAKET: ZİNCİRLEME (ÇOK YILLI) HİKAYE BAŞLANGIÇLARI VE DEVAM PERDELERİ
+const CHAINED_EVENTS_STARTERS_DB = [
+  {
+    id: 'chain_cousin_guarantor',
+    npcKey: 'cousin',
+    badge: '👨‍👩‍👦 AKRABA & KEFİLLİK İKİLEMİ (ZİNCİRLEME OLAY)',
+    title: 'Kuzeninin "Kesin Tutacak" Dükkan Hayali',
+    desc: '"Kardeşim, köşe başında devren kiralık harika bir dükkan buldum! Bankadan esnaf kredisi çekeceğim ama memur veya sigortalı bir kefil ya da ufak bir nakit ortaklık lazım. Beni yarı yolda bırakmazsın değil mi?"',
+    choices: [
+      {
+        label: '✍️ Banka Kredisine Kefil Ol (Para Çıkmaz, 1 Yıl Sonra Sonuçlanır)',
+        costMult: 0,
+        happyDelta: 6,
+        logText: '🤝 Kuzeninin esnaf kredisine kefil oldun. Seneye işlerin nasıl gideceğini göreceğiz...',
+        scheduleChain: { chainId: 'followup_cousin_kefil', delayYears: 1 }
+      },
+      {
+        label: '💵 Nakit Sermaye Verip %40 Resmi Ortak Ol',
+        costMult: 1.2,
+        happyDelta: 8,
+        logText: '📝 Kuzeninle noterden %40 ortaklık sözleşmesi imzalayıp sermaye koydun.',
+        scheduleChain: { chainId: 'followup_cousin_partner', delayYears: 1 }
+      },
+      {
+        label: '🚪 "Kusura bakma, prensip olarak kefil olmuyorum" De',
+        costMult: 0,
+        happyDelta: -4,
+        logText: '🛡️ Akrabalar biraz bozuldu ama finansal riski sıfırladın.'
+      }
+    ]
+  },
+  {
+    id: 'chain_inherited_land',
+    npcKey: 'landlord',
+    badge: '📜 MEMLEKETTE MİRAS ARSA KRİZİ (ZİNCİRLEME OLAY)',
+    title: 'Dededen Kalan Hisseli Tarla Davası',
+    desc: '"Gözün aydın, memleketteki 8 dönümlük tarladan senin payına da hisse düştü. Ama amcanlar yeri ucuza bir emlakçıya kapatmak istiyor. İmza veriyor musun yoksa avukat tutup direnelim mi?"',
+    choices: [
+      {
+        label: '⚖️ Avukat Tut ve İzale-i Şüyu / İmar Bekle (1 Yıl Sonra Sonuçlanır)',
+        costMult: 0.55,
+        happyDelta: 0,
+        logText: '⚖️ Miras tarla için avukata vekalet verdin, imar ve mahkeme süreci başladı.',
+        scheduleChain: { chainId: 'followup_land_lawsuit', delayYears: 1 }
+      },
+      {
+        label: '💵 Hiç Uğraşma, Emlakçının Verdiği Peşin Parayı Al',
+        costMult: -1.1,
+        happyDelta: 5,
+        logText: '💵 Memleketteki miras hisseni peşin paraya devredip nakiti cebine koydun.'
+      }
+    ]
+  },
+  {
+    id: 'chain_sold_car_lawsuit',
+    npcKey: 'mechanic',
+    badge: '🚗 ARAÇ SATIŞI SONRASI İHTARNAME (ZİNCİRLEME OLAY)',
+    title: 'Alıcıdan "Motor Arıza Lambası Yandı" Tehdidi!',
+    desc: '"Kardeşim geçen hafta noterden sattığın arabanın şanzımanı vuruntu yapıyor, usta gizli kusur var dedi! Ya tamir parasını hemen gönderirsin ya da Tüketici Mahkemesinde görüşürüz!"',
+    choices: [
+      {
+        label: '🛡️ "Ekspertiz Raporu Elimizde, Mahkemede Görüşürüz!" De',
+        costMult: 0,
+        stressDelta: 8,
+        logText: '📄 Ekspertiz raporuna güvenerek alıcının blöfünü reddettin.',
+        scheduleChain: { chainId: 'followup_car_court', delayYears: 1 }
+      },
+      {
+        label: '🤝 Başım Ağrımasın Diye Sanayi Masrafının Yarısını Gönder',
+        costMult: 0.45,
+        stressDelta: -5,
+        logText: '🔧 Alıcıyla uzlaşıp sanayi masrafının yarısını göndererek konuyu kapattın.'
+      }
+    ]
+  },
+  {
+    id: 'chain_workplace_corruption',
+    npcKey: 'colleague',
+    badge: '📊 ŞİRKET İÇİ GİZLİ YOLSUZLUK (ZİNCİRLEME OLAY)',
+    title: 'Satınalma Faturalarında Naylon Fatura Yakaladın!',
+    desc: '"Şşşt! Sesini çıkarma... Depo ve satınalma müdürünün tedarikçiyle anlaşıp şişirilmiş fatura kestiğini fark ettin. Dosyayı kapatalım, komisyondan sana da pay verelim diyorlar!"',
+    choices: [
+      {
+        label: '📁 Kanıtları Gizlice Yedekle ve Yönetim Kuruluna Raporla',
+        costMult: 0,
+        stressDelta: 6,
+        logText: '🕵️‍♂️ Yolsuzluk belgelerini yedekleyip teftiş kuruluna sundun. Soruşturma başladı!',
+        scheduleChain: { chainId: 'followup_whistleblower_reward', delayYears: 1 }
+      },
+      {
+        label: '🤐 Görmezden Gel, Kendi İşine Bak (Risk Alma)',
+        costMult: 0,
+        stressDelta: 2,
+        logText: '🤐 Şirket içi fırtınaya karışmadan kendi departmanında kalmayı seçtin.'
+      }
+    ]
+  }
+];
+
+// Zincirleme Olayların 1-2 Yıl Sonra Açılan 2. Perde Sonuçları
+const CHAINED_EVENTS_FOLLOWUPS_DB = {
+  followup_cousin_kefil: {
+    npcKey: 'inspector',
+    badge: '⚖️ GEÇEN YILKİ KEFİLLİK DOSYASI (2. PERDE)',
+    title: 'Kuzeninin Kredi Taksitleri Ne Oldu?',
+    desc: '"Geçen yıl kefil olduğun kuzenin dükkanı devretti! Neyse ki son anda borcun çoğunu kapattı ama kalan son taksit için banka sana ulaştı."',
+    choices: [
+      {
+        label: '💳 Kalan Ufak Bakiyeyi Kapat ve Kefillikten Kurtul',
+        costMult: 0.50,
+        happyDelta: -3,
+        logText: '🏦 Kefil olduğun kredinin son taksitini kapatıp dosyayı temize çıkardın.'
+      },
+      {
+        label: '📞 Kuzeni Sıkıştırıp Parayı Ondan Tahsil Et (+İkramiye)',
+        costMult: -0.65,
+        happyDelta: 6,
+        logText: '💵 Kuzenin mahcup olup hem borcu kapattı hem de sana teşekkür payı ödedi!'
+      }
+    ]
+  },
+  followup_cousin_partner: {
+    npcKey: 'cousin',
+    badge: '🚀 ORTAK DÜKKAN HASILATI (2. PERDE)',
+    title: 'Geçen Yıl Ortak Olduğun Dükkan Köşeyi Döndü!',
+    desc: '"Kardeşim iyi ki geçen sene bana güvenip sermaye koydun! Dükkanın önünde kuyruk var, bu yılki %40 kâr payını nakit getirdim!"',
+    choices: [
+      {
+        label: '💰 Kâr Payını Cebine Koy (+Yüksek Nakit Getiri)',
+        costMult: -2.6,
+        happyDelta: 12,
+        logText: '🚀 Kuzeninle kurduğun ortaklıktan +2.6x kâr payı tahsil ettin!'
+      },
+      {
+        label: '🏪 Hisseni Devredip Toplu Hava Parası Al (+Servet)',
+        costMult: -3.4,
+        happyDelta: 15,
+        logText: '🏦 Dükkan hisseni yüksek hava parasıyla devredip büyük vurgun yaptın!'
+      }
+    ]
+  },
+  followup_land_lawsuit: {
+    npcKey: 'landlord',
+    badge: '🏗️ MİRAS ARSA DAVASI SONUÇLANDI (2. PERDE)',
+    title: 'Bilirkişi Raporu Çıktı: Arsaya İmar Geldi!',
+    desc: '"Geçen yıl emlakçıya ucuza vermeyip avukat tuttuğun miras tarlanın yanından yeni çevre yolu geçti! Müteahhitler kapıda sıraya girdi."',
+    choices: [
+      {
+        label: '💰 Müteahhitten Nakit Hisseni Al (+Büyük Miras Vurgunu)',
+        costMult: -3.8,
+        happyDelta: 18,
+        logText: '🏗️ Geçen yıl direndiğin miras arsadan imar geçince tam 3.8 katı nakit kazandın!'
+      }
+    ]
+  },
+  followup_car_court: {
+    npcKey: 'inspector',
+    badge: '⚖️ TÜKETİCİ MAHKEMESİ KARARI (2. PERDE)',
+    title: 'Geçen Yıl Sattığın Aracın Davası Bitti!',
+    desc: '"Hakim satış öncesi yaptırdığın TSE Ekspertiz raporunu delil kabul etti ve alıcının haksız davasını reddetti! Üstelik karşı taraf sana vekalet tazminatı ödeyecek."',
+    choices: [
+      {
+        label: '⚖️ Tazminatı Tahsil Et ve Dosyayı Kapat',
+        costMult: -0.75,
+        happyDelta: 10,
+        logText: '⚖️ Ekspertiz raporu sayesinde araç davasını kazandın ve tazminat aldın!'
+      }
+    ]
+  },
+  followup_whistleblower_reward: {
+    npcKey: 'boss',
+    badge: '🏆 YÖNETİM KURULU TEFTİŞ KARARI (2. PERDE)',
+    title: 'Şirketi Zarardan Kurtardığın İçin Özel Ödül!',
+    desc: '"Geçen yıl bildirdiğin sahte fatura şebekesi tasfiye edildi. Şirketi milyonluk zarardan kurtardığın için Yönetim Kurulu sana özel başarı ikramiyesi ve terfi puanı onayladı!"',
+    choices: [
+      {
+        label: '🎖️ Özel İkramiyeyi ve Terfi Puanını Kabul Et',
+        costMult: -2.2,
+        happyDelta: 15,
+        perfBoost: 25,
+        logText: '🏆 İç denetim başarın sayesinde yönetimden +2.2x ödül ve +25 Terfi Puanı aldın!'
+      }
+    ]
+  }
+};
+
+// 2. PAKET: İŞYERİ, OFİS, MUHASEBE, LOJİSTİK VE TİCARET OLAYLARI
+const WORKPLACE_LIFE_EVENTS_DB = [
+  {
+    id: 'wp_stock_mismatch',
+    npcKey: 'boss',
+    badge: '📊 AY SONU MALİYET & STOK KRİZİ',
+    title: 'Mizan ve Depo Sayımında Açık Çıktı!',
+    desc: '"Ay sonu kapanışında sistemdeki stoklarla fiziksel depo sayımı birbirini tutmuyor! Yıllık denetim kapıda, bu farkı nasıl çözeceğiz?"',
+    choices: [
+      { label: '🔍 Gece Mesaisine Kalıp Tüm İrsaliyeleri Tek Tek Eşleştir (+Performans)', costMult: 0, stressDelta: 10, perfBoost: 18, rewardMult: 0.65, logText: '🧾 Sabaha kadar fatura ve irsaliyeleri tarayıp hatayı buldun! Müdürden prim aldın.' },
+      { label: '📦 Fire Raporu Düzenleyip Tedarikçiye Rücu Et', costMult: 0, stressDelta: 3, perfBoost: 8, rewardMult: 0.25, logText: '📦 Eksik stokları tedarikçi kaynaklı fire olarak muhasebeleştirdin.' },
+      { label: '🤷 "Benim Sorumluluğum Değil" Deyip İmza Atma', costMult: 0, stressDelta: -4, perfBoost: -8, rewardMult: 0, logText: '📄 Sorumluluk almadın, yönetimle aranda soğuk rüzgarlar esti.' }
+    ]
+  },
+  {
+    id: 'wp_stolen_presentation',
+    npcKey: 'colleague',
+    badge: '💼 OFİS ENTRİKASI',
+    title: 'Hazırladığın Raporu İş Arkadaşın Sahiplendi!',
+    desc: '"Haftalardır üzerinde çalıştığın maliyet düşürme tablosunu yan masadaki Mert, toplantıda kendi hazırlamış gibi Genel Müdüre sunuyor!"',
+    choices: [
+      { label: '💻 Toplantıda Dosya Geçmişini Açıp Gerçeği Kanıtla (+Terfi & Prim)', costMult: 0, happyDelta: 12, perfBoost: 20, rewardMult: 0.80, logText: '🔥 Toplantıda dosyanın asıl sahibi olduğunu kanıtladın! Genel Müdür seni ödüllendirdi.' },
+      { label: '🤝 Çıkışta Mert\'i Sıkıştır: "Primini Bana Vereceksin!" De', costMult: 0, happyDelta: 5, perfBoost: 5, rewardMult: 0.55, logText: '💵 Mert rezil olmamak için aldığı proje primini sana devretti.' }
+    ]
+  },
+  {
+    id: 'wp_customs_demurrage',
+    npcKey: 'inspector',
+    badge: '🚛 GÜMRÜK & ANTREPO OPERASYONU',
+    title: 'İhracat Tırı Gümrük Kapısında Takıldı!',
+    desc: '"Avrupa\'ya giden tekstil ve makine yüklü tırın GTİP kodunda uyuşmazlık çıktı! Araç sınırda beklediği her gün ağır demoraj (bekleme) cezası yazıyor."',
+    choices: [
+      { label: '🛃 Gümrük Müşaviriyle Acil Ek Beyanname Verip Tırı Geçir', costMult: 0.25, rewardMult: 1.15, perfBoost: 15, logText: '🚛 Krizi 2 saatte çözdün! Müşteri zamanında teslimat için ekstra bonus ödedi.' },
+      { label: '⏳ Normal Prosedürü Bekle (Stres Artar)', costMult: 0.15, rewardMult: 0, stressDelta: 12, logText: '⏳ Tır sınırda 3 gün bekledi, gecikme faturası can sıktı.' }
+    ]
+  },
+  {
+    id: 'wp_rival_poach',
+    npcKey: 'boss',
+    badge: '🤝 RAKİP FİRMADAN TRANSFER TEKLİFİ',
+    title: 'Sektördeki Rakip Şirket Seni İstiyor!',
+    desc: '"Rakip firmanın İK Direktörü seni gizlice kahveye davet etti. Mevcut maaşının üzerinde net bir imza parası teklif ediyorlar ama mevcut patronun duyarsa küplere biner."',
+    choices: [
+      { label: '💼 Teklifi Koz Olarak Kullanıp Kendi Şirketinden Zam/Prim Al', costMult: 0, rewardMult: 1.10, perfBoost: 12, logText: '📈 Rakip teklifi masaya koyunca kendi şirketin seni kaçırmamak için toplu prim ödedi!' },
+      { label: '🤫 Rakip Firmaya Dışarıdan Gizli Danışmanlık Ver', costMult: 0, rewardMult: 1.45, stressDelta: 8, logText: '💸 Mesai dışı danışmanlık vererek ciddi bir ek gelir sağladın.' }
+    ]
+  },
+  {
+    id: 'wp_erp_crash',
+    npcKey: 'colleague',
+    badge: '💻 E-FATURA & SİSTEM ÇÖKMESİ',
+    title: 'Beyanname Son Gününde Sunucu Çöktü!',
+    desc: '"KDV ve Muhtasar beyannamelerinin son saatinde ofisteki muhasebe yazılımı kilitlendi! Kesilmeyen faturalar yüzünden vergi cezası kapıda."',
+    choices: [
+      { label: '⚡ Yedek Veritabanından Manuel XML Yükleyip Günü Kurtar', costMult: 0, rewardMult: 0.70, perfBoost: 16, logText: '💻 Teknik bilginle sistemi son dakikada ayağa kaldırdın, tüm ofis rahat nefes aldı!' },
+      { label: '🛠️ Dışarıdan Acil Bilgi İşlem Uzmanı Çağır', costMult: 0.25, rewardMult: 0, stressDelta: -5, logText: '🔧 Uzman desteğiyle sunucuyu kurtardınız.' }
+    ]
+  }
+];
+
+// 3. PAKET: AİLE, AKRABA, EV SAHİBİ VE KOMŞU OLAYLARI
+const FAMILY_NEIGHBOR_EVENTS_DB = [
+  {
+    id: 'fn_almanya_ogul',
+    npcKey: 'landlord',
+    badge: '🏠 EV SAHİBİ & KİRA KRİZİ',
+    title: '"Almanya\'dan Oğlum Geliyor, Evi Boşalt!"',
+    desc: '"Bak evladım, Almanya\'daki oğlum kesin dönüş yapıyor, daireye kendisi oturacak! Ya bu ay kirayı iki katına çıkarırsın ya da noterden tahliye ihtarnamesi çekiyorum!"',
+    choices: [
+      { label: '⚖️ "TÜFE Sınırı Bellidir, Kontratım Var" Deyip Hukuki Hakkını Koru', costMult: 0, stressDelta: 5, happyDelta: 6, logText: '📜 Kira tespit davası blöfünü gördün, ev sahibi geri adım attı.' },
+      { label: '🤝 Orta Yolu Bulup Makul Bir Ara Zam Yap (Huzuru Koru)', costMult: 0.30, stressDelta: -8, happyDelta: 4, logText: '🏠 Ev sahibiyle el sıkışıp tartışmayı tatlıya bağladın.' },
+      { label: '🕵️‍♂️ Evi Boşaltıp Kiraya Verirse 1 Yıllık Tazminat Davası Aç!', costMult: 0, rewardMult: 1.40, happyDelta: 12, logText: '⚖️ Ev sahibi Almanya yalanıyla evi başkasına kiralayınca mahkemeden 1 yıllık tazminat kazandın!' }
+    ]
+  },
+  {
+    id: 'fn_parking_fight',
+    npcKey: 'neighbor',
+    badge: '🅿️ APARTMAN OTOPARK KAVGASI',
+    title: 'Yan Binadaki Komşu Senin Yerine Park Etmiş!',
+    desc: '"Akşam yorgun argın eve geldin, apartmanın otoparkındaki senin bölmene yan binanın misafiri çapraz şekilde aracını bırakıp gitmiş, telefonunu da cama yazmamış!"',
+    choices: [
+      { label: '🚓 Trafik Polisini ve Çekiciyi Çağırıp Aracı Çektir', costMult: 0, happyDelta: 10, stressDelta: -6, logText: '🚜 Çekici aracı 15 dakikada kaldırdı, bir daha kimse senin yerine park edemedi!' },
+      { label: '📢 Apartman WhatsApp Grubundan Yöneticiyi Ayağa Kaldır', costMult: 0, happyDelta: 3, stressDelta: 4, logText: '📱 Grup mesajları sonrası araç sahibi inip özür dileyerek aracını çekti.' }
+    ]
+  },
+  {
+    id: 'fn_wedding_gold_dilemma',
+    npcKey: 'cousin',
+    badge: '💍 AKRABA DÜĞÜNÜ TAKI MERASİMİ',
+    title: '"Geçen Sene Onlar Bize Ne Takmıştı?"',
+    desc: '"Hafta sonu yakın akrabanın düğünü var. Aile meclisinde \'Onlar bize küçük altın takmıştı, biz şimdi ne takacağız?\' tartışması başladı. Anons mikrofonu da açık!"',
+    choices: [
+      { label: '🪙 Şanımız Yürüsün: Gram / Çeyrek Altın Tak (+İtibar & Aile Bağları)', costMult: 0.35, happyDelta: 12, fameDelta: 3, logText: '🎤 Düğünde anonsla altın takınca tüm sülalede itibarın tavan yaptı!' },
+      { label: '✉️ Zarfa Nakit Koyup Sessizce Sandığa At (Ekonomik Çözüm)', costMult: 0.12, happyDelta: 2, logText: '✉️ Düğün bütçesini sarsmadan zarfla vazifeni yaptın.' }
+    ]
+  },
+  {
+    id: 'fn_roof_insulation',
+    npcKey: 'neighbor',
+    badge: '🏢 APARTMAN GENEL KURULU',
+    title: 'Yönetici Fahiş Mantolama ve Çatı Parası İstiyor!',
+    desc: '"Emekli Albay Rıza Bey apartman girişine listeyi asmış: \'Dış cephe mantolama ve asansör yenilemesi için daire başı acil ödeme toplanacaktır!\' Rakam piyasanın çok üstünde."',
+    choices: [
+      { label: '📋 3 Farklı Firmadan Teklif Alıp Maliyeti Yarıya İndirt (+Saygınlık)', costMult: 0.18, happyDelta: 10, logText: '📊 Maliyet kontrol bilginle yöneticinin şişkin teklifini çürüttün, apartmanı yarı fiyatına yenilettin!' },
+      { label: '💳 Tartışmaya Girmeden Payına Düşeni Öde', costMult: 0.40, happyDelta: 0, logText: '🏢 Apartman demirbaş giderini ödedin.' }
+    ]
+  }
+];
+
+// 4. PAKET: TRAFİK, ARAÇ, SANAYİ VE YOLCULUK OLAYLARI
+const TRAFFIC_SANAYI_EVENTS_DB = [
+  {
+    id: 'tr_sanayi_surprise',
+    npcKey: 'mechanic',
+    badge: '🔧 OTO SANAYİ SÜRPRİZİ',
+    title: '"Kardeşim Sadece Yağ Değişimiyle Kurtarmaz..."',
+    desc: '"Periyodik bakım için sanayiye gittin. İlyas Usta aracı lifte kaldırıp fenerle baktı: \'Baskı balata bitik, volant ses yapıyor, triger de çatlamış. İndirmişken hepsini yapalım mı?\'"',
+    choices: [
+      { label: '🔧 Parçaları Parçacıdan Kendin Al, Ustaya Sadece İşçilik Ver (-%45 Tasarruf)', costMult: 0.30, happyDelta: 8, logText: '🧠 Yedek parçaları toptancıdan kendin alıp sadece işçilik ödeyerek sanayiden kârlı çıktın!' },
+      { label: '💳 "Ne Gerekiyorsa Orijinal Parçayla Yap Usta" De', costMult: 0.65, happyDelta: 4, logText: '🚗 Aracın tüm ağır bakımları yapıldı, saat gibi oldu.' },
+      { label: '🚘 "Sadece Yağı Değiştir Usta, Başka Ustaya Göstereceğim" De', costMult: 0.12, happyDelta: 5, logText: '🔍 Başka ustaya gösterdin, meğer baskı balata sapasağlammış!' }
+    ]
+  },
+  {
+    id: 'tr_parked_bumper_hit',
+    npcKey: 'police',
+    badge: '🚘 PARK HALİNDE ÇARPIP KAÇMA',
+    title: 'Sabah Aracın Tamponunu Sürtülmüş Buldun!',
+    desc: '"Sabah sokağa indiğinde sol ön çamurluk ve tamponun boydan boya çizildiğini gördün. Çarpan araç not bırakmadan kaçmış ama köşedeki fırının güvenlik kamerası sokağı görüyor!"',
+    choices: [
+      { label: '📹 Esnafın Kamerasından Plakayı Bulup Zararı Karşı Tarafa Ödet (+Tazminat)', costMult: 0, rewardMult: 0.60, happyDelta: 12, logText: '📹 Kamera kaydından plakayı buldun! Çarpan sürücü mahkemeye gitmemek için hasarı fazlasıyla ödedi.' },
+      { label: '🧽 Sanayide Rötuş ve Pasta-Cila İle Temizlet (Tramer İşlemesin)', costMult: 0.20, happyDelta: 2, logText: '✨ Sanayide lokal pasta-cila ile tramer kaydı oluşmadan izleri kapattırdın.' }
+    ]
+  },
+  {
+    id: 'tr_night_checkpoint',
+    npcKey: 'police',
+    badge: '🚓 GECE TRAFİK & RADAR ÇEVİRMESİ',
+    title: 'Bölge Trafik Kontrol Noktası: "Ehliyet ve Ruhsat!"',
+    desc: '"Gece çevre yolundan dönerken dubalarla daraltılmış polis çevirmesine girdin. Komiser Emre el feneriyle aracın evraklarını ve hız kaydını kontrol ediyor."',
+    choices: [
+      { label: '🪪 Evrakları Tam Göster ve Nazikçe Bilgi Ver (Sorunsuz Geçiş)', costMult: 0, happyDelta: 5, logText: '👮‍♂️ Evrakların ve muayenen tam olduğu için polis iyi yolculuklar dileyip uğurladı.' },
+      { label: '📄 %10 Hız Sınırı Aşımı Cezasını %25 Erken İndirimle Öde', costMult: 0.15, happyDelta: -2, logText: '🧾 Radar cezasını 15 gün içinde indirimli öileyerek kapattın.' }
+    ]
+  },
+  {
+    id: 'tr_intercity_bus_adventure',
+    npcKey: 'waiter',
+    badge: '🚌 ŞEHİRLERARASI OTOGAR & MOLA OLAYI',
+    title: 'Dinlenme Tesisinde Bagaj Karıştı!',
+    desc: '"Şehirlerarası yolculukta gece 03:30\'da dinlenme tesisinde mola verildi. Muavin yanlışlıkla senin çantanı başka bir yolcunun lüks iş çantasıyla karıştırmış!"',
+    choices: [
+      { label: '📞 Çantadaki Kartvizitten İş İnsanı Sahibine Ulaşıp Teslim Et (+Ödül)', costMult: 0, rewardMult: 0.85, happyDelta: 14, logText: '🤝 Çantasını kurtardığın holding yöneticisi dürüstlüğün için sana yüklü bir ödül verdi!' },
+      { label: '🏢 Otogar Yazıhanesine Bırakıp Kendi Bavulunu Al', costMult: 0, happyDelta: 4, logText: '🧳 Yazıhane üzerinden kendi eşyalarını eksiksiz teslim aldın.' }
+    ]
+  }
+];
+
+// 5. PAKET: SOSYAL HAYAT, FIRSATLAR VE DOLANDIRICILIK KRİZLERİ
+const SOCIAL_SCAM_EVENTS_DB = [
+  {
+    id: 'sc_restaurant_bill_shock',
+    npcKey: 'waiter',
+    badge: '🍽️ MEKANDA FAHİŞ HESAP KRİZİ',
+    title: 'Masaya Beklediğinin 3 Katı Adisyon Geldi!',
+    desc: '"Arkadaşlarla gittiğiniz sahil restoranında hesap istendiğinde masaya astronomik bir adisyon bırakıldı! Kuver, canlı müzik ve hiç gelmeyen mezeler faturaya eklenmiş."',
+    choices: [
+      { label: '🧾 Kalem Kalem İtiraz Et ve Ticaret Bakanlığı Tarifesini Göster (-%60 İndirim)', costMult: 0.15, happyDelta: 10, logText: '📋 Adisyondaki haksız kalemleri tek tek sildirip sadece yediğinizi ödedin!' },
+      { label: '💳 Prestij Bozulmasın Diye Hesabı Kapat ama Bir Daha Gitme', costMult: 0.45, happyDelta: -3, logText: '💸 Şişirilmiş hesabı ödeyip mekandan ayrıldınız.' }
+    ]
+  },
+  {
+    id: 'sc_fake_icra_sms',
+    npcKey: 'scammer',
+    badge: '📲 SAHTE UZLAŞMA / İCRA DOLANDIRICILIĞI',
+    title: '"Hakkınızda Ceza Dosyası Var, Bugün Son Gün!"',
+    desc: '"Telefonuna \'Sayın vatandaşımız, uzlaşma dosyanızın son günüdür, icra takibi başlamaması için hemen bu IBAN\'a dosya masrafını yatırın\' diyen bir mesaj ve çağrı geldi!"',
+    choices: [
+      { label: '🔍 e-Devlet UYAP\'tan Kontrol Et ve Numarayı Savcılığa Bildir (+Ödül)', costMult: 0, rewardMult: 0.45, happyDelta: 10, logText: '🛡️ Dolandırıcıları anında fark edip siber suçlara ihbar ettin!' },
+      { label: '📵 Numarayı Engelle ve Geç', costMult: 0, happyDelta: 3, logText: '📵 Sahte icra mesajını engelleyip paranı korudun.' }
+    ]
+  },
+  {
+    id: 'sc_street_interview_viral',
+    npcKey: 'colleague',
+    badge: '🎙️ SOKAK RÖPORTAJINDA VİRAL OLDUN!',
+    title: 'Mikrofona Söylediklerin 5 Milyon İzlendi!',
+    desc: '"Meydanda yürürken uzatılan YouTube mikrofonuna ekonomi, meslek hayatı ve piyasa hakkında yaptığın nokta atışı analiz bir gecede tüm sosyal medyada gündem oldu!"',
+    choices: [
+      { label: '📺 Gelen Marka İşbirliği ve Reklam Tekliflerini Değerlendir (+Nakit & Şöhret)', costMult: 0, rewardMult: 1.25, fameDelta: 12, happyDelta: 10, logText: '🌟 Viral videon sayesinde markalardan reklam ve sponsorluk geliri kazandın!' },
+      { label: '👔 Ciddi Kurumsal Duruşunu Koru, Sektörel İtibarını Artır (+CV & Performans)', costMult: 0, perfBoost: 15, fameDelta: 6, logText: '📈 Analizlerin iş dünyasında büyük takdir topladı, kurumsal itibarın yükseldi.' }
+    ]
+  },
+  {
+    id: 'sc_midnight_distressed_sale',
+    npcKey: 'mechanic',
+    badge: '🌙 GECE YARISI KELEPİR FIRSAT',
+    title: 'Nakit Sıkışıklığından Yarı Fiyatına Satılık Mal!',
+    desc: '"Gece 23:30\'da tanıdık bir esnaf aradı: \'Kardeşim yarın sabah çek ödemem var, elimdeki sıfır ayarında ticari malı/aracı piyasanın %40 altına hemen devredeceğim. Nakitin hazır mı?\'"',
+    choices: [
+      { label: '🤝 Sabah İlk İş Noter/Emanet Hesap Şartıyla Al ve Kârla Sat (+Vurgun)', costMult: 0.80, rewardMult: 2.10, happyDelta: 14, logText: '💎 Kapora tuzağına düşmeden noter üzerinden kelepir malı alıp iki katına okuttun!' },
+      { label: '🛑 "Gece Yarısı Ticaret Olmaz" Deyip Reddet', costMult: 0, happyDelta: 0, logText: '🛡️ Gece yarısı fırsatına girmeyip nakitini korudun.' }
+    ]
+  },
+  {
+    id: 'sc_barber_stock_tip',
+    npcKey: 'cousin',
+    badge: '💈 MAHALLE BERBERİNİN BORSA TÜYOSU',
+    title: '"Abi Bir Kağıt Var, Haftaya Kesin Tavan!"',
+    desc: '"Traş olurken berber kulağına eğildi: \'Geçen gün koltuğa büyük bir spekülatör oturdu, şu hisseyi toplayın 15 güne ikiye katlayacak dedi. Bütün mahalle girdik, sen de gir!\'"',
+    choices: [
+      { label: '📊 Tüyoya Değil, Bilançoya Bakıp Sağlam Temettü Hissesine Yatır (+Garanti Kâr)', costMult: 0.40, rewardMult: 1.05, happyDelta: 8, logText: '📈 Berberin tüyosu taban oldu ama sen bilançosu sağlam hisseden güzel kâr ettin!' },
+      { label: '🎲 Küçük Bir Meblağ İle Şansını Dene', costMult: 0.30, rewardMult: 0.15, happyDelta: -3, logText: '📉 Spekülatif tahta silkelenince paranın yarısı eridi, ders oldu.' }
+    ]
+  }
+];
