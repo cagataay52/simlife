@@ -1842,3 +1842,18 @@ const CHAR_GLASSES_DB = [
   { id: 'gl_sun', name: '🕶️ Siyah Aviator Güneş Gözlüğü' }
 ];
 
+/* ============================================================================
+   TÜRKİYE DOĞUM ŞEHİRLERİ VE GİRİŞ EKRANI VERİTABANI (DATA.JS)
+   ============================================================================ */
+
+const TURKEY_BIRTH_CITIES_DB = [
+  { id: 'ist', name: 'İstanbul', region: 'Marmara', bonusStartMoney: 1.2 },
+  { id: 'ank', name: 'Ankara', region: 'İç Anadolu', bonusStartMoney: 1.0 },
+  { id: 'izm', name: 'İzmir', region: 'Ege', bonusStartMoney: 1.1 },
+  { id: 'trk', name: 'Tekirdağ (Şarköy)', region: 'Marmara', bonusStartMoney: 1.0 },
+  { id: 'ord', name: 'Ordu', region: 'Karadeniz', bonusStartMoney: 0.9 },
+  { id: 'ant', name: 'Antalya', region: 'Akdeniz', bonusStartMoney: 1.1 },
+  { id: 'bursa', name: 'Bursa', region: 'Marmara', bonusStartMoney: 1.15 }
+];
+
+
