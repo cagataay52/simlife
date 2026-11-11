@@ -1773,3 +1773,72 @@ const SOCIAL_SCAM_EVENTS_DB = [
     ]
   }
 ];
+
+/* ============================================================================
+   KARAKTER GÖRSELLEŞTİRME, BERBER, KUAFÖR VE STİL KATALOĞU VERİTABANI
+   ============================================================================ */
+
+const CHAR_SKIN_TONES_DB = [
+  { id: 'skin_light', name: 'Açık Ten', base: '#fbd3b6', shadow: '#e4b08c' },
+  { id: 'skin_wheat', name: 'Buğday Ten', base: '#eab68c', shadow: '#c98e63' },
+  { id: 'skin_olive', name: 'Esmer / Bronz', base: '#c68b59', shadow: '#9c6639' },
+  { id: 'skin_dark', name: 'Koyu Esmer', base: '#8d5524', shadow: '#653912' }
+];
+
+const CHAR_HAIR_STYLES_DB = [
+  { id: 'fade_crop', name: '✂️ Kısa Fade & Dokulu Üst', costMult: 0.08, looksBoost: 5 },
+  { id: 'pompadour', name: '💈 Yanlar Sıfır & Hacimli Pompadour', costMult: 0.12, looksBoost: 7 },
+  { id: 'ceo_slick', name: '👔 Geriye Taranmış Klasik / CEO', costMult: 0.14, looksBoost: 8 },
+  { id: 'curly_perm', name: '🌀 Dağınık Kıvırcık / Perma', costMult: 0.18, looksBoost: 8 },
+  { id: 'long_wave', name: '🌊 Uzun Dalgalı / Omuz Hizası', costMult: 0.15, looksBoost: 7 },
+  { id: 'buzz_cut', name: '⚡ 3 Numara Asker / Buzz Cut', costMult: 0.05, looksBoost: 4 },
+  { id: 'bald_clean', name: '✨ Ustura Sıfır (Parlak Kel)', costMult: 0.04, looksBoost: 4 }
+];
+
+const CHAR_HAIR_COLORS_DB = [
+  { id: 'hc_black', name: 'Kuzguni Siyah', hex: '#141619', highlight: '#2d323b' },
+  { id: 'hc_darkbrown', name: 'Koyu Kahve', hex: '#2c1b12', highlight: '#4a3022' },
+  { id: 'hc_chestnut', name: 'Kestane / Kumral', hex: '#5c3824', highlight: '#825236' },
+  { id: 'hc_blonde', name: 'Platin / Sarı Boya', hex: '#d4af37', highlight: '#f3e5ab' },
+  { id: 'hc_red', name: 'Bakır Kızıl Boya', hex: '#8b261d', highlight: '#b83b2f' },
+  { id: 'hc_silver', name: 'Buz Gri / Gümüş Boya', hex: '#94a3b8', highlight: '#cbd5e1' },
+  { id: 'hc_blue', name: 'Gece Mavisi (Marjinal)', hex: '#1d4ed8', highlight: '#3b82f6' }
+];
+
+const CHAR_BEARD_STYLES_DB = [
+  { id: 'beard_clean', name: '🪒 Sinekkaydı Tıraş', costMult: 0.04, looksBoost: 3 },
+  { id: 'beard_stubble', name: '⚡ Kirli Sakal (3 Günlük)', costMult: 0.06, looksBoost: 6 },
+  { id: 'beard_full', name: '🧔 Tam Keskin Hatlı Sakal', costMult: 0.09, looksBoost: 7 },
+  { id: 'beard_goatee', name: '🎩 Çene Sakalı & Bıyık (Goatee)', costMult: 0.07, looksBoost: 5 },
+  { id: 'beard_mustache', name: '🥸 Klasik Pos / Badem Bıyık', costMult: 0.05, looksBoost: 4 }
+];
+
+const CHAR_EYEBROW_STYLES_DB = [
+  { id: 'brow_natural', name: 'Doğal Kavisli Kaş', costMult: 0.03 },
+  { id: 'brow_thick', name: 'Kalın & Keskin Kaş', costMult: 0.04 },
+  { id: 'brow_slit', name: '🔥 Çizikli (Slit) Sokak Stili Kaş', costMult: 0.06 },
+  { id: 'brow_thin', name: 'İnce & Alınmış Kaş Tasarımı', costMult: 0.05 }
+];
+
+const CHAR_EYE_COLORS_DB = [
+  { id: 'eye_brown', name: 'Koyu Kahve', hex: '#3b2213' },
+  { id: 'eye_hazel', name: 'Ela Göz', hex: '#6e5227' },
+  { id: 'eye_green', name: 'Zümrüt Yeşil', hex: '#15803d' },
+  { id: 'eye_blue', name: 'Okyanus Mavi', hex: '#0284c7' },
+  { id: 'eye_amber', name: 'Kehribar / Bal', hex: '#b45309' }
+];
+
+const CHAR_OUTFITS_DB = [
+  { id: 'out_tshirt', name: '👕 Günlük Siyah Oversize Tişört', costMult: 0.10, primary: '#1e293b', accent: '#38bdf8' },
+  { id: 'out_shirt', name: '👔 Kurumsal Beyaz Yaka Gömlek', costMult: 0.25, primary: '#e2e8f0', accent: '#0284c7' },
+  { id: 'out_suit', name: '🤵 İtalyan Kesim CEO Takım Elbise', costMult: 0.70, primary: '#0f172a', accent: '#ef4444' },
+  { id: 'out_jersey', name: '💛💙 Çubuklu Sarı-Lacivert Forma', costMult: 0.35, primary: '#172554', accent: '#facc15' },
+  { id: 'out_leather', name: '🧥 Siyah Deri Ceket & Boğazlı Kazak', costMult: 0.50, primary: '#18181b', accent: '#a855f7' }
+];
+
+const CHAR_GLASSES_DB = [
+  { id: 'gl_none', name: 'Gözlüksüz' },
+  { id: 'gl_optic', name: '👓 Kemik Çerçeve Entelektüel Gözlük' },
+  { id: 'gl_sun', name: '🕶️ Siyah Aviator Güneş Gözlüğü' }
+];
+
