@@ -11927,3 +11927,686 @@ window.doFullVipGroomingPackage = function (cost) {
   }
 })();
 
+/* ============================================================================
+   VIP HD CASINO MOTORU: GATES OF OLYMPUS, SWEET BONANZA & LIVE BLACKJACK 21
+   ============================================================================ */
+
+const OLYMPUS_SYMBOLS_DB = [
+  { id: 'zeus_scatter', icon: '⚡', name: 'Zeus Scatter', pay8: 3.0, pay10: 15.0, pay12: 50.0, weight: 4, isScatter: true },
+  { id: 'crown', icon: '👑', name: 'Altın Kral Tacı', pay8: 5.0, pay10: 12.0, pay12: 25.0, weight: 7 },
+  { id: 'hourglass', icon: '⏳', name: 'Zaman Kum Saati', pay8: 2.5, pay10: 6.0, pay12: 12.0, weight: 9 },
+  { id: 'ring', icon: '💍', name: 'Yakut Yüzük', pay8: 2.0, pay10: 4.5, pay12: 9.0, weight: 10 },
+  { id: 'chalice', icon: '🏆', name: 'Altın Kadeh', pay8: 1.5, pay10: 3.5, pay12: 7.0, weight: 11 },
+  { id: 'gem_red', icon: '♦️', name: 'Kırmızı Elmas', pay8: 0.8, pay10: 1.8, pay12: 4.0, weight: 15 },
+  { id: 'gem_purple', icon: '🔮', name: 'Mor Kristal', pay8: 0.6, pay10: 1.4, pay12: 3.0, weight: 16 },
+  { id: 'gem_yellow', icon: '🌟', name: 'Sarı Mücevher', pay8: 0.5, pay10: 1.1, pay12: 2.5, weight: 17 },
+  { id: 'gem_green', icon: '❇️', name: 'Yeşil Zümrüt', pay8: 0.4, pay10: 0.9, pay12: 2.0, weight: 18 },
+  { id: 'gem_blue', icon: '💎', name: 'Mavi Safir', pay8: 0.3, pay10: 0.7, pay12: 1.5, weight: 19 }
+];
+
+const BONANZA_SYMBOLS_DB = [
+  { id: 'lollipop', icon: '🍭', name: 'Lolipop Scatter', pay8: 3.0, pay10: 15.0, pay12: 50.0, weight: 4, isScatter: true },
+  { id: 'heart_candy', icon: '❤️', name: 'Kırmızı Kalp Şeker', pay8: 5.0, pay10: 12.0, pay12: 25.0, weight: 7 },
+  { id: 'purple_candy', icon: '🟪', name: 'Mor Kare Şeker', pay8: 2.5, pay10: 6.0, pay12: 12.0, weight: 9 },
+  { id: 'green_candy', icon: '🟩', name: 'Yeşil Şeker', pay8: 2.0, pay10: 4.5, pay12: 9.0, weight: 10 },
+  { id: 'blue_candy', icon: '🟦', name: 'Mavi Oval Şeker', pay8: 1.5, pay10: 3.2, pay12: 6.5, weight: 11 },
+  { id: 'apple', icon: '🍎', name: 'Kırmızı Elma', pay8: 0.9, pay10: 1.8, pay12: 4.0, weight: 15 },
+  { id: 'peach', icon: '🍑', name: 'Taze Şeftali', pay8: 0.7, pay10: 1.4, pay12: 3.0, weight: 16 },
+  { id: 'watermelon', icon: '🍉', name: 'Dilim Karpuz', pay8: 0.5, pay10: 1.1, pay12: 2.5, weight: 17 },
+  { id: 'grapes', icon: '🍇', name: 'Salkım Üzüm', pay8: 0.4, pay10: 0.9, pay12: 2.0, weight: 18 },
+  { id: 'banana', icon: '🍌', name: 'Sarı Muz', pay8: 0.3, pay10: 0.7, pay12: 1.5, weight: 19 }
+];
+
+const MULTIPLIER_ORBS_POOL = [2, 3, 4, 5, 8, 10, 12, 15, 20, 25, 50, 100, 250, 500];
+
+let casinoUI = {
+  gameTab: 'olympus', // 'olympus' | 'bonanza' | 'blackjack'
+  betMult: 0.10,      // Asgari ücrete oranlı bahis çarpanı
+  doubleChance: false,
+  freeSpinsLeft: 0,
+  fsTotalMultiplier: 0,
+  fsCumulativeWin: 0,
+  grid: [],           // 30 hücrelik 6x5 dizi
+  lastWinAmt: 0,
+  lastWinLog: 'Spin tuşuna bas veya 100x Bonus Satın Al!',
+  zeusStruck: false,
+  // Blackjack Durumu
+  bjDeck: [],
+  bjPlayer: [],
+  bjDealer: [],
+  bjState: 'idle',    // 'idle' | 'playing' | 'resolved'
+  bjResultText: 'Bahsini seç ve "Kartları Dağıt" butonuna bas!'
+};
+
+// Web Audio API ile Gerçekçi Slot & İskambil Ses Efektleri
+function playCasinoAudio(type) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!window._casinoAudioCtx) window._casinoAudioCtx = new Ctx();
+    const ctx = window._casinoAudioCtx;
+    const now = ctx.currentTime;
+
+    if (type === 'spin') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'zeus' || type === 'bigwin') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.16, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.008, now + idx * 0.08 + 0.25);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.25);
+      });
+    } else if (type === 'card') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.06);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.06);
+    }
+  } catch (e) {}
+}
+
+function getCurrentBetAmount() {
+  const c = getCountry();
+  const base = Math.max(100, Math.round(c.monthlyMinWage * casinoUI.betMult));
+  return casinoUI.doubleChance ? Math.round(base * 1.25) : base;
+}
+
+function pickWeightedSlotSymbol(symDb, inFreeSpins) {
+  // Çarpan Küresi (Zeus Orb) veya Şeker Bombası gelme ihtimali
+  const multChance = inFreeSpins ? 0.085 : 0.032;
+  if (Math.random() < multChance) {
+    // Düşük çarpanlar daha sık, 100x-500x nadir gelir
+    const r = Math.random();
+    let mv = 2;
+    if (r > 0.992) mv = 500;
+    else if (r > 0.975) mv = 250;
+    else if (r > 0.94) mv = 100;
+    else if (r > 0.88) mv = 50;
+    else if (r > 0.78) mv = 25;
+    else if (r > 0.62) mv = 15;
+    else if (r > 0.42) mv = 10;
+    else if (r > 0.22) mv = 5;
+    else mv = pickRandom([2, 3, 4]);
+
+    return {
+      id: 'mult_orb',
+      icon: casinoUI.gameTab === 'olympus' ? '🟢' : '💣',
+      name: `${mv}x Çarpan`,
+      isMultiplier: true,
+      multValue: mv
+    };
+  }
+
+  let totalW = symDb.reduce((s, x) => s + x.weight + (x.isScatter && casinoUI.doubleChance ? 3 : 0), 0);
+  let rnd = Math.random() * totalW;
+  for (let s of symDb) {
+    const w = s.weight + (s.isScatter && casinoUI.doubleChance ? 3 : 0);
+    if (rnd < w) return { ...s };
+    rnd -= w;
+  }
+  return { ...symDb[symDb.length - 1] };
+}
+
+function generateInitial6x5Grid() {
+  const db = casinoUI.gameTab === 'olympus' ? OLYMPUS_SYMBOLS_DB : BONANZA_SYMBOLS_DB;
+  const cells = [];
+  for (let i = 0; i < 30; i++) {
+    cells.push({ ...pickWeightedSlotSymbol(db, false), isWinning: false });
+  }
+  return cells;
+}
+
+/* ---------------- GATES OF OLYMPUS & SWEET BONANZA SPIN MOTORU ---------------- */
+
+window.spinPragmaticSlot = function (isBonusBuy = false) {
+  if (!G) return;
+  const c = getCountry();
+  const baseBet = Math.max(100, Math.round(c.monthlyMinWage * casinoUI.betMult));
+  const actualBet = getCurrentBetAmount();
+
+  // Bonus Satın Al (100x Bahis)
+  if (isBonusBuy) {
+    if (casinoUI.freeSpinsLeft > 0) {
+      showToast('Zaten aktif Free Spin turundasın!');
+      return;
+    }
+    const buyCost = baseBet * 100;
+    if (G.money < buyCost) {
+      showToast(`100x Bonus Satın Almak için ${fmtMoney(buyCost)} nakit gerekiyor!`);
+      return;
+    }
+    G.money -= buyCost;
+    casinoUI.freeSpinsLeft = casinoUI.gameTab === 'olympus' ? 15 : 10;
+    casinoUI.fsTotalMultiplier = 0;
+    casinoUI.fsCumulativeWin = 0;
+    playCasinoAudio('zeus');
+    addLog(G.age, `⚡ **BONUS SATIN ALINDI (${casinoUI.gameTab === 'olympus' ? 'Gates of Olympus' : 'Sweet Bonanza'}):** **${fmtMoney(buyCost)}** ödeyerek doğrudan Free Spin turuna girdin!`, 'normal');
+  } else if (casinoUI.freeSpinsLeft <= 0) {
+    if (G.money < actualBet) {
+      showToast('Bahis için nakit bakiyen yetersiz!');
+      return;
+    }
+    G.money -= actualBet;
+  }
+
+  const inFs = casinoUI.freeSpinsLeft > 0;
+  if (inFs && !isBonusBuy) {
+    casinoUI.freeSpinsLeft -= 1;
+  }
+
+  playCasinoAudio('spin');
+  const db = casinoUI.gameTab === 'olympus' ? OLYMPUS_SYMBOLS_DB : BONANZA_SYMBOLS_DB;
+  const newGrid = [];
+  const counts = {};
+  let scatterCount = 0;
+  let screenMultipliersSum = 0;
+
+  for (let i = 0; i < 30; i++) {
+    const sym = pickWeightedSlotSymbol(db, inFs);
+    if (isBonusBuy && i < 4) {
+      // Bonus satın alındığında ekrana 4 Scatter düşür
+      const sc = db[0];
+      newGrid.push({ ...sc, isWinning: true });
+      scatterCount++;
+    } else {
+      newGrid.push({ ...sym, isWinning: false });
+      if (sym.isScatter) scatterCount++;
+      else if (sym.isMultiplier) screenMultipliersSum += sym.multValue;
+      else counts[sym.id] = (counts[sym.id] || 0) + 1;
+    }
+  }
+
+  // Pay Anywhere Hesaplaması (Ekranda herhangi bir yerde 8+ aynı sembol!)
+  let baseRawWin = 0;
+  const matchedNames = [];
+
+  Object.keys(counts).forEach(symId => {
+    const cnt = counts[symId];
+    if (cnt >= 8) {
+      const sInfo = db.find(x => x.id === symId);
+      if (sInfo) {
+        let multPay = sInfo.pay8;
+        if (cnt >= 12) multPay = sInfo.pay12;
+        else if (cnt >= 10) multPay = sInfo.pay10;
+
+        baseRawWin += Math.round(baseBet * multPay);
+        matchedNames.push(`${cnt}x ${sInfo.icon}`);
+        newGrid.forEach(cell => {
+          if (cell.id === symId) cell.isWinning = true;
+        });
+      }
+    }
+  });
+
+  // 4+ Scatter Gelirse Free Spin Tetiklemesi
+  if (!isBonusBuy && scatterCount >= 4) {
+    const addedFs = inFs ? 5 : (casinoUI.gameTab === 'olympus' ? 15 : 10);
+    casinoUI.freeSpinsLeft += addedFs;
+    baseRawWin += baseBet * 3;
+    matchedNames.push(`${scatterCount}x SCATTER (+${addedFs} FS!)`);
+    newGrid.forEach(cell => { if (cell.isScatter) cell.isWinning = true; });
+    playCasinoAudio('zeus');
+  }
+
+  // Çarpan Hesaplaması (Gates of Olympus Toplanan Çarpan & Sweet Bonanza Bomba Çarpanı)
+  let totalWin = baseRawWin;
+  casinoUI.zeusStruck = false;
+
+  if (baseRawWin > 0 && screenMultipliersSum > 0) {
+    casinoUI.zeusStruck = true;
+    playCasinoAudio('zeus');
+    if (casinoUI.gameTab === 'olympus' && inFs) {
+      casinoUI.fsTotalMultiplier += screenMultipliersSum;
+      totalWin = Math.round(baseRawWin * casinoUI.fsTotalMultiplier);
+    } else {
+      totalWin = Math.round(baseRawWin * screenMultipliersSum);
+    }
+  } else if (baseRawWin > 0 && casinoUI.gameTab === 'olympus' && inFs && casinoUI.fsTotalMultiplier > 0 && screenMultipliersSum > 0) {
+    totalWin = Math.round(baseRawWin * casinoUI.fsTotalMultiplier);
+  }
+
+  casinoUI.grid = newGrid;
+  casinoUI.lastWinAmt = totalWin;
+
+  if (totalWin > 0) {
+    G.money += totalWin;
+    if (inFs) casinoUI.fsCumulativeWin += totalWin;
+
+    const multText = screenMultipliersSum > 0 ? ` ⚡ ÇARPAN: ${inFs && casinoUI.gameTab === 'olympus' ? casinoUI.fsTotalMultiplier : screenMultipliersSum}x!` : '';
+    casinoUI.lastWinLog = `🎉 KAZANÇ: +${fmtMoney(totalWin)} (${matchedNames.join(', ')})${multText}`;
+
+    if (totalWin >= baseBet * 15) {
+      playCasinoAudio('bigwin');
+      G.happy = clamp((G.happy || 60) + 10);
+      addLog(G.age, `🎰 **SENSATIONAL MEGA WIN!** ${casinoUI.gameTab === 'olympus' ? 'Gates of Olympus' : 'Sweet Bonanza'} slotunda tek spinde **+${fmtMoney(totalWin)}** vurdun!`, 'fame');
+    }
+  } else {
+    casinoUI.lastWinLog = isBonusBuy
+      ? `⚡ 4 SCATTER DÜŞTÜ! Free Spin Başladı, Şimdi Spin Tuşuna Bas!`
+      : `Eşleşme yok (En az 8 aynı sembol gerekli). Tekrar çevir!`;
+  }
+
+  saveGame();
+  renderAll();
+  renderVIPCasinoModal();
+};
+
+/* ---------------- VIP LIVE BLACKJACK 21 MOTORU ---------------- */
+
+function createFreshBlackjackDeck() {
+  const suits = [
+    { s: '♠', color: 'black-suit' },
+    { s: '♥', color: 'red-suit' },
+    { s: '♦', color: 'red-suit' },
+    { s: '♣', color: 'black-suit' }
+  ];
+  const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const deck = [];
+  for (let d = 0; d < 2; d++) {
+    for (let st of suits) {
+      for (let rk of ranks) {
+        let val = parseInt(rk, 10);
+        if (rk === 'A') val = 11;
+        else if (['J', 'Q', 'K'].includes(rk)) val = 10;
+        deck.push({ rank: rk, suit: st.s, color: st.color, val });
+      }
+    }
+  }
+  return deck.sort(() => Math.random() - 0.5);
+}
+
+function calcBlackjackHandTotal(hand) {
+  let sum = 0;
+  let aces = 0;
+  hand.forEach(c => {
+    sum += c.val;
+    if (c.rank === 'A') aces++;
+  });
+  while (sum > 21 && aces > 0) {
+    sum -= 10;
+    aces--;
+  }
+  return sum;
+}
+
+window.startBlackjackHand = function () {
+  if (!G) return;
+  const bet = getCurrentBetAmount();
+  if (G.money < bet) {
+    showToast('Blackjack masası için bakiyen yetersiz!');
+    return;
+  }
+  G.money -= bet;
+  casinoUI.bjCurrentBet = bet;
+  casinoUI.bjDeck = createFreshBlackjackDeck();
+  casinoUI.bjPlayer = [casinoUI.bjDeck.pop(), casinoUI.bjDeck.pop()];
+  casinoUI.bjDealer = [casinoUI.bjDeck.pop(), casinoUI.bjDeck.pop()];
+  casinoUI.bjState = 'playing';
+  playCasinoAudio('card');
+
+  const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+  if (pScore === 21) {
+    // Doğrudan Blackjack (3:2 ödeme)
+    finishBlackjackHand(true);
+    return;
+  }
+  casinoUI.bjResultText = `El Toplamın: ${pScore} • Hamleni Seç (Kart Çek / Kal / 2x Katla)`;
+  saveGame(); renderAll(); renderVIPCasinoModal();
+};
+
+window.blackjackPlayerAction = function (act) {
+  if (casinoUI.bjState !== 'playing') return;
+  playCasinoAudio('card');
+
+  if (act === 'hit') {
+    casinoUI.bjPlayer.push(casinoUI.bjDeck.pop());
+    const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+    if (pScore > 21) {
+      casinoUI.bjState = 'resolved';
+      casinoUI.bjResultText = `💥 BUST (${pScore})! 21'i geçtin, kasa kazandı (-${fmtMoney(casinoUI.bjCurrentBet)}).`;
+    } else if (pScore === 21) {
+      finishBlackjackHand(false);
+      return;
+    } else {
+      casinoUI.bjResultText = `El Toplamın: ${pScore} • Kart çekmeye devam mı?`;
+    }
+  } else if (act === 'double') {
+    if (G.money < casinoUI.bjCurrentBet) {
+      showToast('Bahsi ikiye katlamak (Double) için nakit yetersiz!');
+      return;
+    }
+    G.money -= casinoUI.bjCurrentBet;
+    casinoUI.bjCurrentBet *= 2;
+    casinoUI.bjPlayer.push(casinoUI.bjDeck.pop());
+    const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+    if (pScore > 21) {
+      casinoUI.bjState = 'resolved';
+      casinoUI.bjResultText = `💥 DOUBLE BUST (${pScore})! 21'i geçtin (-${fmtMoney(casinoUI.bjCurrentBet)}).`;
+    } else {
+      finishBlackjackHand(false);
+      return;
+    }
+  } else if (act === 'stand') {
+    finishBlackjackHand(false);
+    return;
+  }
+
+  saveGame(); renderAll(); renderVIPCasinoModal();
+};
+
+function finishBlackjackHand(isNaturalBlackjack) {
+  casinoUI.bjState = 'resolved';
+  while (calcBlackjackHandTotal(casinoUI.bjDealer) < 17) {
+    casinoUI.bjDealer.push(casinoUI.bjDeck.pop());
+  }
+
+  const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+  const dScore = calcBlackjackHandTotal(casinoUI.bjDealer);
+  const bet = casinoUI.bjCurrentBet;
+
+  if (isNaturalBlackjack && dScore !== 21) {
+    const win = Math.round(bet * 2.5); // 3:2 Blackjack Ödemesi
+    G.money += win;
+    playCasinoAudio('bigwin');
+    casinoUI.bjResultText = `👑 BLACKJACK 21! Krupiyeyi ezdin: +${fmtMoney(win)} (3:2 Ödeme)!`;
+    addLog(G.age, `🃏 **VIP BLACKJACK 21!** Masada kusursuz 21 yakalayarak **+${fmtMoney(win - bet)} net kazanç** aldın!`, 'good');
+  } else if (dScore > 21 || pScore > dScore) {
+    const win = bet * 2;
+    G.money += win;
+    playCasinoAudio('zeus');
+    casinoUI.bjResultText = `🏆 KAZANDIN! Sen: ${pScore} vs Krupiye: ${dScore} (+${fmtMoney(win)})!`;
+  } else if (pScore === dScore) {
+    G.money += bet;
+    casinoUI.bjResultText = `🤝 BERABERE (PUSH)! Sen: ${pScore} - Krupiye: ${dScore}. Bahsin iade edildi.`;
+  } else {
+    casinoUI.bjResultText = `❌ KASA KAZANDI! Krupiye: ${dScore} vs Sen: ${pScore} (-${fmtMoney(bet)}).`;
+  }
+
+  saveGame(); renderAll(); renderVIPCasinoModal();
+}
+
+/* ---------------- HD 4K CASINO ARAYÜZ ÇİZİCİSİ ---------------- */
+
+window.openVIPCasinoModal = function (tab) {
+  if (tab) casinoUI.gameTab = tab;
+  if (!casinoUI.grid || casinoUI.grid.length !== 30) {
+    casinoUI.grid = generateInitial6x5Grid();
+  }
+  renderVIPCasinoModal();
+};
+
+function renderVIPCasinoModal() {
+  const sheet = document.getElementById('bottomSheet');
+  if (!sheet || !G) return;
+  sheet.classList.remove('hidden');
+
+  document.getElementById('sheetTitle').textContent = '🎰 Royal VIP Casino & Live Lounge';
+  document.getElementById('sheetSubtitle').textContent = `Cüzdan: ${fmtMoney(G.money)} • Gates of Olympus • Sweet Bonanza • 21`;
+
+  const c = getCountry();
+  const baseBet = Math.max(100, Math.round(c.monthlyMinWage * casinoUI.betMult));
+  const actualBet = getCurrentBetAmount();
+  const bonusBuyCost = baseBet * 100;
+
+  const topTabs = `
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-amber-400/40 mb-3 text-[10.5px] font-black">
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('olympus')" class="py-2 rounded-xl ${casinoUI.gameTab === 'olympus' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow' : 'text-slate-300'}">⚡ Gates of Olympus</button>
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('bonanza')" class="py-2 rounded-xl ${casinoUI.gameTab === 'bonanza' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-slate-300'}">🍭 Sweet Bonanza</button>
+      <button onclick="openVIPCasinoModal('blackjack')" class="py-2 rounded-xl ${casinoUI.gameTab === 'blackjack' ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow' : 'text-slate-300'}">🃏 Live Blackjack 21</button>
+    </div>
+  `;
+
+  // Bahis Çip Seçici Çubuğu
+  const chipOptions = [
+    { mult: 0.05, label: 'Mini', bg: 'bg-sky-600 text-white' },
+    { mult: 0.15, label: 'Standart', bg: 'bg-emerald-600 text-white' },
+    { mult: 0.40, label: 'Yüksek', bg: 'bg-purple-600 text-white' },
+    { mult: 1.00, label: 'VIP Balina', bg: 'bg-amber-400 text-slate-950' }
+  ];
+
+  const chipBar = `
+    <div class="flex items-center justify-between gap-1.5 bg-slate-950/90 border border-slate-800 rounded-2xl p-2 mb-2.5">
+      <div class="text-[10px]">
+        <span class="text-slate-400 block">AKTİF BAHİS</span>
+        <strong class="text-amber-300 font-mono-num text-xs">${fmtMoney(actualBet)}</strong>
+      </div>
+      <div class="flex gap-1">
+        ${chipOptions.map(ch => `
+          <button onclick="casinoUI.betMult=${ch.mult}; renderVIPCasinoModal()" class="casino-chip-btn ${ch.bg} ${casinoUI.betMult === ch.mult ? 'active' : ''}">
+            ${fmtMoney(Math.round(c.monthlyMinWage * ch.mult))}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  let gameStageHtml = '';
+
+  // 1. GATES OF OLYMPUS & 2. SWEET BONANZA SAHNESİ
+  if (casinoUI.gameTab === 'olympus' || casinoUI.gameTab === 'bonanza') {
+    const isOly = casinoUI.gameTab === 'olympus';
+    const stageClass = isOly ? 'olympus-stage' : 'bonanza-stage';
+
+    gameStageHtml = `
+      <div class="${stageClass} ${casinoUI.zeusStruck ? 'zeus-strike-anim' : ''} space-y-2.5">
+        <!-- Üst Bilgi: Zeus / Şeker Başlığı, Free Spin Sayacı ve Toplam Çarpan -->
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-xl ${isOly ? 'bg-amber-400/20 border-amber-400' : 'bg-pink-400/20 border-pink-400'} border-2 flex items-center justify-center text-2xl shadow">
+              ${isOly ? '🧔🏼‍♂️' : '🍭'}
+            </div>
+            <div>
+              <div class="text-xs font-black text-white uppercase tracking-wider">
+                ${isOly ? 'GATES OF OLYMPUS 1000™' : 'SWEET BONANZA 1000™'}
+              </div>
+              <div class="text-[9.5px] font-bold ${isOly ? 'text-amber-300' : 'text-pink-200'}">
+                Pay Anywhere (8+ Eşleşme) • Max 500x Çarpan
+              </div>
+            </div>
+          </div>
+
+          <div class="text-right">
+            ${casinoUI.freeSpinsLeft > 0 ? `
+              <span class="px-2.5 py-1 rounded-xl bg-amber-400 text-slate-950 font-mono-num text-[11px] font-black animate-pulse">
+                ⚡ FREE SPIN: ${casinoUI.freeSpinsLeft}
+              </span>
+            ` : `
+              <span class="px-2 py-0.5 rounded-lg bg-slate-950/80 border border-white/20 text-[10px] font-mono-num text-emerald-300 font-bold">
+                RTP 96.5%
+              </span>
+            `}
+            ${isOly && casinoUI.fsTotalMultiplier > 0 ? `
+              <div class="text-[10px] font-mono-num font-black text-sky-300 mt-0.5">TOPLAM ÇARPAN: ${casinoUI.fsTotalMultiplier}x</div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- 6x5 30 Hücreli HD Slot Izgarası -->
+        <div class="slot-6x5-grid">
+          ${casinoUI.grid.map((cell, idx) => `
+            <div class="slot-cell-hd ${cell.isWinning ? 'slot-cell-win' : ''} ${cell.isMultiplier ? 'slot-cell-mult' : ''}" style="animation-delay:${(idx % 6) * 0.03}s">
+              <span class="sym-icon">${cell.icon}</span>
+              ${cell.isMultiplier ? `<span class="mult-badge-text">${cell.multValue}x</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Kazanç Skorbordu -->
+        <div class="p-2 rounded-xl bg-slate-950/90 border ${casinoUI.lastWinAmt > 0 ? 'border-amber-400' : 'border-slate-800'} text-center">
+          <div class="text-xs font-extrabold ${casinoUI.lastWinAmt > 0 ? 'text-amber-300' : 'text-slate-300'}">
+            ${casinoUI.lastWinLog}
+          </div>
+          ${casinoUI.fsCumulativeWin > 0 ? `<div class="text-[10px] font-mono-num text-emerald-400 font-bold">Free Spin Toplam Kazanç: +${fmtMoney(casinoUI.fsCumulativeWin)}</div>` : ''}
+        </div>
+
+        <!-- Alt Kontrol Paneli: Bonus Satın Al (100x), Çifte Şans ve Dev Spin Tuşu -->
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button onclick="spinPragmaticSlot(true)" class="flex-1 py-2.5 px-2 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 text-slate-950 text-left shadow-lg">
+            <div class="text-[9px] font-black uppercase">⚡ BONUS SATIN AL (FS)</div>
+            <div class="text-xs font-mono-num font-black">${fmtMoney(bonusBuyCost)}</div>
+          </button>
+
+          <button onclick="spinPragmaticSlot(false)" class="spin-btn-hd" title="Çevir (Spin)">
+            ↻
+          </button>
+
+          <button onclick="casinoUI.doubleChance=!casinoUI.doubleChance; renderVIPCasinoModal()" class="flex-1 py-2.5 px-2 rounded-xl border ${casinoUI.doubleChance ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300' : 'bg-slate-950/80 border-slate-700 text-slate-400'} text-right">
+            <div class="text-[9px] font-black uppercase">ÇİFTE ŞANS (2X)</div>
+            <div class="text-xs font-extrabold">${casinoUI.doubleChance ? 'AÇIK ✓' : 'KAPALI'}</div>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. VIP LIVE BLACKJACK 21 MASASI
+  else if (casinoUI.gameTab === 'blackjack') {
+    const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+    const dScore = casinoUI.bjState === 'playing'
+      ? (casinoUI.bjDealer[0] ? casinoUI.bjDealer[0].val : 0)
+      : calcBlackjackHandTotal(casinoUI.bjDealer);
+
+    gameStageHtml = `
+      <div class="bj-table-felt space-y-4">
+        <div class="flex items-center justify-between border-b border-emerald-400/25 pb-2">
+          <div>
+            <div class="text-[9px] font-extrabold text-amber-300 uppercase tracking-widest">🟢 EVOLUTION VIP LIVE BLACKJACK</div>
+            <div class="text-xs font-extrabold text-white">Blackjack 3:2 Öder • Krupiye 17'de Kalır</div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 font-mono-num text-[10px] font-black">
+            Masa Bahsi: ${fmtMoney(casinoUI.bjCurrentBet || actualBet)}
+          </span>
+        </div>
+
+        <!-- Krupiye Eli -->
+        <div class="space-y-1.5 text-center">
+          <div class="text-[10px] font-extrabold text-emerald-200 uppercase">
+            🤵‍♂️ KRUPİYE ELİ ${casinoUI.bjDealer.length > 0 ? `(${casinoUI.bjState === 'playing' ? dScore + ' + ?' : dScore})` : ''}
+          </div>
+          <div class="flex items-center justify-center gap-2 min-h-[76px]">
+            ${casinoUI.bjDealer.length === 0 ? `<div class="text-xs text-emerald-300/60 italic">Kartlar dağıtılmayı bekliyor...</div>` :
+              casinoUI.bjDealer.map((card, idx) => {
+                if (idx === 1 && casinoUI.bjState === 'playing') {
+                  return `<div class="playing-card-hd playing-card-back">👑</div>`;
+                }
+                return `
+                  <div class="playing-card-hd ${card.color}">
+                    <div class="text-xs leading-none">${card.rank}</div>
+                    <div class="text-center text-lg leading-none">${card.suit}</div>
+                    <div class="text-xs leading-none text-right">${card.rank}</div>
+                  </div>
+                `;
+              }).join('')
+            }
+          </div>
+        </div>
+
+        <!-- Orta Durum Bandı -->
+        <div class="p-2 rounded-xl bg-slate-950/85 border border-amber-400/40 text-center text-xs font-extrabold text-amber-300">
+          ${casinoUI.bjResultText}
+        </div>
+
+        <!-- Oyuncunun Eli -->
+        <div class="space-y-1.5 text-center">
+          <div class="text-[10px] font-extrabold text-white uppercase">
+            👤 SENİN ELİN ${casinoUI.bjPlayer.length > 0 ? `(TOPLAM: ${pScore})` : ''}
+          </div>
+          <div class="flex items-center justify-center gap-2 min-h-[76px]">
+            ${casinoUI.bjPlayer.map(card => `
+              <div class="playing-card-hd ${card.color}">
+                <div class="text-xs leading-none">${card.rank}</div>
+                <div class="text-center text-lg leading-none">${card.suit}</div>
+                <div class="text-xs leading-none text-right">${card.rank}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Blackjack Aksiyon Butonları -->
+        ${casinoUI.bjState === 'playing' ? `
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button onclick="blackjackPlayerAction('hit')" class="py-3 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black shadow">
+              🃏 KART ÇEK (HIT)
+            </button>
+            <button onclick="blackjackPlayerAction('stand')" class="py-3 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shadow">
+              ✋ KAL (STAND)
+            </button>
+            <button onclick="blackjackPlayerAction('double')" class="py-3 rounded-xl bg-sky-500 text-slate-950 text-xs font-black shadow">
+              ⚡ 2X KATLA
+            </button>
+          </div>
+        ` : `
+          <button onclick="startBlackjackHand()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-xs font-black shadow-lg">
+            🃏 YENİ EL DAĞIT (${fmtMoney(actualBet)})
+          </button>
+        `}
+      </div>
+    `;
+  }
+
+  document.getElementById('sheetBody').innerHTML = `
+    <div class="casino-hd-wrapper">
+      ${topTabs}
+      ${chipBar}
+      ${gameStageHtml}
+    </div>
+  `;
+}
+
+/* ---------------- MENÜ VE CASINO SEKMESİ ENTEGRASYON KANCASI ---------------- */
+
+(function attachVIPCasinoMasterEngine() {
+  if (window._vipCasinoEngineLoaded) return;
+  window._vipCasinoEngineLoaded = true;
+
+  // 1. openMenuSection('casino') çağrıldığında eski basit ekran yerine HD VIP Casino açılsın
+  const _prevOpenMenuSec = openMenuSection;
+  openMenuSection = function (sec) {
+    if (sec === 'casino' || sec === 'gambling') {
+      openVIPCasinoModal();
+      return;
+    }
+    _prevOpenMenuSec(sec);
+  };
+
+  // 2. Ana Menüye "🎰 VIP Royal Casino (Gates of Olympus / Sweet Bonanza / 21)" Kartı Ekle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    _prevOpenNav(tab);
+    if (tab === 'menu') {
+      const body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('menuVipCasinoBtn')) {
+        const grid = body.querySelector('.grid.grid-cols-2');
+        if (grid) {
+          grid.insertAdjacentHTML('afterbegin', `
+            <button id="menuVipCasinoBtn" onclick="openVIPCasinoModal('olympus')" class="col-span-2 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/25 via-purple-600/20 to-pink-500/25 border border-amber-400/60 text-left flex items-center justify-between mb-1 shadow-lg">
+              <div>
+                <div class="text-xs font-black text-amber-300 uppercase">🎰 ROYAL VIP CASINO &amp; SLOT LOUNGE</div>
+                <div class="text-sm font-extrabold text-white">Gates of Olympus • Sweet Bonanza • Live Blackjack 21</div>
+              </div>
+              <span class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">Masaya Otur &rarr;</span>
+            </button>
+          `);
+        }
+      }
+    }
+  };
+})();
+
