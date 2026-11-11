@@ -12952,3 +12952,943 @@ window.finalizeAndStartNewLife = function () {
   setTimeout(showCinematicMainMenuIfNeeded, 200);
 })();
 
+/* ============================================================================
+   MASTER ONARIM PAKETİ: BAŞLANGIÇ EKRANI DÜZELTMESİ, TEKİLLEŞTİRME VE
+   1:1 PRAGMATIC PLAY SWEET BONANZA 1000 / GATES OF OLYMPUS 1000 MOTORU
+   ============================================================================ */
+
+// 1. ÇÖKME ÖNLEYİCİ GÜVENLİ KORUMALAR (G Henüz Yokken Çağrılan Fonksiyonlar İçin)
+(function patchCoreSafetyWrappers() {
+  const _rawGetCountry = typeof getCountry === 'function' ? getCountry : null;
+  window.getCountry = getCountry = function () {
+    if (typeof G !== 'undefined' && G && G.countryId && _rawGetCountry) {
+      return _rawGetCountry();
+    }
+    return (typeof COUNTRIES !== 'undefined' && COUNTRIES[0])
+      ? COUNTRIES[0]
+      : { id: 'TR', name: 'Türkiye', flag: '🇹🇷', currency: '₺', monthlyMinWage: 22104, taxRate: 0.20, inflation: 0 };
+  };
+
+  const _rawFmtMoney = typeof fmtMoney === 'function' ? fmtMoney : null;
+  window.fmtMoney = fmtMoney = function (n) {
+    const val = Math.round(Number(n) || 0);
+    if (typeof G !== 'undefined' && G && _rawFmtMoney) {
+      try { return _rawFmtMoney(val); } catch (e) {}
+    }
+    return val.toLocaleString('tr-TR') + ' ₺';
+  };
+})();
+
+// 2. KARAKTER SVG MOTORUNU BAŞLANGIÇ EKRANINDA ASLA ÇÖKMEYECEK ŞEKİLDE GÜNCELLE
+window.generateDynamicCharacterSVG = function (rawSvgOnly = false, overrideObj = null) {
+  const target = overrideObj || (typeof G !== 'undefined' && G ? G : {
+    gender: (typeof creationState !== 'undefined' ? creationState.gender : 'Erkek'),
+    age: 18,
+    happy: 80,
+    charLook: (typeof creationState !== 'undefined' ? creationState : {})
+  });
+
+  if (!target.charLook) {
+    target.charLook = {
+      skinId: target.skinId || 'skin_wheat',
+      hairStyleId: target.hairStyleId || 'fade_crop',
+      hairColorId: target.hairColorId || 'hc_darkbrown',
+      beardStyleId: target.beardStyleId || 'beard_stubble',
+      browStyleId: 'brow_natural',
+      eyeColorId: target.eyeColorId || 'eye_hazel',
+      outfitId: target.outfitId || 'out_tshirt',
+      glassesId: 'gl_none',
+      yearsSinceHaircut: 0
+    };
+  }
+
+  const lk = target.charLook;
+  const skin = (typeof CHAR_SKIN_TONES_DB !== 'undefined' && CHAR_SKIN_TONES_DB.find(x => x.id === lk.skinId)) || { base: '#eab68c', shadow: '#c98e63' };
+  const hairColor = (typeof CHAR_HAIR_COLORS_DB !== 'undefined' && CHAR_HAIR_COLORS_DB.find(x => x.id === lk.hairColorId)) || { hex: '#2c1b12', highlight: '#4a3022' };
+  const eyeColor = (typeof CHAR_EYE_COLORS_DB !== 'undefined' && CHAR_EYE_COLORS_DB.find(x => x.id === lk.eyeColorId)) || { hex: '#6e5227' };
+  const outfit = (typeof CHAR_OUTFITS_DB !== 'undefined' && CHAR_OUTFITS_DB.find(x => x.id === lk.outfitId)) || { primary: '#1e293b', accent: '#38bdf8' };
+
+  const hs = lk.hairStyleId || 'fade_crop';
+  let hairTopSvg = `<path d="M52,78 C50,42 72,28 100,28 C128,28 150,42 148,78 C142,60 124,52 100,52 C76,52 58,60 52,78 Z" fill="${hairColor.hex}"/>`;
+  if (hs === 'pompadour') {
+    hairTopSvg = `<path d="M52,80 C46,36 68,16 104,18 C138,20 154,40 148,80 C140,56 120,46 96,48 C74,50 60,60 52,80 Z" fill="${hairColor.hex}"/>`;
+  } else if (hs === 'curly_perm') {
+    hairTopSvg = `<path d="M46,82 C40,42 66,22 100,22 C134,22 160,42 154,82 C140,62 120,56 100,56 C80,56 60,62 46,82 Z" fill="${hairColor.hex}"/><circle cx="72" cy="44" r="14" fill="${hairColor.hex}"/><circle cx="100" cy="38" r="15" fill="${hairColor.hex}"/><circle cx="128" cy="44" r="14" fill="${hairColor.hex}"/>`;
+  } else if (hs === 'long_wave') {
+    hairTopSvg = `<path d="M42,75 C34,115 36,155 48,175 L152,175 C164,155 166,115 158,75 Z" fill="${hairColor.hex}"/><path d="M46,86 C44,38 70,24 100,24 C130,24 156,38 154,86 C142,58 122,48 100,48 C78,48 58,58 46,86 Z" fill="${hairColor.hex}"/>`;
+  } else if (hs === 'bald_clean') {
+    hairTopSvg = '';
+  }
+
+  let beardSvg = '';
+  if (target.gender !== 'Kadın' && lk.beardStyleId !== 'beard_clean') {
+    beardSvg = `<path d="M56,108 C56,138 76,153 100,153 C124,153 144,138 144,108 C140,126 124,142 100,142 C76,142 60,126 56,108 Z" fill="${hairColor.hex}" opacity="${lk.beardStyleId === 'beard_full' ? '0.88' : '0.35'}"/><path d="M82,124 Q100,119 118,124" fill="none" stroke="${hairColor.hex}" stroke-width="4" opacity="0.65" stroke-linecap="round"/>`;
+  }
+
+  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="100%" height="100%">
+    <rect width="200" height="220" fill="#0f172a"/>
+    <circle cx="100" cy="95" r="78" fill="${outfit.accent}" opacity="0.12"/>
+    <rect x="81" y="132" width="38" height="36" rx="10" fill="${skin.shadow}"/>
+    <path d="M25,220 C28,168 58,156 100,156 C142,156 172,168 175,220 Z" fill="${outfit.primary}"/>
+    <path d="M76,156 Q100,175 124,156" fill="none" stroke="${outfit.accent}" stroke-width="4"/>
+    <ellipse cx="50" cy="100" rx="8" ry="13" fill="${skin.shadow}"/>
+    <ellipse cx="150" cy="100" rx="8" ry="13" fill="${skin.shadow}"/>
+    <path d="M52,76 C52,44 72,34 100,34 C128,34 148,44 148,76 C148,116 130,152 100,152 C70,152 52,116 52,76 Z" fill="${skin.base}"/>
+    <ellipse cx="76" cy="94" rx="11" ry="7" fill="#ffffff"/>
+    <circle cx="76" cy="94" r="5.5" fill="${eyeColor.hex}"/>
+    <circle cx="76" cy="94" r="2.6" fill="#090d16"/>
+    <circle cx="78" cy="92" r="1.6" fill="#ffffff"/>
+    <ellipse cx="124" cy="94" rx="11" ry="7" fill="#ffffff"/>
+    <circle cx="124" cy="94" r="5.5" fill="${eyeColor.hex}"/>
+    <circle cx="124" cy="94" r="2.6" fill="#090d16"/>
+    <circle cx="126" cy="92" r="1.6" fill="#ffffff"/>
+    <path d="M62,81 Q76,75 89,80" fill="none" stroke="${hairColor.hex}" stroke-width="3.8" stroke-linecap="round"/>
+    <path d="M111,80 Q124,75 138,81" fill="none" stroke="${hairColor.hex}" stroke-width="3.8" stroke-linecap="round"/>
+    <path d="M100,90 L97,112 Q100,115 105,112" fill="none" stroke="${skin.shadow}" stroke-width="2.6" stroke-linecap="round"/>
+    ${beardSvg}
+    <path d="M86,129 Q100,139 114,129" fill="none" stroke="#8c3b32" stroke-width="3.2" stroke-linecap="round"/>
+    ${hairTopSvg}
+  </svg>`;
+
+  return rawSvgOnly ? svgMarkup : 'data:image/svg+xml;utf8,' + encodeURIComponent(svgMarkup);
+};
+
+// 3. BAŞLANGIÇ EKRANI VE KAYIT SLOTU YÜKLEME / OLUŞTURMA HATASI KESİN ÇÖZÜMÜ
+function createCompleteValidGameObject(opts = {}) {
+  const c = getCountry();
+  const baseWage = c.monthlyMinWage || 22104;
+  const fName = opts.firstName || 'Çağatay';
+  const lName = opts.lastName || 'Kılıç';
+  const gender = opts.gender || 'Erkek';
+  const bCity = opts.birthCity || 'İstanbul';
+  const startAge = typeof opts.age === 'number' ? opts.age : 18;
+  const startMoney = typeof opts.money === 'number' ? opts.money : Math.round(baseWage * 2.0);
+
+  return {
+    firstName: fName,
+    lastName: lName,
+    gender: gender,
+    age: startAge,
+    countryId: 'TR',
+    birthCity: bCity,
+    portraitIdx: 0,
+    money: startMoney,
+    bankSavings: 0,
+    savings: 0,
+    loanDebt: 0,
+    mortgageDebt: 0,
+    creditScore: 1350,
+    health: 95,
+    happy: 85,
+    smart: 78,
+    intel: 78,
+    looks: 78,
+    fame: 10,
+    stress: 15,
+    energy: 100,
+    maxEnergy: 100,
+    eduStage: 'Üniversite',
+    uniYears: 0,
+    uniGrad: false,
+    jobId: null,
+    jobExp: 0,
+    jobPerf: 70,
+    inPrison: false,
+    prisonYears: 0,
+    criminalRecord: false,
+    alive: true,
+    licenses: { B: false, CE: false },
+    houses: [],
+    cars: [],
+    businesses: [],
+    stockHoldings: {},
+    cryptoHoldings: {},
+    stocks: {},
+    crypto: {},
+    spouse: null,
+    lover: null,
+    children: [],
+    achievements: [],
+    logs: [
+      {
+        age: startAge,
+        items: [
+          { text: `🌟 **YENİ HAYAT BAŞLADI:** **${fName} ${lName}** (${bCity}) olarak ${startAge} yaşında hayata adım attın! Başlangıç sermayen: **${fmtMoney(startMoney)}**.`, type: 'milestone' }
+        ]
+      }
+    ],
+    charLook: {
+      skinId: opts.skinId || 'skin_wheat',
+      hairStyleId: opts.hairStyleId || 'fade_crop',
+      hairColorId: opts.hairColorId || 'hc_darkbrown',
+      beardStyleId: opts.beardStyleId || 'beard_stubble',
+      browStyleId: 'brow_natural',
+      eyeColorId: opts.eyeColorId || 'eye_hazel',
+      outfitId: opts.outfitId || 'out_tshirt',
+      glassesId: 'gl_none',
+      yearsSinceHaircut: 0,
+      hasSkinCareGlow: false
+    }
+  };
+}
+
+function closeAllStartOverlaysAndEnterGame() {
+  ['cinematicMainMenuRoot', 'charCreatorModalRoot', 'startModal', 'introModal', 'newGameModal', 'welcomeModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('hidden');
+      if (id === 'cinematicMainMenuRoot' || id === 'charCreatorModalRoot') el.remove();
+    }
+  });
+  const shell = document.getElementById('appShell');
+  if (shell) shell.classList.remove('hidden');
+}
+
+window.loadGameFromSlot = function (sNum) {
+  currentSelectedSlot = sNum;
+  const raw = localStorage.getItem(getSlotStorageKey(sNum));
+  if (!raw) {
+    openCharacterCreatorModal(sNum);
+    return;
+  }
+  try {
+    const loaded = JSON.parse(raw);
+    const fallback = createCompleteValidGameObject(loaded);
+    const merged = Object.assign(fallback, loaded);
+    if (!Array.isArray(merged.logs) || merged.logs.length === 0) {
+      merged.logs = fallback.logs;
+    }
+    // Hem lexical G hem window.G olarak ata!
+    G = merged;
+    window.G = G;
+
+    closeAllStartOverlaysAndEnterGame();
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    if (typeof playSfx === 'function') playSfx('trophy');
+    if (typeof showToast === 'function') showToast(`Kayıt Slotu #${sNum} Yüklendi: Hoş geldin ${G.firstName}!`);
+  } catch (err) {
+    console.error('Slot yükleme hatası, yeni karakter ekranı açılıyor:', err);
+    openCharacterCreatorModal(sNum);
+  }
+};
+
+window.finalizeAndStartNewLife = function () {
+  const nameInput = document.getElementById('creatorInputName');
+  const surnameInput = document.getElementById('creatorInputSurname');
+  if (nameInput && nameInput.value.trim()) creationState.firstName = nameInput.value.trim();
+  if (surnameInput && surnameInput.value.trim()) creationState.lastName = surnameInput.value.trim();
+
+  const newG = createCompleteValidGameObject(creationState);
+  // Hem lexical G hem window.G olarak ata!
+  G = newG;
+  window.G = G;
+
+  try {
+    localStorage.setItem(getSlotStorageKey(currentSelectedSlot), JSON.stringify(G));
+  } catch (e) {}
+
+  closeAllStartOverlaysAndEnterGame();
+  if (typeof saveGame === 'function') saveGame();
+  if (typeof renderAll === 'function') renderAll();
+  if (typeof playSfx === 'function') playSfx('trophy');
+  if (typeof showToast === 'function') showToast(`🚀 Yeni hayatın başladı: Hoş geldin ${G.firstName}!`);
+};
+
+window.renderCharacterCreatorContent = function () {
+  const modal = document.getElementById('charCreatorModalRoot');
+  if (!modal) return;
+
+  const previewSvgUrl = generateDynamicCharacterSVG(false, creationState);
+  const cities = typeof TURKEY_BIRTH_CITIES_DB !== 'undefined' ? TURKEY_BIRTH_CITIES_DB : [
+    { name: 'İstanbul', region: 'Marmara' }, { name: 'Ordu', region: 'Karadeniz' }, { name: 'Tekirdağ (Şarköy)', region: 'Marmara' }
+  ];
+
+  modal.innerHTML = `
+    <div class="char-creator-box space-y-3.5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div>
+          <div class="text-[9px] font-extrabold text-sky-400 uppercase">SLOT #${creationState.slotNum} • KARAKTER STÜDYOSU</div>
+          <div class="text-base font-black text-white">Yeni Karakter Oluştur</div>
+        </div>
+        <button onclick="document.getElementById('charCreatorModalRoot').classList.add('hidden')" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">Geri ✕</button>
+      </div>
+
+      <div class="flex flex-col items-center gap-1.5">
+        <div class="creator-preview-frame">
+          <img src="${previewSvgUrl}" class="w-full h-full object-cover" />
+        </div>
+        <div class="text-xs font-extrabold text-amber-300">${creationState.firstName} ${creationState.lastName} • ${creationState.birthCity}</div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Adın</label>
+          <input type="text" id="creatorInputName" value="${creationState.firstName}" oninput="creationState.firstName=this.value" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold"/>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Soyadın</label>
+          <input type="text" id="creatorInputSurname" value="${creationState.lastName}" oninput="creationState.lastName=this.value" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Cinsiyet</label>
+          <select onchange="creationState.gender=this.value; renderCharacterCreatorContent();" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold">
+            <option value="Erkek" ${creationState.gender === 'Erkek' ? 'selected' : ''}>Erkek</option>
+            <option value="Kadın" ${creationState.gender === 'Kadın' ? 'selected' : ''}>Kadın</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Memleket</label>
+          <select onchange="creationState.birthCity=this.value; renderCharacterCreatorContent();" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold">
+            ${cities.map(ct => `<option value="${ct.name}" ${creationState.birthCity === ct.name ? 'selected' : ''}>${ct.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="space-y-2 text-[10px]">
+        <div>
+          <span class="text-slate-400 block mb-1">Saç Modeli</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            ${(typeof CHAR_HAIR_STYLES_DB !== 'undefined' ? CHAR_HAIR_STYLES_DB : []).map(hs => `
+              <button type="button" onclick="creationState.hairStyleId='${hs.id}'; renderCharacterCreatorContent();" class="p-1.5 rounded-lg border text-center font-bold truncate ${creationState.hairStyleId === hs.id ? 'border-sky-400 bg-sky-500/20 text-white' : 'border-slate-800 bg-slate-950 text-slate-400'}">
+                ${hs.name.replace(/^[^\s]+\s/, '')}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div>
+          <span class="text-slate-400 block mb-1">Saç Rengi</span>
+          <div class="flex gap-2 items-center">
+            ${(typeof CHAR_HAIR_COLORS_DB !== 'undefined' ? CHAR_HAIR_COLORS_DB : []).map(hc => `
+              <button type="button" onclick="creationState.hairColorId='${hc.id}'; renderCharacterCreatorContent();" class="w-7 h-7 rounded-full border-2 ${creationState.hairColorId === hc.id ? 'border-white scale-110' : 'border-slate-700'}" style="background:${hc.hex}"></button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <button type="button" onclick="finalizeAndStartNewLife()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 text-sm font-black shadow-lg cursor-pointer">
+        🚀 BU KARAKTERLE HAYATA BAŞLA!
+      </button>
+    </div>
+  `;
+};
+
+/* ============================================================================
+   4. FİNANS VE MENÜDEKİ ÇİFT ÖZELLİKLERİ BİRLEŞTİRME (TEKİLLEŞTİRME MOTORU)
+   ============================================================================ */
+
+// Finans sekmesindeki 2. Vadeli Mevduatı kaldırıp Altın/Döviz ve Kredi Kartını tek kutuda birleştirir
+window.renderGoldFxAndDepositPanelHTML = function () {
+  if (typeof ensureSixRealismState === 'function') ensureSixRealismState();
+  const c = getCountry();
+  const fg = G.fxGold;
+
+  // Eğer önceki yamada fg.termDeposit içinde para kaldıysa ana banka mevduatına (G.bankSavings / G.savings) aktar
+  if (fg.termDeposit && fg.termDeposit > 0) {
+    if (typeof G.bankSavings === 'number') G.bankSavings += fg.termDeposit;
+    else if (typeof G.savings === 'number') G.savings += fg.termDeposit;
+    else G.money += fg.termDeposit;
+    fg.termDeposit = 0;
+  }
+
+  const goldUnitPrice = Math.round(c.monthlyMinWage * fg.goldPriceMult);
+  const fxPackPrice = Math.round(c.monthlyMinWage * 0.5);
+  const goldTotalVal = fg.gramGold * goldUnitPrice;
+  const fxTotalVal = fg.usdBalance * fxPackPrice;
+  const ccMax = Math.round(c.monthlyMinWage * fg.ccLimitMult);
+
+  return `
+    <div id="unifiedGoldFxAndCardBox" class="fx-gold-card space-y-2.5 mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[9px] font-extrabold text-amber-400 uppercase tracking-widest">🪙 KAPALIÇARŞI ALTIN, DÖVİZ &amp; KREDİ KARTI MERKEZİ</div>
+          <div class="text-xs font-extrabold text-white">Fiziki Altın, Döviz Sepeti &amp; Findeks Ekstre</div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-mono-num font-bold">24 Ayar Has</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-center text-[10px]">
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8.5px] text-amber-400 font-bold">GRAM ALTIN (24K)</div>
+          <div class="font-extrabold font-mono-num text-white text-xs">${fg.gramGold} Gram</div>
+          <div class="text-[9.5px] text-emerald-400">${fmtMoney(goldTotalVal)}</div>
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="text-[8.5px] text-sky-400 font-bold">DÖVİZ SEPETİ ($/€)</div>
+          <div class="font-extrabold font-mono-num text-white text-xs">${fg.usdBalance} Lot</div>
+          <div class="text-[9.5px] text-emerald-400">${fmtMoney(fxTotalVal)}</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-[10px] font-extrabold">
+        <button onclick="tradeGoldOrFx('buy_gold', ${goldUnitPrice * 5})" class="py-2 rounded-xl bg-amber-400 text-slate-950">+5 Gr Altın (${fmtMoney(goldUnitPrice * 5)})</button>
+        <button onclick="tradeGoldOrFx('buy_fx', ${fxPackPrice * 2})" class="py-2 rounded-xl bg-sky-500 text-slate-950">+Döviz Al (${fmtMoney(fxPackPrice * 2)})</button>
+        <button onclick="tradeGoldOrFx('liquidate_all', 0)" class="py-2 rounded-xl bg-emerald-500 text-slate-950">Nakite Bozdur</button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="font-extrabold text-white">💳 Kredi Kartı Borcu: <strong class="text-rose-400 font-mono-num">${fmtMoney(fg.ccStatementDebt)}</strong></span>
+          <span class="text-[10px] text-slate-400">Limit: ${fmtMoney(ccMax)}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 text-[9.5px] font-extrabold">
+          <button onclick="manageCreditCard('spend', ${Math.round(c.monthlyMinWage * 0.8)})" class="py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">Nakit Avans Çek</button>
+          <button onclick="manageCreditCard('pay_min', 0)" class="py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300">Asgari Öde (%20)</button>
+          <button onclick="manageCreditCard('pay_full', 0)" class="py-1.5 rounded-lg bg-emerald-500 text-slate-950">Tamamını Kapat</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+function deduplicateAndCleanUI() {
+  const body = document.getElementById('sheetBody');
+  if (!body) return;
+
+  // 1. Finans sekmesinde birden fazla Altın/Mevduat veya Market kutusu oluştuysa fazlalıkları sil
+  const goldBoxes = body.querySelectorAll('.fx-gold-card');
+  if (goldBoxes.length > 1) {
+    for (let i = 1; i < goldBoxes.length; i++) goldBoxes[i].remove();
+  }
+  const marketBoxes = body.querySelectorAll('#householdMarketHub');
+  if (marketBoxes.length > 1) {
+    for (let i = 1; i < marketBoxes.length; i++) marketBoxes[i].remove();
+  }
+
+  // 2. Menüde 2 tane Kumarhane (Casino) butonu varsa eski küçük olanı sil, sadece tek VIP Casino kalsın!
+  const allMenuBtns = body.querySelectorAll('button');
+  allMenuBtns.forEach(btn => {
+    const oc = btn.getAttribute('onclick') || '';
+    if (btn.id !== 'menuVipCasinoBtn' && (oc.includes("'casino'") || oc.includes("'gambling'"))) {
+      btn.remove();
+    }
+  });
+}
+
+/* ============================================================================
+   5. GERÇEK 1:1 PRAGMATIC PLAY SWEET BONANZA 1000 & GATES OF OLYMPUS 1000
+      (3B ÖZEL SVG ŞEKERLER, TUMBLE PATLAMA ZİNCİRİ VE MANUEL BAHİS GİRİŞİ)
+   ============================================================================ */
+
+// Gerçek 3B Vektörel Sweet Bonanza & Gates of Olympus Sembol Çizicisi (Emoji Değil, Gerçek Grafik!)
+function getPragmaticSymbolSVG(sym) {
+  if (!sym) return '';
+
+  // Çarpan Bombası (Sweet Bonanza Gökkuşağı Bombası) & Zeus Küresi
+  if (sym.isMultiplier) {
+    const mv = sym.multValue || 10;
+    if (casinoUI.gameTab === 'bonanza') {
+      return `<svg viewBox="0 0 64 64" class="w-full h-full drop-shadow">
+        <defs>
+          <radialGradient id="bombGrad" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#fde047"/>
+            <stop offset="35%" stop-color="#ec4899"/>
+            <stop offset="70%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#1d4ed8"/>
+          </radialGradient>
+        </defs>
+        <path d="M32,12 Q42,4 48,10" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="49" cy="10" r="4.5" fill="#fde047"/>
+        <circle cx="32" cy="36" r="22" fill="url(#bombGrad)" stroke="#ffffff" stroke-width="2.5"/>
+        <ellipse cx="24" cy="26" rx="6" ry="3.5" transform="rotate(-25 24 26)" fill="rgba(255,255,255,0.65)"/>
+        <rect x="8" y="26" width="48" height="19" rx="6" fill="rgba(9,13,22,0.82)" stroke="#fde047" stroke-width="1.5"/>
+        <text x="32" y="40" text-anchor="middle" fill="#fde047" font-family="JetBrains Mono, monospace" font-weight="900" font-size="15">${mv}x</text>
+      </svg>`;
+    } else {
+      const orbColor = mv >= 50 ? '#ef4444' : (mv >= 15 ? '#a855f7' : (mv >= 8 ? '#3b82f6' : '#22c55e'));
+      return `<svg viewBox="0 0 64 64" class="w-full h-full drop-shadow">
+        <path d="M4,32 Q14,18 20,28 L20,38 Q12,42 4,32 Z" fill="#facc15"/>
+        <path d="M60,32 Q50,18 44,28 L44,38 Q52,42 60,32 Z" fill="#facc15"/>
+        <circle cx="32" cy="32" r="20" fill="${orbColor}" stroke="#fde047" stroke-width="3"/>
+        <circle cx="25" cy="24" r="5" fill="rgba(255,255,255,0.6)"/>
+        <text x="32" y="37" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono, monospace" font-weight="900" font-size="14" stroke="#090d16" stroke-width="0.8">${mv}x</text>
+      </svg>`;
+    }
+  }
+
+  // SWEET BONANZA ÖZEL 3B ŞEKER & MEYVE GRAFİKLERİ
+  const id = sym.id;
+  if (id === 'lollipop') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <rect x="29" y="36" width="6" height="24" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+      <circle cx="32" cy="24" r="19" fill="#ec4899" stroke="#ffffff" stroke-width="3"/>
+      <path d="M32,24 m0,-13 a13,13 0 1,1 -9,22 a9,9 0 1,1 13,-13 a5,5 0 1,1 -6,6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <text x="32" y="59" text-anchor="middle" fill="#be185d" font-size="8.5" font-weight="900">SCATTER</text>
+    </svg>`;
+  }
+  if (id === 'heart_candy') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <path d="M32,54 C32,54 10,38 10,22 C10,13 18,8 25,8 C29,8 32,11 32,15 C32,11 35,8 39,8 C46,8 54,13 54,22 C54,38 32,54 32,54 Z" fill="#e11d48" stroke="#fecdd3" stroke-width="2.5"/>
+      <path d="M17,20 C17,15 21,13 25,13" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    </svg>`;
+  }
+  if (id === 'purple_candy') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <rect x="12" y="12" width="40" height="40" rx="8" fill="#7e22ce" stroke="#e9d5ff" stroke-width="2.5"/>
+      <rect x="19" y="19" width="26" height="26" rx="4" fill="#9333ea" stroke="#c084fc" stroke-width="1.5"/>
+      <line x1="16" y1="16" x2="26" y2="16" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    </svg>`;
+  }
+  if (id === 'green_candy') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <polygon points="32,8 55,25 46,53 18,53 9,25" fill="#15803d" stroke="#bbf7d0" stroke-width="2.5"/>
+      <polygon points="32,16 46,27 40,45 24,45 18,27" fill="#22c55e"/>
+    </svg>`;
+  }
+  if (id === 'blue_candy') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <ellipse cx="32" cy="32" rx="22" ry="15" transform="rotate(-20 32 32)" fill="#0284c7" stroke="#bae6fd" stroke-width="2.5"/>
+      <ellipse cx="27" cy="27" rx="10" ry="4.5" transform="rotate(-20 27 27)" fill="rgba(255,255,255,0.65)"/>
+    </svg>`;
+  }
+  if (id === 'apple') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <path d="M32,16 Q38,8 44,12 Q39,18 32,16 Z" fill="#16a34a"/>
+      <circle cx="32" cy="36" r="18" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/>
+      <ellipse cx="25" cy="29" rx="4" ry="7" transform="rotate(-20 25 29)" fill="rgba(255,255,255,0.55)"/>
+    </svg>`;
+  }
+  if (id === 'peach') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <circle cx="32" cy="35" r="18" fill="#f97316" stroke="#fed7aa" stroke-width="1.5"/>
+      <path d="M32,17 C24,25 24,42 32,53" fill="none" stroke="#ea580c" stroke-width="2.5"/>
+      <circle cx="24" cy="28" r="4" fill="rgba(255,255,255,0.5)"/>
+    </svg>`;
+  }
+  if (id === 'watermelon') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <path d="M10,24 A22,22 0 0,0 54,24 Z" fill="#15803d"/>
+      <path d="M14,24 A18,18 0 0,0 50,24 Z" fill="#ef4444"/>
+      <circle cx="26" cy="31" r="1.8" fill="#090d16"/><circle cx="32" cy="35" r="1.8" fill="#090d16"/><circle cx="38" cy="31" r="1.8" fill="#090d16"/>
+    </svg>`;
+  }
+  if (id === 'grapes') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <circle cx="24" cy="24" r="7" fill="#6d28d9"/><circle cx="36" cy="24" r="7" fill="#7c3aed"/><circle cx="44" cy="26" r="6" fill="#5b21b6"/>
+      <circle cx="20" cy="34" r="7" fill="#7c3aed"/><circle cx="31" cy="34" r="7.5" fill="#8b5cf6"/><circle cx="41" cy="35" r="7" fill="#6d28d9"/>
+      <circle cx="26" cy="44" r="7" fill="#6d28d9"/><circle cx="36" cy="44" r="7" fill="#7c3aed"/><circle cx="31" cy="52" r="6.5" fill="#5b21b6"/>
+    </svg>`;
+  }
+  if (id === 'banana') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <path d="M16,44 Q36,48 48,18 Q52,36 34,50 Q20,56 16,44 Z" fill="#facc15" stroke="#ca8a04" stroke-width="2"/>
+    </svg>`;
+  }
+
+  // GATES OF OLYMPUS ÖZEL 3B SEMBOL GRAFİKLERİ
+  if (id === 'zeus_scatter') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <circle cx="32" cy="32" r="24" fill="#1e3a8a" stroke="#facc15" stroke-width="3"/>
+      <polygon points="36,8 18,34 31,34 26,56 46,28 33,28" fill="#fde047" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="32" y="58" text-anchor="middle" fill="#ffffff" font-size="8.5" font-weight="900">ZEUS</text>
+    </svg>`;
+  }
+  if (id === 'crown') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <polygon points="10,46 14,20 26,32 32,14 38,32 50,20 54,46" fill="#facc15" stroke="#b45309" stroke-width="2.5"/>
+      <rect x="10" y="46" width="44" height="7" rx="2" fill="#eab308"/>
+      <circle cx="32" cy="38" r="4" fill="#e11d48"/><circle cx="20" cy="39" r="3" fill="#0284c7"/><circle cx="44" cy="39" r="3" fill="#0284c7"/>
+    </svg>`;
+  }
+  if (id === 'hourglass') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <rect x="16" y="10" width="32" height="5" rx="2" fill="#facc15"/>
+      <rect x="16" y="49" width="32" height="5" rx="2" fill="#facc15"/>
+      <polygon points="20,15 44,15 32,32 44,49 20,49 32,32" fill="#38bdf8" stroke="#eab308" stroke-width="2.5"/>
+    </svg>`;
+  }
+  if (id === 'ring') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <circle cx="32" cy="36" r="15" fill="none" stroke="#facc15" stroke-width="6"/>
+      <polygon points="24,18 32,10 40,18 36,24 28,24" fill="#e11d48" stroke="#fecdd3" stroke-width="1.5"/>
+    </svg>`;
+  }
+  if (id === 'chalice') {
+    return `<svg viewBox="0 0 64 64" class="w-full h-full">
+      <path d="M18,14 L46,14 C46,32 38,36 32,36 C26,36 18,32 18,14 Z" fill="#facc15" stroke="#b45309" stroke-width="2"/>
+      <rect x="29" y="36" width="6" height="12" fill="#eab308"/>
+      <rect x="20" y="48" width="24" height="5" rx="2" fill="#facc15"/>
+    </svg>`;
+  }
+
+  // Mücevherler (Gems)
+  const gemColors = {
+    gem_red: ['#e11d48', '#fda4af'],
+    gem_purple: ['#9333ea', '#d8b4fe'],
+    gem_yellow: ['#eab308', '#fef08a'],
+    gem_green: ['#16a34a', '#86efac'],
+    gem_blue: ['#0284c7', '#7dd3fc']
+  };
+  const gc = gemColors[id] || ['#38bdf8', '#bae6fd'];
+  return `<svg viewBox="0 0 64 64" class="w-full h-full">
+    <polygon points="32,10 52,24 44,52 20,52 12,24" fill="${gc[0]}" stroke="${gc[1]}" stroke-width="2.5"/>
+    <polygon points="32,18 43,27 38,44 26,44 21,27" fill="${gc[1]}" opacity="0.45"/>
+  </svg>`;
+}
+
+// Manuel Bahis Tutarını Okuma ve Güncelleme
+function getExactCasinoBet() {
+  const c = getCountry();
+  if (typeof casinoUI.customBetAmount !== 'number' || casinoUI.customBetAmount < 10) {
+    casinoUI.customBetAmount = Math.max(500, Math.round(c.monthlyMinWage * 0.10));
+  }
+  return casinoUI.doubleChance ? Math.round(casinoUI.customBetAmount * 1.25) : casinoUI.customBetAmount;
+}
+
+window.setManualCasinoBet = function (val) {
+  const parsed = Math.max(10, Math.round(Number(val) || 100));
+  casinoUI.customBetAmount = parsed;
+};
+
+window.adjustManualCasinoBet = function (mode) {
+  const cur = casinoUI.customBetAmount || 1000;
+  if (mode === 'half') casinoUI.customBetAmount = Math.max(50, Math.round(cur / 2));
+  else if (mode === 'double') casinoUI.customBetAmount = Math.min(Math.max(1000, G.money), cur * 2);
+  else if (mode === 'max') casinoUI.customBetAmount = Math.max(100, G.money);
+  else if (mode === 'plus') casinoUI.customBetAmount = cur + 1000;
+  else if (mode === 'minus') casinoUI.customBetAmount = Math.max(50, cur - 1000);
+  renderVIPCasinoModal();
+};
+
+// GERÇEK TUMBLE (PATLAMA VE YUKARIDAN YENİ ŞEKER DÜŞME) MOTORU
+let _tumbleBusy = false;
+
+window.spinPragmaticSlot = function (isBonusBuy = false) {
+  if (!G || _tumbleBusy) return;
+
+  const inpEl = document.getElementById('customCasinoBetInput');
+  if (inpEl && Number(inpEl.value) >= 10) {
+    casinoUI.customBetAmount = Math.round(Number(inpEl.value));
+  }
+
+  const baseBet = casinoUI.customBetAmount || 1000;
+  const actualBet = getExactCasinoBet();
+
+  if (isBonusBuy) {
+    if (casinoUI.freeSpinsLeft > 0) {
+      showToast('Zaten Free Spin turundasın!');
+      return;
+    }
+    const buyCost = baseBet * 100;
+    if (G.money < buyCost) {
+      showToast(`100x Bonus Satın Almak için ${fmtMoney(buyCost)} nakit gerekiyor!`);
+      return;
+    }
+    G.money -= buyCost;
+    casinoUI.freeSpinsLeft = casinoUI.gameTab === 'olympus' ? 15 : 10;
+    casinoUI.fsTotalMultiplier = 0;
+    casinoUI.fsCumulativeWin = 0;
+    playCasinoAudio('zeus');
+  } else if (casinoUI.freeSpinsLeft <= 0) {
+    if (G.money < actualBet) {
+      showToast(`Bahis (${fmtMoney(actualBet)}) için nakit bakiyen yetersiz!`);
+      return;
+    }
+    G.money -= actualBet;
+  } else {
+    casinoUI.freeSpinsLeft -= 1;
+  }
+
+  playCasinoAudio('spin');
+  const inFs = casinoUI.freeSpinsLeft > 0 || isBonusBuy;
+  const db = casinoUI.gameTab === 'olympus' ? OLYMPUS_SYMBOLS_DB : BONANZA_SYMBOLS_DB;
+
+  // İlk 30 sembolü düşür
+  const grid = [];
+  for (let i = 0; i < 30; i++) {
+    if (isBonusBuy && i < 4) {
+      grid.push({ ...db[0], isWinning: true });
+    } else {
+      grid.push({ ...pickWeightedSlotSymbol(db, inFs), isWinning: false });
+    }
+  }
+
+  casinoUI.grid = grid;
+  casinoUI.roundRawWin = 0;
+  casinoUI.tumbleCount = 0;
+
+  if (isBonusBuy) {
+    casinoUI.lastWinLog = `🍭 4 SCATTER DÜŞTÜ! ${casinoUI.freeSpinsLeft} FREE SPIN BAŞLADI — SPIN'E BAS!`;
+    saveGame(); renderAll(); renderVIPCasinoModal();
+    return;
+  }
+
+  evaluateAndRunTumbleStep(baseBet, inFs, db);
+};
+
+function evaluateAndRunTumbleStep(baseBet, inFs, db) {
+  const counts = {};
+  let scatterCount = 0;
+
+  casinoUI.grid.forEach(cell => {
+    cell.isWinning = false;
+    if (cell.isScatter) scatterCount++;
+    else if (!cell.isMultiplier) counts[cell.id] = (counts[cell.id] || 0) + 1;
+  });
+
+  let stepWin = 0;
+  const matchedLabels = [];
+
+  Object.keys(counts).forEach(symId => {
+    const cnt = counts[symId];
+    if (cnt >= 8) {
+      const sInfo = db.find(x => x.id === symId);
+      if (sInfo) {
+        let multPay = sInfo.pay8;
+        if (cnt >= 12) multPay = sInfo.pay12;
+        else if (cnt >= 10) multPay = sInfo.pay10;
+        const w = Math.round(baseBet * multPay);
+        stepWin += w;
+        matchedLabels.push(`${cnt}x ${sInfo.name}`);
+        casinoUI.grid.forEach(c => { if (c.id === symId) c.isWinning = true; });
+      }
+    }
+  });
+
+  // Eğer 8+ eşleşme varsa: Sembolleri patlat ve yukarıdan yenilerini düşür (Gerçek Tumble!)
+  if (stepWin > 0) {
+    _tumbleBusy = true;
+    casinoUI.tumbleCount += 1;
+    casinoUI.roundRawWin += stepWin;
+    casinoUI.lastWinAmt = casinoUI.roundRawWin;
+    casinoUI.lastWinLog = `💥 TUMBLE #${casinoUI.tumbleCount}: +${fmtMoney(stepWin)} (${matchedLabels.join(' + ')}) — Patlıyor...`;
+    playCasinoAudio('zeus');
+    renderVIPCasinoModal();
+
+    setTimeout(() => {
+      // Patlayanları kaldır, kalanları aşağı kaydır ve üstten yeni sembol düşür
+      for (let col = 0; col < 6; col++) {
+        const survivors = [];
+        for (let row = 4; row >= 0; row--) {
+          const cell = casinoUI.grid[row * 6 + col];
+          if (!cell.isWinning) survivors.unshift(cell);
+        }
+        while (survivors.length < 5) {
+          survivors.unshift({ ...pickWeightedSlotSymbol(db, inFs), isWinning: false });
+        }
+        for (let row = 0; row < 5; row++) {
+          casinoUI.grid[row * 6 + col] = survivors[row];
+        }
+      }
+      _tumbleBusy = false;
+      evaluateAndRunTumbleStep(baseBet, inFs, db);
+    }, 520);
+    return;
+  }
+
+  // Tumble zinciri bitti! Şimdi ekrandaki Çarpan Bombalarını / Zeus Kürelerini Topla ve Çarp!
+  let bombSum = 0;
+  casinoUI.grid.forEach(c => {
+    if (c.isMultiplier) bombSum += (c.multValue || 0);
+  });
+
+  if (scatterCount >= 4) {
+    const addFs = inFs ? 5 : (casinoUI.gameTab === 'olympus' ? 15 : 10);
+    casinoUI.freeSpinsLeft += addFs;
+    casinoUI.roundRawWin += baseBet * 3;
+  }
+
+  let finalSpinPayout = casinoUI.roundRawWin;
+  if (finalSpinPayout > 0 && bombSum > 0) {
+    if (casinoUI.gameTab === 'olympus' && inFs) {
+      casinoUI.fsTotalMultiplier += bombSum;
+      finalSpinPayout = Math.round(finalSpinPayout * casinoUI.fsTotalMultiplier);
+    } else {
+      finalSpinPayout = Math.round(finalSpinPayout * bombSum);
+    }
+    playCasinoAudio('bigwin');
+  }
+
+  casinoUI.lastWinAmt = finalSpinPayout;
+  if (finalSpinPayout > 0) {
+    G.money += finalSpinPayout;
+    if (inFs) casinoUI.fsCumulativeWin += finalSpinPayout;
+    casinoUI.lastWinLog = bombSum > 0
+      ? `💣 SÜPER KAZANÇ: ${fmtMoney(casinoUI.roundRawWin)} x ${bombSum}x BOMBA = +${fmtMoney(finalSpinPayout)}!`
+      : `🎉 TOPLAM TUR KAZANCI: +${fmtMoney(finalSpinPayout)} (${casinoUI.tumbleCount} Tumble)`;
+  } else {
+    casinoUI.lastWinLog = `Eşleşme yok (En az 8 aynı şeker/sembol gerekli). Tekrar çevir!`;
+  }
+
+  saveGame();
+  renderAll();
+  renderVIPCasinoModal();
+}
+
+// GERÇEK PRAGMATIC PLAY ARAYÜZ ÇİZİCİSİ (MANUEL BAHİS KUTULU)
+window.renderVIPCasinoModal = function () {
+  const sheet = document.getElementById('bottomSheet');
+  if (!sheet || !G) return;
+  sheet.classList.remove('hidden');
+
+  document.getElementById('sheetTitle').textContent = '🎰 Pragmatic Play VIP Casino & 21';
+  document.getElementById('sheetSubtitle').textContent = `Bakiye: ${fmtMoney(G.money)} • Sweet Bonanza 1000 • Gates of Olympus 1000`;
+
+  const rawBet = casinoUI.customBetAmount || Math.max(500, Math.round(getCountry().monthlyMinWage * 0.10));
+  casinoUI.customBetAmount = rawBet;
+  const actualBet = getExactCasinoBet();
+  const bonusBuyCost = rawBet * 100;
+
+  const topTabs = `
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-amber-400/40 mb-2.5 text-[10.5px] font-black">
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('bonanza')" class="py-2 rounded-xl ${casinoUI.gameTab === 'bonanza' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow' : 'text-slate-300'}">🍭 Sweet Bonanza</button>
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('olympus')" class="py-2 rounded-xl ${casinoUI.gameTab === 'olympus' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow' : 'text-slate-300'}">⚡ Gates of Olympus</button>
+      <button onclick="openVIPCasinoModal('blackjack')" class="py-2 rounded-xl ${casinoUI.gameTab === 'blackjack' ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 shadow' : 'text-slate-300'}">🃏 Live Blackjack 21</button>
+    </div>
+  `;
+
+  // Manuel Para / Bahis Yazma Kutusu
+  const manualBetPanel = `
+    <div class="pragmatic-bottom-hud mb-2.5 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-[10px]">
+          <span class="text-slate-400 block font-bold">KASA BAKİYESİ (CREDIT)</span>
+          <strong class="text-emerald-400 font-mono-num text-sm">${fmtMoney(G.money)}</strong>
+        </div>
+        <div class="flex-1 max-w-[175px]">
+          <label class="text-[9px] text-amber-300 font-extrabold block text-center mb-0.5">✍️ BAHİS TUTARINI YAZ (₺)</label>
+          <input id="customCasinoBetInput" type="number" min="10" step="500" value="${rawBet}"
+            oninput="setManualCasinoBet(this.value)"
+            onchange="renderVIPCasinoModal()"
+            class="bet-manual-input" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-5 gap-1 text-[10px] font-black">
+        <button onclick="adjustManualCasinoBet('minus')" class="py-1.5 rounded-lg bg-slate-800 text-white">-1.000</button>
+        <button onclick="adjustManualCasinoBet('half')" class="py-1.5 rounded-lg bg-slate-800 text-amber-300">1/2</button>
+        <button onclick="adjustManualCasinoBet('double')" class="py-1.5 rounded-lg bg-slate-800 text-emerald-300">2X</button>
+        <button onclick="adjustManualCasinoBet('plus')" class="py-1.5 rounded-lg bg-slate-800 text-white">+1.000</button>
+        <button onclick="adjustManualCasinoBet('max')" class="py-1.5 rounded-lg bg-amber-400 text-slate-950">MAX BAS</button>
+      </div>
+    </div>
+  `;
+
+  if (casinoUI.gameTab === 'bonanza' || casinoUI.gameTab === 'olympus') {
+    const isBonanza = casinoUI.gameTab === 'bonanza';
+    const cabCls = isBonanza ? 'sb1000-cabinet' : 'go1000-cabinet';
+    const reelCls = isBonanza ? 'sb1000-reel-frame' : 'go1000-reel-frame';
+    const cellCls = isBonanza ? 'sb1000-cell' : 'go1000-cell';
+
+    document.getElementById('sheetBody').innerHTML = `
+      ${topTabs}
+      ${manualBetPanel}
+
+      <div class="${cabCls} space-y-2.5">
+        <!-- Üst Pragmatic Play Kırmızı/Altın Tumble Banner -->
+        <div class="pragmatic-top-banner flex items-center justify-between">
+          <span>${isBonanza ? '🍭 SWEET BONANZA 1000™' : '⚡ GATES OF OLYMPUS 1000™'}</span>
+          <span class="font-mono-num text-fde047">
+            ${casinoUI.freeSpinsLeft > 0 ? `FREE SPINS: ${casinoUI.freeSpinsLeft}` : '8+ EŞLEŞME = TUMBLE'}
+          </span>
+        </div>
+
+        <!-- 6x5 Gerçek Pragmatic Play Makara Izgarası (3B Vektörel Semboller) -->
+        <div class="${reelCls}">
+          ${casinoUI.grid.map((cell, idx) => `
+            <div class="${cellCls} ${cell.isWinning ? 'cell-tumble-win' : ''}" style="animation-delay:${(idx % 6) * 0.025}s">
+              ${getPragmaticSymbolSVG(cell)}
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Orta Kazanç & Tumble Duyuru Kutusu -->
+        <div class="p-2 rounded-xl bg-slate-950/90 border-2 ${casinoUI.lastWinAmt > 0 ? 'border-fde047' : 'border-white/20'} text-center">
+          <div class="text-xs font-black ${casinoUI.lastWinAmt > 0 ? 'text-amber-300' : 'text-white'}">
+            ${casinoUI.lastWinLog}
+          </div>
+          ${casinoUI.fsCumulativeWin > 0 ? `<div class="text-[10px] font-mono-num text-emerald-400 font-black">TOPLAM FREE SPIN KAZANCI: +${fmtMoney(casinoUI.fsCumulativeWin)}</div>` : ''}
+        </div>
+
+        <!-- Alt Pragmatic Play Spin, Bonus Buy (100x) ve Ante Bet Barı -->
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button onclick="spinPragmaticSlot(true)" class="flex-1 py-2.5 px-2.5 rounded-2xl bg-gradient-to-b from-pink-500 via-rose-600 to-red-700 border-2 border-fde047 text-white text-left shadow-lg">
+            <div class="text-[9px] font-black uppercase text-amber-200">🍭 SATIN AL: FREE SPINS (100x)</div>
+            <div class="text-xs font-mono-num font-black">${fmtMoney(bonusBuyCost)}</div>
+          </button>
+
+          <button onclick="spinPragmaticSlot(false)" class="pragmatic-spin-btn" title="Çevir (Spin)">
+            ↻
+          </button>
+
+          <button onclick="casinoUI.doubleChance=!casinoUI.doubleChance; renderVIPCasinoModal()" class="flex-1 py-2.5 px-2.5 rounded-2xl border-2 ${casinoUI.doubleChance ? 'bg-emerald-600 border-fde047 text-white' : 'bg-slate-900/90 border-white/25 text-slate-300'} text-right shadow-lg">
+            <div class="text-[9px] font-black uppercase">ANTE BET (2X ŞANS)</div>
+            <div class="text-xs font-black">${casinoUI.doubleChance ? 'AÇIK ✓' : 'KAPALI'}</div>
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Blackjack Görünümü İçin Mevcut Blackjack Çizicisini Çalıştır (Manuel Bahisle Senkron)
+  casinoUI.bjCurrentBet = actualBet;
+  const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+  const dScore = casinoUI.bjState === 'playing'
+    ? (casinoUI.bjDealer[0] ? casinoUI.bjDealer[0].val : 0)
+    : calcBlackjackHandTotal(casinoUI.bjDealer);
+
+  document.getElementById('sheetBody').innerHTML = `
+    ${topTabs}
+    ${manualBetPanel}
+    <div class="bj-table-felt space-y-4">
+      <div class="flex items-center justify-between border-b border-emerald-400/25 pb-2">
+        <span class="text-xs font-black text-white">🃏 VIP LIVE BLACKJACK 21</span>
+        <span class="px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 font-mono-num text-[10px] font-black">Bahis: ${fmtMoney(actualBet)}</span>
+      </div>
+
+      <div class="space-y-1.5 text-center">
+        <div class="text-[10px] font-extrabold text-emerald-200">🤵‍♂️ KRUPİYE (${casinoUI.bjDealer.length > 0 ? (casinoUI.bjState === 'playing' ? dScore + ' + ?' : dScore) : 0})</div>
+        <div class="flex items-center justify-center gap-2 min-h-[76px]">
+          ${casinoUI.bjDealer.map((card, idx) => idx === 1 && casinoUI.bjState === 'playing'
+            ? `<div class="playing-card-hd playing-card-back">👑</div>`
+            : `<div class="playing-card-hd ${card.color}"><div class="text-xs">${card.rank}</div><div class="text-center text-lg">${card.suit}</div><div class="text-xs text-right">${card.rank}</div></div>`
+          ).join('')}
+        </div>
+      </div>
+
+      <div class="p-2 rounded-xl bg-slate-950/85 border border-amber-400/40 text-center text-xs font-extrabold text-amber-300">
+        ${casinoUI.bjResultText}
+      </div>
+
+      <div class="space-y-1.5 text-center">
+        <div class="text-[10px] font-extrabold text-white">👤 SENİN ELİN (${pScore})</div>
+        <div class="flex items-center justify-center gap-2 min-h-[76px]">
+          ${casinoUI.bjPlayer.map(card => `<div class="playing-card-hd ${card.color}"><div class="text-xs">${card.rank}</div><div class="text-center text-lg">${card.suit}</div><div class="text-xs text-right">${card.rank}</div></div>`).join('')}
+        </div>
+      </div>
+
+      ${casinoUI.bjState === 'playing' ? `
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="blackjackPlayerAction('hit')" class="py-3 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">🃏 KART ÇEK</button>
+          <button onclick="blackjackPlayerAction('stand')" class="py-3 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">✋ KAL</button>
+          <button onclick="blackjackPlayerAction('double')" class="py-3 rounded-xl bg-sky-500 text-slate-950 text-xs font-black">⚡ 2X KATLA</button>
+        </div>
+      ` : `
+        <button onclick="casinoUI.betMult = (casinoUI.customBetAmount / getCountry().monthlyMinWage); startBlackjackHand()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-xs font-black shadow-lg">
+          🃏 ELLERİ DAĞIT (${fmtMoney(actualBet)})
+        </button>
+      `}
+    </div>
+  `;
+};
+
+// 6. TÜM MENÜ VE FİNANS AÇILIŞLARINDA ÇİFT ÖZELLİKLERİ OTOMATİK TEMİZLE
+(function attachMasterDeduplicationHook() {
+  const _prevOpenNav = openNavSheet;
+  window.openNavSheet = openNavSheet = function (tab) {
+    _prevOpenNav(tab);
+    deduplicateAndCleanUI();
+  };
+
+  const _prevOpenMenu = openMenuSection;
+  window.openMenuSection = openMenuSection = function (sec) {
+    _prevOpenMenu(sec);
+    deduplicateAndCleanUI();
+  };
+})();
+
