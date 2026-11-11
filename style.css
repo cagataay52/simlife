@@ -1518,3 +1518,166 @@ button:active {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
   margin: 0 auto;
 }
+
+/* ============================================================================
+   MASTER ONARIM & PRAGMATIC PLAY 1:1 SWEET BONANZA / OLYMPUS STİLLERİ
+   ============================================================================ */
+
+/* 1. Sweet Bonanza 1000 Gerçek Pembe Bulut & Şeker Diyarı Sahnesi */
+.sb1000-cabinet {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.45) 0%, transparent 35%),
+    radial-gradient(circle at 85% 20%, rgba(244, 114, 182, 0.55) 0%, transparent 45%),
+    linear-gradient(180deg, #38bdf8 0%, #f472b6 48%, #ec4899 78%, #be185d 100%);
+  border: 3px solid #fde047;
+  border-radius: 22px;
+  padding: 10px;
+  box-shadow: 0 16px 40px rgba(190, 24, 93, 0.55), inset 0 0 25px rgba(255, 255, 255, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sweet Bonanza Karakteristik Krem-Pembe Şeffaf Makara Çerçevesi */
+.sb1000-reel-frame {
+  background: linear-gradient(180deg, rgba(255, 245, 250, 0.94) 0%, rgba(252, 231, 243, 0.92) 100%);
+  border: 4px solid #f59e0b;
+  outline: 2px solid #ec4899;
+  border-radius: 16px;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  box-shadow: inset 0 6px 18px rgba(131, 24, 67, 0.25), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.sb1000-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 11px;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.95), rgba(251, 207, 232, 0.55));
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 3px;
+  animation: pragmaticDrop 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 2. Gates of Olympus 1000 Gerçek Antik Altın & Zeus Sahnesi */
+.go1000-cabinet {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(56, 189, 248, 0.4) 0%, transparent 40%),
+    linear-gradient(180deg, #1e1b4b 0%, #3b0764 52%, #172554 100%);
+  border: 3px solid #facc15;
+  border-radius: 22px;
+  padding: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(250, 204, 21, 0.22);
+  position: relative;
+}
+
+.go1000-reel-frame {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94) 0%, rgba(23, 15, 45, 0.96) 100%);
+  border: 4px solid #eab308;
+  outline: 2px solid #fef08a;
+  border-radius: 16px;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+  box-shadow: inset 0 8px 22px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.go1000-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 35%, rgba(51, 65, 85, 0.75), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 3px;
+  animation: pragmaticDrop 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pragmaticDrop {
+  0% { opacity: 0; transform: translateY(-28px) scale(0.82); }
+  75% { transform: translateY(3px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tumble (Patlayan Sembol) Efektleri */
+.cell-tumble-win {
+  background: radial-gradient(circle, #fef08a 0%, #f59e0b 75%, #b45309 100%) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 18px #facc15 !important;
+  animation: tumbleExplode 0.48s ease-in-out infinite alternate !important;
+  z-index: 5;
+}
+@keyframes tumbleExplode {
+  0% { transform: scale(1); filter: brightness(1.1); }
+  100% { transform: scale(1.12); filter: brightness(1.35); }
+}
+
+/* Üst Tumble Win & Bildirim Afişi */
+.pragmatic-top-banner {
+  background: linear-gradient(90deg, #b91c1c 0%, #ef4444 50%, #b91c1c 100%);
+  border: 2px solid #fde047;
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 11.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* Pragmatic Play Orijinal Alt Siyah Kontrol Barı */
+.pragmatic-bottom-hud {
+  background: rgba(9, 13, 22, 0.92);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  padding: 10px;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+}
+
+.pragmatic-spin-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 25%, #f8fafc 0%, #e2e8f0 45%, #94a3b8 100%);
+  border: 4px solid #facc15;
+  box-shadow: 0 0 24px rgba(250, 204, 21, 0.75), inset 0 3px 6px rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.14s ease;
+  flex-shrink: 0;
+}
+.pragmatic-spin-btn:active {
+  transform: scale(0.90) rotate(90deg);
+}
+
+.bet-manual-input {
+  background: #020617;
+  border: 1.5px solid #facc15;
+  border-radius: 10px;
+  color: #fde047;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 5px 8px;
+  width: 100%;
+  text-align: center;
+  outline: none;
+}
+.bet-manual-input:focus {
+  border-color: #34d399;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.45);
+}
