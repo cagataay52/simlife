@@ -13892,3 +13892,346 @@ window.renderVIPCasinoModal = function () {
   };
 })();
 
+/* ============================================================================
+   MASTER CLEAN & UNIFIED ENGINE (SLOTS, CASINO, STARTUP & DEDUPLICATION)
+   ============================================================================ */
+
+let currentSelectedSlot = 1;
+let _tumbleBusy = false;
+
+function getSlotStorageKey(sNum) {
+  return `cagatay_life_sim_save_slot_${sNum}`;
+}
+
+function checkSaveSlotsMeta() {
+  const meta = {};
+  for (let s = 1; s <= 3; s++) {
+    const raw = localStorage.getItem(getSlotStorageKey(s));
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        meta[s] = { exists: true, name: `${parsed.firstName} ${parsed.lastName}`, age: parsed.age, money: parsed.money, city: parsed.birthCity || 'İstanbul' };
+      } catch (e) { meta[s] = { exists: false }; }
+    } else { meta[s] = { exists: false }; }
+  }
+  return meta;
+}
+
+function showCinematicMainMenuIfNeeded() {
+  if (window._cinematicMenuShown) return;
+  if (typeof G !== 'undefined' && G && G.firstName) return;
+
+  window._cinematicMenuShown = true;
+  let menuEl = document.getElementById('cinematicMainMenuRoot');
+  if (!menuEl) {
+    menuEl = document.createElement('div');
+    menuEl.id = 'cinematicMainMenuRoot';
+    menuEl.className = 'cinematic-main-menu';
+    document.body.appendChild(menuEl);
+  }
+
+  const slots = checkSaveSlotsMeta();
+
+  menuEl.innerHTML = `
+    <div class="text-center space-y-3 mb-6">
+      <div class="inline-block px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400 text-amber-300 font-mono-num text-xs font-black">
+        ✨ ULTIMATE LIFE SIMULATOR v2.6
+      </div>
+      <h1 class="text-3xl font-black text-white tracking-wide">KABUS &amp; ZİRVE HAYATLAR</h1>
+      <p class="text-xs text-slate-400 max-w-xs mx-auto">Kariyer, Ticaret, Casino ve Yaşam Simülasyonu. Slot seç ve hayata başla.</p>
+    </div>
+
+    <div class="w-full max-w-440px space-y-2.5 mb-6">
+      <div class="text-[10px] font-extrabold text-sky-400 uppercase tracking-widest px-1">💾 KAYIT SLOTLARI</div>
+      ${[1, 2, 3].map(sNum => {
+        const st = slots[sNum];
+        return `
+          <div class="save-slot-card">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400 flex items-center justify-center font-mono-num font-black text-sky-300">#${sNum}</div>
+              <div>
+                <div class="text-xs font-extrabold text-white">${st.exists ? st.name : 'Boş Kayıt Slotu'}</div>
+                <div class="text-[10px] text-slate-400">${st.exists ? `${st.age} Yaş • ${fmtMoney(st.money)} • ${st.city}` : 'Yeni karakter oluştur'}</div>
+              </div>
+            </div>
+            <div class="flex gap-1.5">
+              ${st.exists ? `
+                <button onclick="loadGameFromSlot(${sNum})" class="px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-black cursor-pointer">Yükle</button>
+                <button onclick="openCharacterCreatorModal(${sNum})" class="px-2.5 py-2 rounded-xl bg-slate-800 text-amber-300 text-[10px] font-bold cursor-pointer">🔄</button>
+              ` : `
+                <button onclick="openCharacterCreatorModal(${sNum})" class="px-4 py-2 rounded-xl bg-sky-500 text-slate-950 text-[10px] font-black cursor-pointer">Yeni Hayat</button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window.loadGameFromSlot = function (sNum) {
+  currentSelectedSlot = sNum;
+  const raw = localStorage.getItem(getSlotStorageKey(sNum));
+  if (!raw) { openCharacterCreatorModal(sNum); return; }
+  try {
+    const loaded = JSON.parse(raw);
+    const fallback = createCompleteValidGameObject(loaded);
+    G = Object.assign(fallback, loaded);
+    window.G = G;
+    closeAllStartOverlaysAndEnterGame();
+    saveGame(); renderAll();
+    showToast(`Slot #${sNum} yüklendi!`);
+  } catch (e) { openCharacterCreatorModal(sNum); }
+};
+
+function createCompleteValidGameObject(opts = {}) {
+  const c = getCountry();
+  const baseWage = c.monthlyMinWage || 22104;
+  return {
+    firstName: opts.firstName || 'Çağatay',
+    lastName: opts.lastName || 'Kılıç',
+    gender: opts.gender || 'Erkek',
+    age: typeof opts.age === 'number' ? opts.age : 18,
+    countryId: 'TR',
+    birthCity: opts.birthCity || 'İstanbul',
+    money: typeof opts.money === 'number' ? opts.money : Math.round(baseWage * 2),
+    health: 95, happy: 85, looks: 78, fame: 10, stress: 15, creditScore: 1350,
+    jobId: null, eduStage: 'Üniversite', uniGrad: false, licenses: { B: false, CE: false },
+    houses: [], cars: [], businesses: [], children: [], spouse: null,
+    charLook: opts.charLook || { skinId: 'skin_wheat', hairStyleId: 'fade_crop', hairColorId: 'hc_darkbrown', beardStyleId: 'beard_stubble', eyeColorId: 'eye_hazel', outfitId: 'out_tshirt' },
+    lifeEvents: { seenIds: [], pendingChains: [], lastFootballAge: 0 },
+    coach: { licenses: [], activeClub: null }, iddaa: { selectedPicks: {} },
+    yapSat: { lands: [], activeProject: null }, freelance: { officeId: null, clients: 0 },
+    garageV2: { plates: [], carMods: {}, carHp: {}, tuvturkValidUntil: 20, kaskoActive: false },
+    phone: { inbox: [], operator: 'TurkNet 5G' }, uiPrefs: { showCityMap: false },
+    rivals: []
+  };
+}
+
+let creationState = { slotNum: 1, firstName: 'Çağatay', lastName: 'Kılıç', gender: 'Erkek', birthCity: 'İstanbul', skinId: 'skin_wheat', hairStyleId: 'fade_crop', hairColorId: 'hc_darkbrown', beardStyleId: 'beard_stubble', eyeColorId: 'eye_hazel', outfitId: 'out_tshirt' };
+
+window.openCharacterCreatorModal = function (sNum) {
+  currentSelectedSlot = sNum;
+  creationState.slotNum = sNum;
+  let modal = document.getElementById('charCreatorModalRoot');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'charCreatorModalRoot';
+    modal.className = 'char-creator-modal';
+    document.body.appendChild(modal);
+  }
+  modal.classList.remove('hidden');
+  renderCharacterCreatorContent();
+};
+
+window.renderCharacterCreatorContent = function () {
+  const modal = document.getElementById('charCreatorModalRoot');
+  if (!modal) return;
+  const previewSvgUrl = generateDynamicCharacterSVG(false, creationState);
+  const cities = typeof TURKEY_BIRTH_CITIES_DB !== 'undefined' ? TURKEY_BIRTH_CITIES_DB : [{ name: 'İstanbul' }, { name: 'Ankara' }, { name: 'İzmir' }, { name: 'Ordu' }, { name: 'Tekirdağ (Şarköy)' }];
+
+  modal.innerHTML = `
+    <div class="char-creator-box space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="text-xs font-black text-white">SLOT #${creationState.slotNum} • KARAKTER OLUŞTUR</div>
+        <button onclick="document.getElementById('charCreatorModalRoot').classList.add('hidden')" class="px-2 py-1 rounded bg-slate-800 text-xs text-white">Geri ✕</button>
+      </div>
+      <div class="flex flex-col items-center">
+        <div class="creator-preview-frame"><img src="${previewSvgUrl}" class="w-full h-full object-cover" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div><label class="text-[10px] text-slate-400 block">Ad</label><input type="text" id="creatorInputName" value="${creationState.firstName}" oninput="creationState.firstName=this.value" class="w-full p-2 rounded bg-slate-950 text-white font-bold"/></div>
+        <div><label class="text-[10px] text-slate-400 block">Soyad</label><input type="text" id="creatorInputSurname" value="${creationState.lastName}" oninput="creationState.lastName=this.value" class="w-full p-2 rounded bg-slate-950 text-white font-bold"/></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div><label class="text-[10px] text-slate-400 block">Cinsiyet</label><select onchange="creationState.gender=this.value; renderCharacterCreatorContent();" class="w-full p-2 rounded bg-slate-950 text-white"><option value="Erkek">Erkek</option><option value="Kadın">Kadın</option></select></div>
+        <div><label class="text-[10px] text-slate-400 block">Memleket</label><select onchange="creationState.birthCity=this.value" class="w-full p-2 rounded bg-slate-950 text-white">${cities.map(ct=>`<option value="${ct.name}">${ct.name}</option>`).join('')}</select></div>
+      </div>
+      <button type="button" onclick="finalizeAndStartNewLife()" class="w-full py-3 rounded-xl bg-emerald-400 text-slate-950 font-black cursor-pointer">🚀 HAYATA BAŞLA</button>
+    </div>
+  `;
+};
+
+window.finalizeAndStartNewLife = function () {
+  const ni = document.getElementById('creatorInputName');
+  const si = document.getElementById('creatorInputSurname');
+  if (ni && ni.value.trim()) creationState.firstName = ni.value.trim();
+  if (si && si.value.trim()) creationState.lastName = si.value.trim();
+
+  G = createCompleteValidGameObject(creationState);
+  window.G = G;
+  try { localStorage.setItem(getSlotStorageKey(currentSelectedSlot), JSON.stringify(G)); } catch (e) {}
+  closeAllStartOverlaysAndEnterGame();
+  saveGame(); renderAll();
+  showToast(`Hoş geldin ${G.firstName}!`);
+};
+
+function closeAllStartOverlaysAndEnterGame() {
+  ['cinematicMainMenuRoot', 'charCreatorModalRoot', 'startModal', 'introModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('hidden'); el.remove(); }
+  });
+  const sh = document.getElementById('appShell');
+  if (sh) sh.classList.remove('hidden');
+}
+
+// DEDUPLICATION & SINGLETON UI CLEANER
+function deduplicateAndCleanUI() {
+  const body = document.getElementById('sheetBody');
+  if (!body) return;
+  const gb = body.querySelectorAll('.fx-gold-card');
+  for (let i = 1; i < gb.length; i++) gb[i].remove();
+  const mb = body.querySelectorAll('#householdMarketHub');
+  for (let i = 1; i < mb.length; i++) mb[i].remove();
+  
+  // Çift kumarhane butonlarını temizle
+  body.querySelectorAll('button').forEach(btn => {
+    const oc = btn.getAttribute('onclick') || '';
+    if (btn.id !== 'menuVipCasinoBtn' && (oc.includes("'casino'") || oc.includes("'gambling'"))) {
+      btn.remove();
+    }
+  });
+}
+
+// 1:1 PRAGMATIC PLAY SWEET BONANZA 1000 & OLYMPUS ENGINE
+window.openVIPCasinoModal = function (tab) {
+  if (tab) casinoUI.gameTab = tab;
+  if (!casinoUI.grid || casinoUI.grid.length !== 30) {
+    casinoUI.grid = generateInitial6x5Grid();
+  }
+  renderVIPCasinoModal();
+};
+
+window.setManualCasinoBet = function (val) {
+  casinoUI.customBetAmount = Math.max(10, Math.round(Number(val) || 1000));
+};
+
+window.adjustManualCasinoBet = function (mode) {
+  const cur = casinoUI.customBetAmount || 1000;
+  if (mode === 'half') casinoUI.customBetAmount = Math.max(50, Math.round(cur / 2));
+  else if (mode === 'double') casinoUI.customBetAmount = Math.min(Math.max(1000, G.money), cur * 2);
+  else if (mode === 'max') casinoUI.customBetAmount = Math.max(100, G.money);
+  else if (mode === 'plus') casinoUI.customBetAmount = cur + 1000;
+  else if (mode === 'minus') casinoUI.customBetAmount = Math.max(50, cur - 1000);
+  renderVIPCasinoModal();
+};
+
+function getExactCasinoBet() {
+  const c = getCountry();
+  if (typeof casinoUI.customBetAmount !== 'number' || casinoUI.customBetAmount < 10) {
+    casinoUI.customBetAmount = Math.max(500, Math.round(c.monthlyMinWage * 0.10));
+  }
+  return casinoUI.doubleChance ? Math.round(casinoUI.customBetAmount * 1.25) : casinoUI.customBetAmount;
+}
+
+window.renderVIPCasinoModal = function () {
+  const sheet = document.getElementById('bottomSheet');
+  if (!sheet || !G) return;
+  sheet.classList.remove('hidden');
+
+  document.getElementById('sheetTitle').textContent = '🎰 Pragmatic Play VIP Casino';
+  document.getElementById('sheetSubtitle').textContent = `Bakiye: ${fmtMoney(G.money)} • Sweet Bonanza 1000 • Olympus 1000`;
+
+  const rawBet = casinoUI.customBetAmount || Math.max(500, Math.round(getCountry().monthlyMinWage * 0.10));
+  casinoUI.customBetAmount = rawBet;
+  const actualBet = getExactCasinoBet();
+  const bonusBuyCost = rawBet * 100;
+
+  const topTabs = `
+    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-amber-400/40 mb-2 text-[10px] font-black">
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('bonanza')" class="py-2 rounded-xl ${casinoUI.gameTab === 'bonanza' ? 'bg-pink-500 text-white' : 'text-slate-300'}">🍭 Sweet Bonanza</button>
+      <button onclick="casinoUI.freeSpinsLeft=0; casinoUI.grid=[]; openVIPCasinoModal('olympus')" class="py-2 rounded-xl ${casinoUI.gameTab === 'olympus' ? 'bg-amber-400 text-slate-950' : 'text-slate-300'}">⚡ Gates of Olympus</button>
+      <button onclick="openVIPCasinoModal('blackjack')" class="py-2 rounded-xl ${casinoUI.gameTab === 'blackjack' ? 'bg-emerald-400 text-slate-950' : 'text-slate-300'}">🃏 Blackjack 21</button>
+    </div>
+  `;
+
+  const manualBetPanel = `
+    <div class="pragmatic-bottom-hud mb-2 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <span class="text-[9px] text-slate-400 block font-bold">KASA (CREDIT)</span>
+          <strong class="text-emerald-400 font-mono-num text-xs">${fmtMoney(G.money)}</strong>
+        </div>
+        <div class="flex-1 max-w-[170px]">
+          <label class="text-[8.5px] text-amber-300 font-extrabold block text-center mb-0.5">✍️ BAHİS TUTARI (₺)</label>
+          <input id="customCasinoBetInput" type="number" min="10" step="500" value="${rawBet}" oninput="setManualCasinoBet(this.value)" class="bet-manual-input" />
+        </div>
+      </div>
+      <div class="grid grid-cols-5 gap-1 text-[9.5px] font-black">
+        <button onclick="adjustManualCasinoBet('minus')" class="py-1 rounded bg-slate-800 text-white">-1K</button>
+        <button onclick="adjustManualCasinoBet('half')" class="py-1 rounded bg-slate-800 text-amber-300">1/2</button>
+        <button onclick="adjustManualCasinoBet('double')" class="py-1 rounded bg-slate-800 text-emerald-300">2X</button>
+        <button onclick="adjustManualCasinoBet('plus')" class="py-1 rounded bg-slate-800 text-white">+1K</button>
+        <button onclick="adjustManualCasinoBet('max')" class="py-1 rounded bg-amber-400 text-slate-950">MAX</button>
+      </div>
+    </div>
+  `;
+
+  if (casinoUI.gameTab === 'bonanza' || casinoUI.gameTab === 'olympus') {
+    const isBonanza = casinoUI.gameTab === 'bonanza';
+    document.getElementById('sheetBody').innerHTML = `
+      ${topTabs}
+      ${manualBetPanel}
+      <div class="${isBonanza ? 'sb1000-cabinet' : 'go1000-cabinet'} space-y-2">
+        <div class="pragmatic-top-banner flex items-center justify-between">
+          <span>${isBonanza ? '🍭 SWEET BONANZA 1000' : '⚡ GATES OF OLYMPUS 1000'}</span>
+          <span class="font-mono-num">${casinoUI.freeSpinsLeft > 0 ? `FS: ${casinoUI.freeSpinsLeft}` : '8+ EŞLEŞME = TUMBLE'}</span>
+        </div>
+        <div class="${isBonanza ? 'sb1000-reel-frame' : 'go1000-reel-frame'}">
+          ${casinoUI.grid.map((cell, idx) => `
+            <div class="${isBonanza ? 'sb1000-cell' : 'go1000-cell'} ${cell.isWinning ? 'cell-tumble-win' : ''}" style="animation-delay:${(idx%6)*0.02}s">
+              ${typeof getPragmaticSymbolSVG === 'function' ? getPragmaticSymbolSVG(cell) : cell.icon}
+            </div>
+          `).join('')}
+        </div>
+        <div class="p-2 rounded-xl bg-slate-950/90 border border-white/20 text-center text-xs font-black text-amber-300">
+          ${casinoUI.lastWinLog || 'Bahsini belirle ve çevir!'}
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <button onclick="spinPragmaticSlot(true)" class="flex-1 py-2 px-2 rounded-xl bg-gradient-to-b from-pink-500 to-red-700 border border-fde047 text-white text-left text-[9px] font-black">
+            <div>SATIN AL (100x)</div>
+            <div class="font-mono-num text-xs">${fmtMoney(bonusBuyCost)}</div>
+          </button>
+          <button onclick="spinPragmaticSlot(false)" class="pragmatic-spin-btn">↻</button>
+          <button onclick="casinoUI.doubleChance=!casinoUI.doubleChance; renderVIPCasinoModal()" class="flex-1 py-2 px-2 rounded-xl border ${casinoUI.doubleChance ? 'bg-emerald-600 border-yellow-300 text-white' : 'bg-slate-900 border-white/20 text-slate-300'} text-right text-[9px] font-black">
+            <div>ANTE BET (2X)</div>
+            <div>${casinoUI.doubleChance ? 'AÇIK ✓' : 'KAPALI'}</div>
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Blackjack Görünümü
+  casinoUI.bjCurrentBet = actualBet;
+  const pScore = calcBlackjackHandTotal(casinoUI.bjPlayer);
+  document.getElementById('sheetBody').innerHTML = `
+    ${topTabs}
+    ${manualBetPanel}
+    <div class="bj-table-felt space-y-3">
+      <div class="flex justify-between text-xs font-black text-white">
+        <span>🃏 VIP LIVE BLACKJACK 21</span>
+        <span>Bahis: ${fmtMoney(actualBet)}</span>
+      </div>
+      <div class="p-2 rounded bg-slate-950 text-center text-xs font-bold text-amber-300">${casinoUI.bjResultText}</div>
+      ${casinoUI.bjState === 'playing' ? `
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="blackjackPlayerAction('hit')" class="py-2.5 rounded bg-emerald-500 text-slate-950 font-black text-xs">KART ÇEK</button>
+          <button onclick="blackjackPlayerAction('stand')" class="py-2.5 rounded bg-amber-400 text-slate-950 font-black text-xs">KAL</button>
+          <button onclick="blackjackPlayerAction('double')" class="py-2.5 rounded bg-sky-500 text-slate-950 font-black text-xs">2X KATLA</button>
+        </div>
+      ` : `
+        <button onclick="startBlackjackHand()" class="w-full py-3 rounded bg-amber-400 text-slate-950 font-black text-xs">YENİ EL DAĞIT (${fmtMoney(actualBet)})</button>
+      `}
+    </div>
+  `;
+};
+
+// Sayfa açıldığında sinematik menüyü tetikle
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(showCinematicMainMenuIfNeeded, 50);
+});
+setTimeout(showCinematicMainMenuIfNeeded, 100);
+
+
