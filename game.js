@@ -11358,3 +11358,572 @@ function launchRealLifeEventModal(evTemplate, rawOpenModalFn) {
     }
   };
 })();
+
+/* ============================================================================
+   DİNAMİK SVG KARAKTER MOTORU VE BERBER / KUAFÖR / STİL STÜDYOSU (GAME.JS)
+   ============================================================================ */
+
+let barberActiveSubTab = 'hair'; // 'hair' | 'beard_brow' | 'face_eye' | 'outfit'
+
+function ensureCharacterAvatarState() {
+  if (!G) return;
+  if (!G.charLook) {
+    const isFemale = G.gender === 'Kadın';
+    G.charLook = {
+      skinId: 'skin_wheat',
+      hairStyleId: isFemale ? 'long_wave' : 'fade_crop',
+      hairColorId: 'hc_darkbrown',
+      beardStyleId: isFemale ? 'beard_clean' : 'beard_stubble',
+      browStyleId: 'brow_natural',
+      eyeColorId: 'eye_hazel',
+      outfitId: 'out_tshirt',
+      glassesId: 'gl_none',
+      yearsSinceHaircut: 0,
+      hasSkinCareGlow: false
+    };
+  }
+}
+
+// Karakterin Kaşı, Gözü, Saçı, Sakalı, Yaşı ve Ruh Haline Göre Gerçekçi Katmanlı SVG Üretir
+function generateDynamicCharacterSVG(rawSvgOnly = false) {
+  ensureCharacterAvatarState();
+  const lk = G.charLook;
+
+  const skin = CHAR_SKIN_TONES_DB.find(x => x.id === lk.skinId) || CHAR_SKIN_TONES_DB[1];
+  let hairColor = CHAR_HAIR_COLORS_DB.find(x => x.id === lk.hairColorId) || CHAR_HAIR_COLORS_DB[1];
+  const eyeColor = CHAR_EYE_COLORS_DB.find(x => x.id === lk.eyeColorId) || CHAR_EYE_COLORS_DB[1];
+  const outfit = CHAR_OUTFITS_DB.find(x => x.id === lk.outfitId) || CHAR_OUTFITS_DB[0];
+
+  // 48 yaş üstünde saç boyatılmadıysa doğal kırlaşma efekti
+  if (G.age >= 48 && lk.yearsSinceHaircut >= 2) {
+    hairColor = { hex: '#64748b', highlight: '#cbd5e1' };
+  }
+
+  // Saç 3+ yıldır kesilmediyse kabarma / dağınıklık
+  const isOvergrown = lk.yearsSinceHaircut >= 3;
+
+  // 1. KIYAFET / GÖVDE KATMANI
+  let outfitSvg = '';
+  if (lk.outfitId === 'out_suit') {
+    outfitSvg = `
+      <path d="M25,220 C28,168 58,156 100,156 C142,156 172,168 175,220 Z" fill="#0f172a"/>
+      <polygon points="84,156 100,198 116,156" fill="#f8fafc"/>
+      <polygon points="97,164 103,164 105,198 95,198" fill="${outfit.accent}"/>
+      <path d="M72,156 L94,198 L82,220 L55,220 Z" fill="#1e293b"/>
+      <path d="M128,156 L106,198 L118,220 L145,220 Z" fill="#1e293b"/>
+    `;
+  } else if (lk.outfitId === 'out_jersey') {
+    outfitSvg = `
+      <path d="M25,220 C28,168 58,156 100,156 C142,156 172,168 175,220 Z" fill="#172554"/>
+      <rect x="52" y="158" width="16" height="62" fill="#facc15"/>
+      <rect x="92" y="158" width="16" height="62" fill="#facc15"/>
+      <rect x="132" y="158" width="16" height="62" fill="#facc15"/>
+      <path d="M78,156 Q100,174 122,156" fill="none" stroke="#facc15" stroke-width="4"/>
+    `;
+  } else if (lk.outfitId === 'out_shirt') {
+    outfitSvg = `
+      <path d="M25,220 C28,168 58,156 100,156 C142,156 172,168 175,220 Z" fill="#e2e8f0"/>
+      <polygon points="78,155 100,182 88,190 70,165" fill="#cbd5e1"/>
+      <polygon points="122,155 100,182 112,190 130,165" fill="#cbd5e1"/>
+    `;
+  } else {
+    outfitSvg = `
+      <path d="M25,220 C28,168 58,156 100,156 C142,156 172,168 175,220 Z" fill="${outfit.primary}"/>
+      <path d="M76,156 Q100,175 124,156" fill="none" stroke="${outfit.accent}" stroke-width="3.5"/>
+    `;
+  }
+
+  // 2. KAŞ KATMANI
+  const browStroke = lk.browStyleId === 'brow_thick' ? 5.2 : (lk.browStyleId === 'brow_thin' ? 2.4 : 3.8);
+  let browSvg = `
+    <path d="M62,81 Q76,75 89,80" fill="none" stroke="${hairColor.hex}" stroke-width="${browStroke}" stroke-linecap="round"/>
+    <path d="M111,80 Q124,75 138,81" fill="none" stroke="${hairColor.hex}" stroke-width="${browStroke}" stroke-linecap="round"/>
+  `;
+  if (lk.browStyleId === 'brow_slit') {
+    browSvg += `<line x1="131" y1="74" x2="128" y2="85" stroke="${skin.base}" stroke-width="2.6"/>`;
+  }
+
+  // 3. YÜZ İFADESİ (AĞIZ & DUDAK)
+  const isHappy = (G.happy || 60) >= 55;
+  const mouthSvg = isHappy
+    ? `<path d="M86,129 Q100,139 114,129" fill="none" stroke="#8c3b32" stroke-width="3.2" stroke-linecap="round"/>
+       <path d="M90,130 Q100,136 110,130 Z" fill="#ffffff" opacity="0.85"/>`
+    : `<path d="M88,133 Q100,129 112,133" fill="none" stroke="#8c3b32" stroke-width="3" stroke-linecap="round"/>`;
+
+  // 4. SAKAL VE BIYIK KATMANI
+  let beardSvg = '';
+  if (G.gender !== 'Kadın') {
+    if (lk.beardStyleId === 'beard_stubble' || isOvergrown) {
+      beardSvg = `
+        <path d="M56,108 C56,138 76,153 100,153 C124,153 144,138 144,108 C140,126 124,142 100,142 C76,142 60,126 56,108 Z" fill="${hairColor.hex}" opacity="0.32"/>
+        <path d="M82,124 Q100,119 118,124" fill="none" stroke="${hairColor.hex}" stroke-width="3.5" opacity="0.4" stroke-linecap="round"/>
+      `;
+    } else if (lk.beardStyleId === 'beard_full') {
+      beardSvg = `
+        <path d="M54,104 C54,142 74,158 100,158 C126,158 146,142 146,104 C140,118 130,134 116,135 L116,125 Q100,118 84,125 L84,135 C70,134 60,118 54,104 Z" fill="${hairColor.hex}"/>
+        <path d="M81,123 Q100,117 119,123" fill="none" stroke="${hairColor.hex}" stroke-width="5" stroke-linecap="round"/>
+      `;
+    } else if (lk.beardStyleId === 'beard_goatee') {
+      beardSvg = `
+        <path d="M82,123 Q100,118 118,123" fill="none" stroke="${hairColor.hex}" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M84,136 Q100,158 116,136 Q108,148 100,148 Q92,148 84,136 Z" fill="${hairColor.hex}"/>
+      `;
+    } else if (lk.beardStyleId === 'beard_mustache') {
+      beardSvg = `
+        <path d="M78,124 Q90,116 100,121 Q110,116 122,124 Q110,127 100,123 Q90,127 78,124 Z" fill="${hairColor.hex}"/>
+      `;
+    }
+  }
+
+  // 5. SAÇ MODELİ KATMANI
+  let hairBackSvg = '';
+  let hairTopSvg = '';
+  const hs = lk.hairStyleId;
+
+  if (hs === 'fade_crop') {
+    hairTopSvg = `
+      <path d="M52,78 C50,42 72,28 100,28 C128,28 150,42 148,78 C142,60 124,52 100,52 C76,52 58,60 52,78 Z" fill="url(#hairGrad)"/>
+      <path d="M62,48 Q82,38 106,46 Q124,40 136,52" fill="none" stroke="${hairColor.highlight}" stroke-width="2.5" opacity="0.6" stroke-linecap="round"/>
+    `;
+  } else if (hs === 'pompadour') {
+    hairTopSvg = `
+      <path d="M52,80 C46,36 68,16 104,18 C138,20 154,40 148,80 C140,56 120,46 96,48 C74,50 60,60 52,80 Z" fill="url(#hairGrad)"/>
+      <path d="M66,34 Q100,22 132,36" fill="none" stroke="${hairColor.highlight}" stroke-width="3" opacity="0.7" stroke-linecap="round"/>
+    `;
+  } else if (hs === 'ceo_slick') {
+    hairTopSvg = `
+      <path d="M50,84 C46,44 68,26 100,26 C132,26 154,44 150,84 C144,62 128,48 100,48 C72,48 56,62 50,84 Z" fill="url(#hairGrad)"/>
+      <line x1="72" y1="36" x2="82" y2="50" stroke="${skin.base}" stroke-width="1.8" opacity="0.7"/>
+    `;
+  } else if (hs === 'curly_perm') {
+    hairTopSvg = `
+      <path d="M46,82 C40,42 66,22 100,22 C134,22 160,42 154,82 C140,62 120,56 100,56 C80,56 60,62 46,82 Z" fill="url(#hairGrad)"/>
+      <circle cx="66" cy="48" r="14" fill="${hairColor.hex}"/>
+      <circle cx="88" cy="42" r="15" fill="${hairColor.hex}"/>
+      <circle cx="112" cy="42" r="15" fill="${hairColor.hex}"/>
+      <circle cx="134" cy="48" r="14" fill="${hairColor.hex}"/>
+      <circle cx="76" cy="54" r="10" fill="${hairColor.highlight}" opacity="0.35"/>
+      <circle cx="122" cy="54" r="10" fill="${hairColor.highlight}" opacity="0.35"/>
+    `;
+  } else if (hs === 'long_wave') {
+    hairBackSvg = `
+      <path d="M42,75 C34,115 36,155 48,175 L152,175 C164,155 166,115 158,75 Z" fill="${hairColor.hex}"/>
+    `;
+    hairTopSvg = `
+      <path d="M46,86 C44,38 70,24 100,24 C130,24 156,38 154,86 C142,58 122,48 100,48 C78,48 58,58 46,86 Z" fill="url(#hairGrad)"/>
+    `;
+  } else if (hs === 'buzz_cut') {
+    hairTopSvg = `
+      <path d="M54,78 C54,46 74,34 100,34 C126,34 146,46 146,78 C138,60 122,52 100,52 C78,52 62,60 54,78 Z" fill="${hairColor.hex}" opacity="0.82"/>
+    `;
+  }
+
+  // Eğer berber zamanı geçtiyse yanlardan çıkan dağınık saç telleri
+  if (isOvergrown && hs !== 'bald_clean') {
+    hairTopSvg += `
+      <path d="M48,74 L38,68 L46,84 M152,74 L162,68 L154,84" fill="none" stroke="${hairColor.hex}" stroke-width="3" stroke-linecap="round"/>
+    `;
+  }
+
+  // 6. GÖZLÜK KATMANI
+  let glassesSvg = '';
+  if (lk.glassesId === 'gl_optic') {
+    glassesSvg = `
+      <rect x="60" y="84" width="32" height="21" rx="6" fill="rgba(56,189,248,0.12)" stroke="#0f172a" stroke-width="3.2"/>
+      <rect x="108" y="84" width="32" height="21" rx="6" fill="rgba(56,189,248,0.12)" stroke="#0f172a" stroke-width="3.2"/>
+      <line x1="92" y1="93" x2="108" y2="93" stroke="#0f172a" stroke-width="3"/>
+    `;
+  } else if (lk.glassesId === 'gl_sun') {
+    glassesSvg = `
+      <rect x="58" y="83" width="35" height="23" rx="8" fill="#090d16" stroke="#eab308" stroke-width="2.5"/>
+      <rect x="107" y="83" width="35" height="23" rx="8" fill="#090d16" stroke="#eab308" stroke-width="2.5"/>
+      <line x1="93" y1="91" x2="107" y2="91" stroke="#eab308" stroke-width="2.5"/>
+      <line x1="64" y1="87" x2="76" y2="101" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+      <line x1="113" y1="87" x2="125" y2="101" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+    `;
+  }
+
+  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="100%" height="100%">
+    <defs>
+      <radialGradient id="bgGlow" cx="50%" cy="40%" r="65%">
+        <stop offset="0%" stop-color="#1e293b"/>
+        <stop offset="100%" stop-color="#090d16"/>
+      </radialGradient>
+      <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${skin.base}"/>
+        <stop offset="100%" stop-color="${skin.shadow}"/>
+      </linearGradient>
+      <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="${hairColor.highlight}"/>
+        <stop offset="100%" stop-color="${hairColor.hex}"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Stüdyo Arka Planı -->
+    <rect width="200" height="220" fill="url(#bgGlow)"/>
+    <circle cx="100" cy="88" r="76" fill="${outfit.accent}" opacity="0.08"/>
+
+    ${hairBackSvg}
+
+    <!-- Boyun ve Gölgelendirme -->
+    <rect x="81" y="132" width="38" height="36" rx="10" fill="${skin.shadow}"/>
+
+    <!-- Kıyafet -->
+    ${outfitSvg}
+
+    <!-- Kulaklar -->
+    <ellipse cx="50" cy="100" rx="8" ry="13" fill="${skin.shadow}"/>
+    <ellipse cx="150" cy="100" rx="8" ry="13" fill="${skin.shadow}"/>
+
+    <!-- Yüz ve Çene Hattı -->
+    <path d="M52,76 C52,44 72,34 100,34 C128,34 148,44 148,76 C148,116 130,152 100,152 C70,152 52,116 52,76 Z" fill="url(#skinGrad)"/>
+
+    <!-- Gözler (Sklera, İris, Gözbebeği ve Canlı Işık Yansıması) -->
+    <ellipse cx="76" cy="94" rx="11" ry="7" fill="#ffffff"/>
+    <circle cx="76" cy="94" r="5.5" fill="${eyeColor.hex}"/>
+    <circle cx="76" cy="94" r="2.6" fill="#090d16"/>
+    <circle cx="78" cy="92" r="1.6" fill="#ffffff"/>
+
+    <ellipse cx="124" cy="94" rx="11" ry="7" fill="#ffffff"/>
+    <circle cx="124" cy="94" r="5.5" fill="${eyeColor.hex}"/>
+    <circle cx="124" cy="94" r="2.6" fill="#090d16"/>
+    <circle cx="126" cy="92" r="1.6" fill="#ffffff"/>
+
+    <!-- Kaşlar -->
+    ${browSvg}
+
+    <!-- Burun -->
+    <path d="M100,90 L97,112 Q100,115 105,112" fill="none" stroke="${skin.shadow}" stroke-width="2.6" stroke-linecap="round"/>
+
+    <!-- Sakal / Bıyık -->
+    ${beardSvg}
+
+    <!-- Ağız / İfade -->
+    ${mouthSvg}
+
+    <!-- Gözlük -->
+    ${glassesSvg}
+
+    <!-- Saç Üst Katmanı -->
+    ${hairTopSvg}
+  </svg>`;
+
+  if (rawSvgOnly) return svgMarkup;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgMarkup);
+}
+
+/* ============================================================================
+   💈 BERBER, KUAFÖR & STİL STÜDYOSU EKRANI VE İŞLEMLERİ
+   ============================================================================ */
+
+window.openBarberAndSalonModal = function () {
+  ensureCharacterAvatarState();
+  const sheet = document.getElementById('bottomSheet');
+  sheet.classList.remove('hidden');
+  document.getElementById('sheetTitle').textContent = '💈 Berber, Kuaför & Stil Stüdyosu';
+  document.getElementById('sheetSubtitle').textContent = `Görünüm: %${G.looks} • Son Bakım: ${G.charLook.yearsSinceHaircut} Yıl Önce`;
+  document.getElementById('sheetBody').innerHTML = renderBarberAndSalonHTML();
+};
+
+function renderBarberAndSalonHTML() {
+  ensureCharacterAvatarState();
+  const c = getCountry();
+  const lk = G.charLook;
+  const skinCareCost = Math.round(c.monthlyMinWage * 0.14);
+
+  const nav4 = `
+    <div class="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-slate-950 border border-slate-800 mb-3 text-[10px] font-extrabold">
+      <button onclick="barberActiveSubTab='hair'; openBarberAndSalonModal()" class="py-2 rounded-xl ${barberActiveSubTab === 'hair' ? 'bg-sky-500 text-slate-950 shadow' : 'text-slate-400'}">✂️ Saç &amp; Boya</button>
+      <button onclick="barberActiveSubTab='beard_brow'; openBarberAndSalonModal()" class="py-2 rounded-xl ${barberActiveSubTab === 'beard_brow' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400'}">🪒 Sakal &amp; Kaş</button>
+      <button onclick="barberActiveSubTab='face_eye'; openBarberAndSalonModal()" class="py-2 rounded-xl ${barberActiveSubTab === 'face_eye' ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-400'}">👁️ Göz &amp; Cilt</button>
+      <button onclick="barberActiveSubTab='outfit'; openBarberAndSalonModal()" class="py-2 rounded-xl ${barberActiveSubTab === 'outfit' ? 'bg-purple-500 text-white shadow' : 'text-slate-400'}">👔 Kombin</button>
+    </div>
+  `;
+
+  // Canlı Ayna Sahnesi (Üstte Karakterin Büyük Önizlemesi)
+  const mirrorBox = `
+    <div class="barber-mirror-stage mb-3">
+      <div class="barber-preview-frame">
+        ${generateDynamicCharacterSVG(true)}
+      </div>
+      <div class="space-y-1.5 flex-1 min-w-0">
+        <div class="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider">🪞 CANLI KUAFÖR AYNASI</div>
+        <div class="text-sm font-black text-white truncate">${G.firstName} ${G.lastName} (${G.age} Yaş)</div>
+        <div class="text-[11px] text-slate-300">
+          Karizma / Görünüm: <strong class="text-emerald-400 font-mono-num">%${G.looks}</strong>
+          ${lk.yearsSinceHaircut >= 3 ? `<span class="block text-[10px] text-amber-400 font-bold">⚠️ Saç/Sakal uzadı, tıraş zamanı geldi!</span>` : `<span class="block text-[10px] text-emerald-400">✨ Saç ve sakal bakımlı görünüyor</span>`}
+        </div>
+        <button onclick="doFullVipGroomingPackage(${skinCareCost})" class="w-full py-1.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-sky-400 text-slate-950 text-[10px] font-black shadow">
+          🧖‍♂️ Buharlı Cilt Bakımı &amp; Yıkama (${fmtMoney(skinCareCost)})
+        </button>
+      </div>
+    </div>
+  `;
+
+  let tabContent = '';
+
+  // SEKME 1: SAÇ KESİMİ VE SAÇ BOYAMA
+  if (barberActiveSubTab === 'hair') {
+    const dyeCost = Math.round(c.monthlyMinWage * 0.10);
+    tabContent = `
+      <div class="space-y-3">
+        <div>
+          <div class="text-xs font-extrabold text-white mb-1.5">✂️ Saç Kesimi &amp; Model Seçimi</div>
+          <div class="grid grid-cols-1 gap-1.5">
+            ${CHAR_HAIR_STYLES_DB.map(hs => {
+              const cost = Math.round(c.monthlyMinWage * hs.costMult);
+              const active = lk.hairStyleId === hs.id;
+              return `
+                <button onclick="applyBarberChange('hairStyleId', '${hs.id}', ${cost}, ${hs.looksBoost}, '${hs.name}')" class="style-option-btn ${active ? 'active' : ''} flex items-center justify-between">
+                  <span>${hs.name} (+${hs.looksBoost} Görünüm)</span>
+                  <span class="font-mono-num text-amber-300">${active ? 'Aktif Model ✓' : fmtMoney(cost)}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-white">🎨 Saç Boyama &amp; Ton Değişimi</span>
+            <span class="text-[10px] font-mono-num text-amber-300">${fmtMoney(dyeCost)}</span>
+          </div>
+          <div class="flex flex-wrap gap-2.5 pt-1">
+            ${CHAR_HAIR_COLORS_DB.map(hc => `
+              <button onclick="applyBarberChange('hairColorId', '${hc.id}', ${dyeCost}, 4, '${hc.name} Saç Boyası')"
+                title="${hc.name}"
+                class="color-swatch-btn ${lk.hairColorId === hc.id ? 'active' : ''}"
+                style="background:${hc.hex};"></button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 2: SAKAL TIRAŞI VE KAŞ TASARIMI
+  else if (barberActiveSubTab === 'beard_brow') {
+    tabContent = `
+      <div class="space-y-3">
+        <div>
+          <div class="text-xs font-extrabold text-white mb-1.5">🪒 Sakal &amp; Bıyık Tıraşı</div>
+          <div class="grid grid-cols-1 gap-1.5">
+            ${CHAR_BEARD_STYLES_DB.map(bs => {
+              const cost = Math.round(c.monthlyMinWage * bs.costMult);
+              const active = lk.beardStyleId === bs.id;
+              return `
+                <button onclick="applyBarberChange('beardStyleId', '${bs.id}', ${cost}, ${bs.looksBoost}, '${bs.name}')" class="style-option-btn ${active ? 'active' : ''} flex items-center justify-between">
+                  <span>${bs.name} (+${bs.looksBoost} Görünüm)</span>
+                  <span class="font-mono-num text-amber-300">${active ? 'Seçili ✓' : fmtMoney(cost)}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs font-extrabold text-white mb-1.5">🤨 Kaş Tasarımı &amp; Ustura Çiziği</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            ${CHAR_EYEBROW_STYLES_DB.map(br => {
+              const cost = Math.round(c.monthlyMinWage * br.costMult);
+              const active = lk.browStyleId === br.id;
+              return `
+                <button onclick="applyBarberChange('browStyleId', '${br.id}', ${cost}, 3, '${br.name}')" class="style-option-btn ${active ? 'active' : ''}">
+                  <div>${br.name}</div>
+                  <div class="text-[9.5px] text-amber-300 font-mono-num mt-0.5">${active ? 'Seçili ✓' : fmtMoney(cost)}</div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 3: GÖZ RENGİ (LENS) VE TEN TONU / BRONZLAŞMA
+  else if (barberActiveSubTab === 'face_eye') {
+    const lensCost = Math.round(c.monthlyMinWage * 0.08);
+    tabContent = `
+      <div class="space-y-3">
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-extrabold text-white">👁️ Göz Rengi / Numarasız Renkli Lens</span>
+            <span class="text-[10px] text-emerald-400 font-mono-num">${fmtMoney(lensCost)}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            ${CHAR_EYE_COLORS_DB.map(ec => `
+              <button onclick="applyBarberChange('eyeColorId', '${ec.id}', ${lensCost}, 3, '${ec.name}')" class="style-option-btn ${lk.eyeColorId === ec.id ? 'active' : ''} flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full inline-block border border-white/40" style="background:${ec.hex}"></span>
+                <span>${ec.name}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+          <div class="text-xs font-extrabold text-white">☀️ Ten Tonu &amp; Solaryum / Bronzluk</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            ${CHAR_SKIN_TONES_DB.map(sk => `
+              <button onclick="applyBarberChange('skinId', '${sk.id}', 0, 2, '${sk.name}')" class="style-option-btn ${lk.skinId === sk.id ? 'active' : ''} flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full inline-block border border-white/40" style="background:${sk.base}"></span>
+                <span>${sk.name}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // SEKME 4: KIYAFET KOMBİNİ VE GÖZLÜK VİTRİNİ
+  else if (barberActiveSubTab === 'outfit') {
+    tabContent = `
+      <div class="space-y-3">
+        <div>
+          <div class="text-xs font-extrabold text-white mb-1.5">👔 Üst Giyim &amp; Stil Kombini</div>
+          <div class="space-y-1.5">
+            ${CHAR_OUTFITS_DB.map(ot => {
+              const cost = Math.round(c.monthlyMinWage * ot.costMult);
+              const active = lk.outfitId === ot.id;
+              return `
+                <button onclick="applyBarberChange('outfitId', '${ot.id}', ${cost}, 6, '${ot.name}')" class="style-option-btn ${active ? 'active' : ''} flex items-center justify-between w-full">
+                  <span>${ot.name}</span>
+                  <span class="font-mono-num text-amber-300">${active ? 'Üzerinde ✓' : fmtMoney(cost)}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-xs font-extrabold text-white mb-1.5">🕶️ Gözlük &amp; Aksesuar</div>
+          <div class="grid grid-cols-1 gap-1.5">
+            ${CHAR_GLASSES_DB.map(gl => `
+              <button onclick="applyBarberChange('glassesId', '${gl.id}', 0, 2, '${gl.name}')" class="style-option-btn ${lk.glassesId === gl.id ? 'active' : ''}">
+                ${gl.name}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return mirrorBox + nav4 + tabContent;
+}
+
+window.applyBarberChange = function (propKey, valId, cost, looksBoost, labelName) {
+  ensureCharacterAvatarState();
+  const lk = G.charLook;
+
+  if (lk[propKey] === valId) {
+    lk.yearsSinceHaircut = 0;
+    openBarberAndSalonModal();
+    return;
+  }
+
+  if (cost > 0 && G.money < cost) {
+    showToast(`Berber / Kuaför işlemi için nakit yetersiz! (${fmtMoney(cost)} gerekir)`);
+    return;
+  }
+
+  if (cost > 0) G.money -= cost;
+  lk[propKey] = valId;
+  lk.yearsSinceHaircut = 0;
+  G.looks = clamp((G.looks || 60) + (looksBoost || 3), 0, 100);
+  G.happy = clamp((G.happy || 60) + 4, 0, 100);
+
+  playSfx('coin');
+  addLog(G.age, `💈 **BERBER & KUAFÖR:** **${labelName}** yaptırdın! Yeni imajınla görünümün **%${G.looks}** seviyesine yükseldi.`, 'good');
+  saveGame();
+  renderAll();
+  openBarberAndSalonModal();
+};
+
+window.doFullVipGroomingPackage = function (cost) {
+  ensureCharacterAvatarState();
+  if (G.money < cost) { showToast('VIP Cilt bakımı için bakiye yetersiz!'); return; }
+  G.money -= cost;
+  G.charLook.yearsSinceHaircut = 0;
+  G.charLook.hasSkinCareGlow = true;
+  G.looks = clamp(G.looks + 9);
+  G.happy = clamp(G.happy + 8);
+  G.stress = clamp((G.stress || 20) - 15, 0, 100);
+  playSfx('trophy');
+  addLog(G.age, `🧖‍♂️ **VIP BERBER & CİLT BAKIMI:** Saç-sakal kesimi, buharlı siyah maske ve yüz masajı yaptırdın! (+9 Görünüm, -15 Stres)`, 'good');
+  saveGame();
+  renderAll();
+  openBarberAndSalonModal();
+};
+
+/* ============================================================================
+   ANA ENTEGRASYON: ESKİ FOTOĞRAFI DEVRE DIŞI BIRAKIP KARAKTERİ YERLEŞTİR
+   ============================================================================ */
+
+(function attachDynamicCharacterAndBarberSystem() {
+  if (window._dynamicCharAndBarberLoaded) return;
+  window._dynamicCharAndBarberLoaded = true;
+
+  // 1. Oyundaki getCurrentPortrait() Fonksiyonunu Dinamik SVG Karaktere Yönlendir!
+  window.getCurrentPortrait = function () {
+    return generateDynamicCharacterSVG(false);
+  };
+
+  // 2. RenderAll Kancası: Üstteki Portreyi Güncelle ve Tıklanınca Berber Açılmasını Sağla
+  const _prevRenderAll = renderAll;
+  renderAll = function () {
+    ensureCharacterAvatarState();
+    _prevRenderAll();
+
+    const avatarImg = document.getElementById('charAvatar');
+    if (avatarImg) {
+      avatarImg.src = generateDynamicCharacterSVG(false);
+      avatarImg.title = '💈 Berber, Kuaför & Stil Stüdyosunu Açmak İçin Tıkla!';
+      avatarImg.onclick = function () {
+        openBarberAndSalonModal();
+      };
+    }
+  };
+
+  // 3. +1 Yaş İlerlediğinde Saç/Sakalın Uzaması Mekanizması
+  const _prevAdvanceAge = advanceAge;
+  advanceAge = function () {
+    ensureCharacterAvatarState();
+    G.charLook.yearsSinceHaircut = (G.charLook.yearsSinceHaircut || 0) + 1;
+    if (G.charLook.yearsSinceHaircut === 3 && G.age >= 16) {
+      G.looks = clamp(G.looks - 3);
+      addLog(G.age + 1, `✂️ **BAKIM ZAMANI:** Uzun süredir berbere/kuaföre gitmediğin için saç ve sakalın birbirine karıştı (-3 Görünüm). Karakterine tıklayarak tıraş olabilirsin!`, 'normal');
+    }
+    _prevAdvanceAge();
+  };
+
+  // 4. Ana Menüye ve iFruit Telefona "💈 Berber, Kuaför & Stil" Butonu Ekle
+  const _prevOpenNav = openNavSheet;
+  openNavSheet = function (tab) {
+    ensureCharacterAvatarState();
+    _prevOpenNav(tab);
+
+    if (tab === 'menu') {
+      const body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('menuBarberQuickBtn')) {
+        const grid = body.querySelector('.grid.grid-cols-2');
+        if (grid) {
+          grid.insertAdjacentHTML('afterbegin', `
+            <button id="menuBarberQuickBtn" onclick="openBarberAndSalonModal()" class="col-span-2 p-3.5 rounded-2xl bg-gradient-to-r from-sky-500/20 via-indigo-500/15 to-purple-500/20 border border-sky-400/50 text-left flex items-center justify-between mb-1">
+              <div>
+                <div class="text-xs font-extrabold text-sky-300 uppercase">💈 BERBER, KUAFÖR &amp; STİL STÜDYOSU</div>
+                <div class="text-sm font-extrabold text-white">Saç Kesimi, Saç Boyama, Sakal, Kaş Çiziği &amp; Kombin</div>
+              </div>
+              <span class="px-3 py-1.5 rounded-xl bg-sky-400 text-slate-950 text-xs font-extrabold shrink-0">Aynaya Bak &rarr;</span>
+            </button>
+          `);
+        }
+      }
+    }
+  };
+
+  if (typeof G !== 'undefined' && G) {
+    renderAll();
+  }
+})();
+
