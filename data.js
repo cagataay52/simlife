@@ -1992,3 +1992,177 @@ window.OSYM_YKS_DB = {
   ]
 };
 
+/* ============================================================================
+   YAŞA VE İMKANLARA BAĞLI GERÇEKÇİ OLAY VERİTABANI (DATA.JS)
+   Her olay sadece şartları (minAge, maxAge, reqCar, reqLicense, reqBiz vb.) sağlıyorsa çıkar!
+   ============================================================================ */
+
+window.REALISTIC_CONTEXT_EVENTS_DB = [
+  // 1. BEBEKLİK DÖNEMİ (0 - 5 YAŞ)
+  {
+    id: 'ctx_baby_1',
+    minAge: 0, maxAge: 5,
+    conditionLabel: '👶 Bebeklik Dönemi (0-5 Yaş)',
+    title: 'Çocuk Doktoru Kontrolü ve Gelişim',
+    desc: 'Ailen seni rutin çocuk doktoru kontrolüne götürdü. Doktor gelişiminin yaşıtlarına göre çok iyi olduğunu söyledi.',
+    choices: [
+      { label: 'Gülümse ve etrafı izle (+Sağlık, +Mutluluk)', eff: { health: 6, happy: 8 }, log: '🩺 Çocuk doktoru kontrolün harika geçti, çok sağlıklı büyüyorsun.' },
+      { label: 'Oyuncaklarla oyna (+Zeka)', eff: { smart: 6, happy: 5 }, log: '🧸 Renkli zeka küpleriyle oynayarak zihinsel gelişimini hızlandırdın.' }
+    ]
+  },
+  {
+    id: 'ctx_baby_2',
+    minAge: 0, maxAge: 5,
+    conditionLabel: '👶 Bebeklik Dönemi (0-5 Yaş)',
+    title: 'Parkta Oyun Zamanı',
+    desc: 'Anne ve babanla mahalle parkına çıktınız. Kum havuzunda yaşıtlarınla oynama fırsatın var.',
+    choices: [
+      { label: 'Arkadaşlarınla kumdan kale yap (+Mutluluk, +Zeka)', eff: { happy: 10, smart: 4 }, log: '🏰 Parkta kumdan kale yaparak neşeli bir gün geçirdin.' },
+      { label: 'Salıncakta sallan (+Mutluluk)', eff: { happy: 8, health: 4 }, log: '🎠 Parkta doyasıya koşup oynadın.' }
+    ]
+  },
+
+  // 2. İLKOKUL VE ORTAOKUL DÖNEMİ (6 - 13 YAŞ)
+  {
+    id: 'ctx_child_1',
+    minAge: 6, maxAge: 13,
+    conditionLabel: '🎒 İlköğretim Öğrencisi (6-13 Yaş)',
+    title: 'Okul Bilgi Yarışması Seçmeleri',
+    desc: 'Sınıf öğretmenin okullar arası bilgi yarışması için takıma öğrenci seçiyor.',
+    choices: [
+      { label: 'Gönüllü ol ve sıkı çalış (+10 Zeka)', eff: { smart: 10, happy: 5 }, log: '🏆 Okul bilgi yarışmasında sınıfını başarıyla temsil ettin (+10 Zeka)!' },
+      { label: 'Teneffüste arkadaşlarla maç yap (+Sağlık, +Mutluluk)', eff: { health: 6, happy: 9 }, log: '⚽ Okul bahçesinde arkadaşlarınla unutulmaz bir maç yaptın.' }
+    ]
+  },
+  {
+    id: 'ctx_child_2',
+    minAge: 6, maxAge: 13,
+    conditionLabel: '🎒 İlköğretim Öğrencisi (6-13 Yaş)',
+    title: 'Karnede Takdir Belgesi Heyecanı',
+    desc: 'Dönem sonu yaklaştı. Son sınavlara iyi hazırlanırsan takdir belgesi alıp ailenden ödül harçlığı koparabilirsin.',
+    choices: [
+      { label: 'Derslere asıl ve Takdir al (+Zeka, +Harçlık)', eff: { smart: 8, happy: 8, moneyMult: 0.08 }, log: '📜 Karnende Takdir Belgesi aldın! Ailen seni harçlıkla ödüllendirdi.' },
+      { label: 'Bilgisayar oyunlarına vakit ayır (+Mutluluk)', eff: { happy: 10 }, log: '🎮 Dönem sonunu oyun oynayarak ve dinlenerek geçirdin.' }
+    ]
+  },
+
+  // 3. LİSE VE GENÇLİK DÖNEMİ (14 - 17 YAŞ)
+  {
+    id: 'ctx_teen_1',
+    minAge: 14, maxAge: 17,
+    conditionLabel: '🏫 Lise Öğrencisi (14-17 Yaş)',
+    title: 'YKS Hazırlık ve Gelecek Planı',
+    desc: 'Lisede rehberlik hocası üniversite sınavı (YKS) için deneme sınavı düzenledi.',
+    choices: [
+      { label: 'Deneme sınavına tam odaklan (+10 Zeka, +YKS Puanı)', eff: { smart: 10, yksBonus: 25 }, log: '📝 Lise YKS deneme sınavında derece yaptın (+10 Zeka)!' },
+      { label: 'Okul çıkışında arkadaşlarla takıl (+Mutluluk, +Karizma)', eff: { happy: 9, looks: 4 }, log: '😎 Lise arkadaşlarınla sosyal çevreni genişlettin.' }
+    ]
+  },
+
+  // 4. SADECE EHLİYETİ VE ARABASI OLANLARA ÖZEL OLAYLAR (18+ YAŞ + ARABA + B EHLİYETİ)
+  {
+    id: 'ctx_driver_police',
+    minAge: 18, maxAge: 90,
+    reqCar: true, reqLicenseB: true,
+    conditionLabel: '🚗 Aktif Araç & B Ehliyet Sahibi',
+    title: 'Trafik Polisi Rutin Uygulaması',
+    desc: 'Aracınla seyir halindeyken trafik ekipleri rutin ehliyet ve ruhsat kontrolü için durdurdu. Ehliyetin ve evrakların tam!',
+    choices: [
+      { label: 'Ehliyet ve ruhsatı kibarca uzat (Sorunsuz Geç)', eff: { happy: 4 }, log: '🚓 Trafik çevirmesinde ehliyet ve ruhsatın tam olduğu için polis memuru teşekkür edip iyi yolculuklar diledi.' },
+      { label: 'Memurla sohbet et (+Karizma)', eff: { looks: 2, happy: 5 }, log: '🪪 Rutin trafik kontrolünden kurallara uygun şekilde sorunsuz geçtin.' }
+    ]
+  },
+  {
+    id: 'ctx_driver_maint',
+    minAge: 18, maxAge: 90,
+    reqCar: true,
+    conditionLabel: '🚗 Garajda Kayıtlı Araç Sahibi',
+    title: 'Aracın Yıllık Periyodik Bakımı',
+    desc: 'Garajındaki aracının yağ, filtre ve fren balatası bakım zamanı geldi.',
+    choices: [
+      { label: 'Yetkili serviste tam bakım yaptır (-Bakım Ücreti, +Güvenlik)', eff: { moneyMult: -0.15, happy: 6, health: 4 }, log: '🔧 Aracının periyodik servis bakımını eksiksiz yaptırdın, motor saat gibi çalışıyor.' },
+      { label: 'Bakımı ertele, olduğu gibi kullan (Ücretsiz)', eff: { happy: -2 }, log: '⚠️ Aracının periyodik bakımını bir sonraki seneye erteledin.' }
+    ]
+  },
+
+  // 5. ARABASI OLUP EHLİYETİ OLMAYANLARA ÖZEL GERÇEKÇİ UYARI (ARABA VAR + EHLİYET YOK)
+  {
+    id: 'ctx_car_no_license',
+    minAge: 18, maxAge: 90,
+    reqCar: true, reqNoLicenseB: true,
+    conditionLabel: '⚠️ Araç Var • B Sınıfı Ehliyet Yok',
+    title: 'Garajda Aracın Var Ama Ehliyetin Yok!',
+    desc: 'Üzerine kayıtlı bir aracın var fakat henüz B sınıfı sürücü belgesi almadın. Trafiğe çıkarsan ehliyetsiz sürüş cezası yiyebilirsin.',
+    choices: [
+      { label: 'Ehliyet alana kadar aracı garajda beklet (Ceza Yok)', eff: { happy: 2 }, log: '🅿️ Ehliyetin olmadığı için aracını trafiğe çıkarmayıp garajda güvende tuttun.' },
+      { label: 'Hemen Sürücü Kursuna yazıl ve B Ehliyeti al (-Kurs Harcı)', eff: { moneyMult: -0.40, grantLicenseB: true, happy: 10 }, log: '🪪 Sürücü kursunu tamamlayarak B Sınıfı Ehliyetini aldın! Artık aracını yasal olarak sürebilirsin.' }
+    ]
+  },
+
+  // 6. SADECE ŞİRKET / İŞLETME SAHİPLERİNE ÖZEL OLAYLAR (ŞİRKET VARSA ÇIKAR)
+  {
+    id: 'ctx_biz_audit',
+    minAge: 18, maxAge: 95,
+    reqBiz: true,
+    conditionLabel: '🏢 Aktif Şirket & Ticaret Sahibi',
+    title: 'Şirketinde Maliye ve Muhasebe Denetimi',
+    desc: 'Sahibi olduğun işletmeye vergi müfettişleri yıllık bilanço ve fatura kontrolü için geldi.',
+    choices: [
+      { label: 'Mali müşavir ile tüm defterleri eksiksiz sun (+Kredi Notu, +Teşvik)', eff: { moneyMult: 0.35, creditBonus: 30, happy: 8 }, log: '📊 Şirketinin muhasebe kayıtları kusursuz çıktı! Vergi indirimi ve teşvik primi kazandın.' },
+      { label: 'Eksik faturalar için uzlaşma öde (-Uzlaşma Bedeli)', eff: { moneyMult: -0.20 }, log: '🧾 Şirket denetiminde çıkan ufak kdv farkını uzlaşma ile kapattın.' }
+    ]
+  },
+  {
+    id: 'ctx_biz_contract',
+    minAge: 18, maxAge: 95,
+    reqBiz: true,
+    conditionLabel: '🏢 Aktif Şirket & Ticaret Sahibi',
+    title: 'Büyük Kurumsal Tedarik İhalesi',
+    desc: 'Şirketin için yüksek kâr marjlı yeni bir kurumsal tedarik sözleşmesi fırsatı doğdu.',
+    choices: [
+      { label: 'Sözleşmeyi imzala ve kapasiteyi artır (+Yüksek Ciro)', eff: { moneyMult: 0.75, happy: 10 }, log: '🤝 Şirketin yeni kurumsal ihaleyi kazandı! Kasana yüksek ticari kâr girdi.' },
+      { label: 'Mevcut müşterilerle devam et (+İstikrar)', eff: { moneyMult: 0.20, happy: 4 }, log: '📈 Şirketin mevcut müşterileriyle istikrarlı büyümesini sürdürdü.' }
+    ]
+  },
+
+  // 7. SADECE MAAŞLI BİR İŞTE ÇALIŞANLARA ÖZEL OLAYLAR (AKTİF İŞ VARSA ÇIKAR)
+  {
+    id: 'ctx_job_bonus',
+    minAge: 18, maxAge: 90,
+    reqJob: true,
+    conditionLabel: '💼 Aktif Maaşlı Çalışan',
+    title: 'Yıllık Performans ve Prim Değerlendirmesi',
+    desc: 'Çalıştığın kurumda yıl sonu performans değerlendirmesi yapılıyor. Yöneticin dosyalarını inceliyor.',
+    choices: [
+      { label: 'Raporları zamanında teslim et (+Performans Primi)', eff: { moneyMult: 0.40, happy: 8, smart: 4 }, log: '💼 İş yerindeki üstün performansın sayesinde yönetimden nakit başarı primi aldın!' },
+      { label: 'Standart mesai temposunda kal (+Dinlenme)', eff: { health: 5, happy: 5 }, log: '☕ İş yerinde kendinizi yıpratmadan dengeli bir çalışma yılı geçirdin.' }
+    ]
+  },
+
+  // 8. SADECE EV / GAYRİMENKUL SAHİPLERİNE ÖZEL OLAYLAR (EV VARSA ÇIKAR)
+  {
+    id: 'ctx_house_rent',
+    minAge: 18, maxAge: 95,
+    reqHouse: true,
+    conditionLabel: '🏠 Tapulu Gayrimenkul Sahibi',
+    title: 'Gayrimenkul Değer Artışı ve Kira Güncellemesi',
+    desc: 'Sahip olduğun mülkün bulunduğu bölgede yeni metro hattı açıldı, konut değerleri ve kira getirisi yükseldi.',
+    choices: [
+      { label: 'Kira sözleşmesini güncelleyip tahsil et (+Kira Geliri)', eff: { moneyMult: 0.45, happy: 8 }, log: '🏘️ Sahip olduğun gayrimenkulden yıllık kira ve değer artışı geliri elde ettin.' },
+      { label: 'Mülke modern tadilat yap (+Karizma, +Değer)', eff: { moneyMult: -0.10, looks: 5, happy: 7 }, log: '🛠️ Mülküne lüks tadilat yaptırarak piyasa değerini katladın.' }
+    ]
+  },
+
+  // 9. GENEL YETİŞKİN OLAYLARI (18+ YAŞ, ARABA VEYA ŞİRKET ŞARTI OLMAYAN)
+  {
+    id: 'ctx_adult_general_1',
+    minAge: 18, maxAge: 95,
+    conditionLabel: '🌟 Yetişkin Yaşam Fırsatı (18+ Yaş)',
+    title: 'Dijital Freelance & Ek Gelir Fırsatı',
+    desc: 'İnternet üzerinden uzmanlık alanınla ilgili kısa süreli bir danışmanlık / proje teklifi aldın.',
+    choices: [
+      { label: 'Projeyi kabul et ve tamamla (+Ek Gelir, +Zeka)', eff: { moneyMult: 0.30, smart: 5, happy: 6 }, log: '💻 Boş zamanında tamamladığın dijital projeden güzel bir ek gelir kazandın.' },
+      { label: 'Kendine ve sağlığına vakit ayır (+Sağlık, +Mutluluk)', eff: { health: 8, happy: 7 }, log: '🏃‍♂️ Hafta sonlarını spor ve dinlenmeye ayırarak enerjini yeniledin.' }
+    ]
+  }
+];
