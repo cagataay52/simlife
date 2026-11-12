@@ -16488,3 +16488,82 @@ window.renderVIPCasinoModal = function () {
     }
   }, 150);
 })();
+
+/* ============================================================================
+   TEMA ÇAKIŞMASI GİDERİCİ VE KARAKTER PORTRESİ KORUMA YAMASI (V8)
+   - Çift Üst Barı (#execCustomHudBanner) Kaldırır, Orijinal Portreli HUD'ı Korur
+   - Eski ve Yeni Stillerin Çakışmasını Tek Temada Birleştirir
+   ============================================================================ */
+(function () {
+  if (window._themeUnifierV8Loaded) return;
+  window._themeUnifierV8Loaded = true;
+
+  // 1. Çakışma yaratan ikinci özel HUD fonksiyonunu devre dışı bırak ve varsa DOM'dan sil
+  window.renderExecutiveHUDPanel = function () {
+    var dupHud = document.getElementById('execCustomHudBanner');
+    if (dupHud) dupHud.remove();
+  };
+
+  // 2. Orijinal Karakter Portresini (#charAvatar) ve Üst Profil Bilgilerini Her Render'da Güncelle
+  function syncOriginalPortraitAndHeader() {
+    if (typeof G === 'undefined' || !G) return;
+
+    // İkinci HUD kalıntısı varsa temizle
+    var dupHud = document.getElementById('execCustomHudBanner');
+    if (dupHud) dupHud.remove();
+
+    // Karakter Portresinin (#charAvatar) her zaman görünür ve güncel olmasını sağla
+    var avatarEl = document.getElementById('charAvatar');
+    if (avatarEl) {
+      avatarEl.style.display = 'block';
+      avatarEl.style.visibility = 'visible';
+      if (typeof window.generateDynamicCharacterSVG === 'function') {
+        avatarEl.src = window.generateDynamicCharacterSVG(false);
+      }
+      avatarEl.title = '💈 Berber, Kuaför & Stil Stüdyosunu Açmak İçin Tıkla';
+      avatarEl.onclick = function () {
+        if (typeof window.openBarberAndSalonModal === 'function') {
+          window.openBarberAndSalonModal();
+        }
+      };
+    }
+  }
+
+  // 3. JavaScript İçinden Basılan Eski Çakışan Stilleri Temizle, Tekil Temayı Uygula
+  function unifyInjectedStyles() {
+    var jsStyleEl = document.getElementById('pragmaticMasterAutoStyles');
+    if (!jsStyleEl) return;
+
+    // Aşırı parlak mor/pembe çekmece arka planını dengeli Royal Obsidian ile değiştir
+    jsStyleEl.textContent = jsStyleEl.textContent.replace(
+      /linear-gradient\(175deg,\s*#2e1065[^;]+!important;/g,
+      'linear-gradient(175deg, #13182e 0%, #0b0f1d 60%, #050811 100%) !important;'
+    );
+  }
+
+  // 4. RenderAll ve Sekme Açılışlarını Tekil Temaya Bağla
+  var _prevRenderAllV8 = window.renderAll;
+  window.renderAll = renderAll = function () {
+    if (typeof _prevRenderAllV8 === 'function') {
+      try { _prevRenderAllV8(); } catch (e) {}
+    }
+    syncOriginalPortraitAndHeader();
+    if (typeof window.ensureCloseButtonsVisible === 'function') {
+      window.ensureCloseButtonsVisible();
+    }
+  };
+
+  var _prevOpenNavV8 = window.openNavSheet;
+  window.openNavSheet = openNavSheet = function (tab) {
+    if (typeof _prevOpenNavV8 === 'function') _prevOpenNavV8(tab);
+    syncOriginalPortraitAndHeader();
+    if (typeof window.ensureCloseButtonsVisible === 'function') {
+      window.ensureCloseButtonsVisible();
+    }
+  };
+
+  // İlk açılışta hemen senkronize et
+  unifyInjectedStyles();
+  syncOriginalPortraitAndHeader();
+  setTimeout(syncOriginalPortraitAndHeader, 150);
+})();
