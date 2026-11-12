@@ -1904,3 +1904,91 @@ window.SHOWROOM_ASSETS_DB = {
     return { type: 'apartment', tapu: 'KAT MÜLKİYETLİ TAPU', yieldText: 'Düzenli Aylık Kira Getirisi' };
   }
 };
+
+/* ============================================================================
+   ÖSYM YKS (TYT-AYT) SINAV SORULARI VE ÜNİVERSİTE BÖLÜM KATALOĞU (DATA.JS)
+   ============================================================================ */
+
+window.OSYM_YKS_DB = {
+  questions: [
+    {
+      q: 'TYT Türkçe: "Burnundan kıl aldırmamak" deyiminin anlamı aşağıdakilerden hangisidir?',
+      opts: ['Çok tutumlu olmak', 'Kendisine hiçbir söz ve eleştiri söyletmemek', 'Çok dikkatli çalışmak', 'Kimseye yardım etmemek'],
+      ans: 1
+    },
+    {
+      q: 'TYT Matematik: Bir malın fiyatı önce %20 artırılıp, yeni fiyat üzerinden %20 indirim yapılırsa son durum ne olur?',
+      opts: ['Fiyat değişmez', '%4 zarar edilir (ucuzlar)', '%4 kâr edilir', '%2 ucuzlar'],
+      ans: 1
+    },
+    {
+      q: 'AYT Genel Kültür: Türkiye\'nin en fazla ihracat ve lojistik ticaret hacmine sahip bölgesi hangisidir?',
+      opts: ['Marmara Bölgesi', 'İç Anadolu Bölgesi', 'Ege Bölgesi', 'Karadeniz Bölgesi'],
+      ans: 0
+    },
+    {
+      q: 'AYT Ekonomi & Mantık: Enflasyonun yükseldiği bir piyasada Merkez Bankası faiz artırırsa aşağıdakilerden hangisi beklenir?',
+      opts: ['Kredi maliyetleri düşer', 'Mevduat faiz getirisi artar ve kredi talebi yavaşlar', 'Piyasadaki nakit iki katına çıkar', 'Altın üretimi durur'],
+      ans: 1
+    }
+  ],
+
+  departments: [
+    {
+      id: 'dept_logistics',
+      name: 'Uluslararası Lojistik ve Taşımacılık',
+      uni: 'İstanbul Yeni Yüzyıl / Marmara Üni.',
+      minScore: 260,
+      years: 2,
+      degreeType: 'Ön Lisans / Lisans',
+      salaryBonusMult: 1.45,
+      smartGain: 12,
+      desc: 'Gümrük, tedarik zinciri, filo ve dış ticaret yönetimi uzmanlığı.'
+    },
+    {
+      id: 'dept_finance',
+      name: 'İşletme, Muhasebe ve Finans Yönetimi',
+      uni: 'İstanbul Üniversitesi',
+      minScore: 310,
+      years: 4,
+      degreeType: 'Lisans',
+      salaryBonusMult: 1.65,
+      smartGain: 15,
+      desc: 'Maliyet kontrolü (Cost Control), ön muhasebe, vergi ve kurumsal finans.'
+    },
+    {
+      id: 'dept_software',
+      name: 'Bilgisayar & Yazılım Mühendisliği',
+      uni: 'İstanbul Teknik Üniversitesi (İTÜ)',
+      minScore: 410,
+      years: 4,
+      degreeType: 'Lisans',
+      salaryBonusMult: 2.10,
+      smartGain: 20,
+      desc: 'Oyun geliştirme, mobil uygulama, yapay zeka ve sistem mimarisi.'
+    },
+    {
+      id: 'dept_law',
+      name: 'Hukuk Fakültesi',
+      uni: 'Galatasaray / Ankara Üniversitesi',
+      minScore: 430,
+      years: 4,
+      degreeType: 'Lisans',
+      salaryBonusMult: 2.20,
+      smartGain: 18,
+      desc: 'Avukatlık, savcılık, şirketler hukuku ve üst düzey danışmanlık.'
+    },
+    {
+      id: 'dept_medicine',
+      name: 'Tıp Fakültesi (Cerrahpaşa)',
+      uni: 'İstanbul Üni. Cerrahpaşa',
+      minScore: 465,
+      years: 6,
+      degreeType: 'Lisans + Uzmanlık',
+      salaryBonusMult: 2.60,
+      smartGain: 25,
+      desc: 'Cerrahlık, başhekimlik ve özel hastane yönetimi.'
+    }
+  ]
+};
+
