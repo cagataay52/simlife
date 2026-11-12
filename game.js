@@ -16567,3 +16567,667 @@ window.renderVIPCasinoModal = function () {
   syncOriginalPortraitAndHeader();
   setTimeout(syncOriginalPortraitAndHeader, 150);
 })();
+
+/* ============================================================================
+   MASTER PATCH V9:
+   1. FİNANS, KARİYER VE MENÜ İÇİN TEMİZ ALT SEKME (SUB-TAB) DÜZENLEYİCİ
+   2. TAM ÇALIŞAN ÖSYM YKS ÜNİVERSİTE SINAVI, TERCİH, MEZUNİYET & EHLİYET SİSTEMİ
+   3. SİYAH YAZI (OKUNMAMA) OTOMATİK DÜZELTİCİ
+   ============================================================================ */
+(function () {
+  if (window._masterCleanTabsAndUniV9) return;
+  window._masterCleanTabsAndUniV9 = true;
+
+  window.uiSubTabs = {
+    finance: 'bank',   // 'bank' | 'market' | 'gold'
+    menu: 'vip'        // 'vip' | 'invest' | 'life'
+  };
+
+  // 1. SİYAH OKUNMAYAN YAZILARI OTOMATİK BEYAZA ÇEVİREN FONKSİYON
+  window.fixUnreadableBlackTexts = function () {
+    var root = document.getElementById('bottomSheet') || document.body;
+    if (!root) return;
+    root.querySelectorAll('[style*="color: black"], [style*="color:#000"], [style*="color: #000"], [style*="color: rgb(0, 0, 0)"]').forEach(function (el) {
+      if (el.tagName !== 'BUTTON') el.style.color = '#f8fafc';
+    });
+  };
+
+  // ============================================================================
+  // 2. FİNANS SEKMESİ DÜZENLEYİCİ (KARMAŞAYI 3 TEMİZ SEKMEYE AYIRIR)
+  // ============================================================================
+  window.switchFinanceSubTab = function (sub) {
+    window.uiSubTabs.finance = sub;
+    window.openNavSheet('finance');
+  };
+
+  window.organizeFinanceSheetIntoTabs = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    if (typeof window.ensureCreditCardState === 'function') window.ensureCreditCardState();
+
+    var activeSub = window.uiSubTabs.finance || 'bank';
+
+    // Orijinal finans kartlarını konularına göre 3 gruba ayır (hiçbir işlev kaybolmaz)
+    var children = Array.from(body.children);
+    var bankNodes = [];
+    var marketNodes = [];
+    var goldNodes = [];
+
+    children.forEach(function (node) {
+      if (!node || node.id === 'financeCleanSubTabBar' || node.id === 'financeRoyalCreditCardBanner') return;
+      var txt = (node.innerText || '').toLowerCase();
+      var html = (node.innerHTML || '').toLowerCase();
+
+      if (/altın|döviz|kapalıçarşı|gram|fx|kur/.test(txt) || node.classList.contains('fx-gold-card')) {
+        goldNodes.push(node);
+      } else if (/borsa|hisse|kripto|coin|btc|eth|portföy|lot|temettü|stock|crypto/.test(txt + ' ' + html)) {
+        marketNodes.push(node);
+      } else {
+        bankNodes.push(node);
+      }
+    });
+
+    // Üste 3'lü Alt Sekme Barı Ekle
+    var existingBar = document.getElementById('financeCleanSubTabBar');
+    if (existingBar) existingBar.remove();
+
+    var c = window.getCountry();
+    var cc = G.creditCard || { tierName: 'Royal Gold Card', limitMult: 4.5, debt: 0 };
+    var ccLim = Math.round(c.monthlyMinWage * (cc.limitMult || 4.5));
+
+    var topHtml = `
+      <div id="financeCleanSubTabBar" class="space-y-2.5 mb-3">
+        <!-- Üst Özet Cüzdan & Net Servet Kartı -->
+        <div class="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-slate-950 border border-amber-400/35 text-center">
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase">NAKİT CÜZDAN</div>
+            <div class="text-xs font-mono-num font-black text-emerald-400 mt-0.5">${window.fmtMoney(G.money)}</div>
+          </div>
+          <div class="border-x border-slate-800">
+            <div class="text-[9px] font-bold text-slate-400 uppercase">MEVDUAT / BİRİKİM</div>
+            <div class="text-xs font-mono-num font-black text-sky-400 mt-0.5">${window.fmtMoney(G.bankSavings || G.savings || 0)}</div>
+          </div>
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase">KART BORCU</div>
+            <div class="text-xs font-mono-num font-black text-rose-400 mt-0.5">${window.fmtMoney(cc.debt || 0)}</div>
+          </div>
+        </div>
+
+        <!-- 3'lü Temiz Alt Sekme Çubuğu -->
+        <div class="clean-subtab-bar" style="grid-template-columns: repeat(3, 1fr);">
+          <button type="button" onclick="window.switchFinanceSubTab('bank')" class="clean-subtab-btn ${activeSub === 'bank' ? 'active' : ''}">
+            🏦 Banka &amp; Kart
+          </button>
+          <button type="button" onclick="window.switchFinanceSubTab('market')" class="clean-subtab-btn ${activeSub === 'market' ? 'active' : ''}">
+            📈 Borsa &amp; Kripto
+          </button>
+          <button type="button" onclick="window.switchFinanceSubTab('gold')" class="clean-subtab-btn ${activeSub === 'gold' ? 'active' : ''}">
+            🪙 Altın &amp; Döviz
+          </button>
+        </div>
+
+        ${activeSub === 'bank' ? `
+          <div id="financeRoyalCreditCardBanner" onclick="window.openCreditCardCenterModal()" class="royal-hero-card">
+            <div>
+              <span class="royal-tile-badge">💳 ${cc.tierName} • FİNDEKS: ${G.creditScore || 1350}</span>
+              <div class="text-sm font-black text-white mt-1">VIP Kredi Kartı, Nakit Avans &amp; Ekstre</div>
+              <div class="text-[11px] text-amber-200">Limit: ${window.fmtMoney(ccLim)} • Borç: ${window.fmtMoney(cc.debt)}</div>
+            </div>
+            <span class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">KARTIM &rarr;</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    body.insertAdjacentHTML('afterbegin', topHtml);
+
+    // Sadece seçili sekmenin kartlarını göster, diğerlerini gizle (kalabalığı tamamen bitirir!)
+    bankNodes.forEach(function (n) { n.style.display = (activeSub === 'bank') ? '' : 'none'; });
+    marketNodes.forEach(function (n) { n.style.display = (activeSub === 'market') ? '' : 'none'; });
+    goldNodes.forEach(function (n) { n.style.display = (activeSub === 'gold') ? '' : 'none'; });
+
+    // Eğer Altın & Döviz sekmesi seçiliyse ve içerik boşsa Altın/Döviz panelini çiz
+    if (activeSub === 'gold' && goldNodes.length === 0 && typeof window.renderGoldFxAndDepositPanelHTML === 'function') {
+      body.insertAdjacentHTML('beforeend', window.renderGoldFxAndDepositPanelHTML());
+    }
+  };
+
+  // ============================================================================
+  // 3. YÖNETİM MENÜSÜ DÜZENLEYİCİ (3 KATEGORİLİ TEMİZ SEKME SİSTEMİ)
+  // ============================================================================
+  window.switchMenuSubTab = function (sub) {
+    window.uiSubTabs.menu = sub;
+    window.renderRoyalCasinoStyledMenu();
+  };
+
+  window.renderRoyalCasinoStyledMenu = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    if (typeof window.ensureCreditCardState === 'function') window.ensureCreditCardState();
+
+    var titleEl = document.getElementById('sheetTitle');
+    var subEl = document.getElementById('sheetSubtitle');
+    if (titleEl) titleEl.textContent = '👑 YÖNETİM & YAŞAM MERKEZİ';
+    if (subEl) subEl.textContent = G.firstName + ' ' + G.lastName + ' (' + G.age + ' Yaş) • ' + window.fmtMoney(G.money);
+
+    // Orijinal menünün butonlarını ilk açılışta hafızaya kaydet ki sekme değiştirirken kaybolmasın
+    if (!window._cachedOriginalMenuCards || window._cachedOriginalMenuCards.length === 0) {
+      var rawButtons = Array.from(body.querySelectorAll('button'));
+      var seen = {};
+      var list = [];
+      rawButtons.forEach(function (btn) {
+        var oc = (btn.getAttribute('onclick') || '').trim();
+        if (!oc || /casino|gambling|openVIPCasinoModal|openBarberAndSalonModal|openCreditCardCenterModal|openSingleStartMenu|switchMenuSubTab/.test(oc)) return;
+        if (seen[oc]) return;
+        seen[oc] = true;
+        var lines = btn.innerText.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+        list.push({ onclick: oc.replace(/"/g, '&quot;'), title: lines[0] || 'Bölüm', desc: lines[1] || 'Görüntüle ve yönet' });
+      });
+      if (list.length > 0) window._cachedOriginalMenuCards = list;
+    }
+
+    var allCards = window._cachedOriginalMenuCards || [];
+    var activeTab = window.uiSubTabs.menu || 'vip';
+
+    // Kartları 3 net kategoriye ayır
+    var investCards = [];
+    var lifeCards = [];
+    allCards.forEach(function (c) {
+      var s = (c.onclick + ' ' + c.title).toLowerCase();
+      if (/house|car|busi|emlak|konut|ev|mülk|araç|araba|galeri|garaj|şirket|holding|ticaret|fabrika|yapsat/.test(s)) {
+        investCards.push(c);
+      } else {
+        lifeCards.push(c);
+      }
+    });
+
+    var c = window.getCountry();
+    var ccLimit = Math.round(c.monthlyMinWage * (G.creditCard.limitMult || 4.5));
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 3'lü Menü Kategori Sekmesi -->
+        <div class="clean-subtab-bar" style="grid-template-columns: repeat(3, 1fr);">
+          <button type="button" onclick="window.switchMenuSubTab('vip')" class="clean-subtab-btn ${activeTab === 'vip' ? 'active' : ''}">
+            👑 VIP &amp; Stil
+          </button>
+          <button type="button" onclick="window.switchMenuSubTab('invest')" class="clean-subtab-btn ${activeTab === 'invest' ? 'active' : ''}">
+            🏠 Mülk &amp; Garaj
+          </button>
+          <button type="button" onclick="window.switchMenuSubTab('life')" class="clean-subtab-btn ${activeTab === 'life' ? 'active' : ''}">
+            🎓 Akademi &amp; Sistem
+          </button>
+        </div>
+
+        ${activeTab === 'vip' ? `
+          <div class="space-y-2.5">
+            <div onclick="window.openVIPCasinoModal('bonanza')" class="royal-hero-card">
+              <div>
+                <span class="royal-tile-badge">🎰 PRAGMATIC PLAY LIVE LOUNGE</span>
+                <div class="text-base font-black text-white mt-1">VIP Royal Casino &amp; Slot Merkezi</div>
+                <div class="text-xs text-amber-200">Sweet Bonanza 1000 • Gates of Olympus 1000 • 21</div>
+              </div>
+              <span class="px-3.5 py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">OYNA &rarr;</span>
+            </div>
+
+            <div onclick="window.openCreditCardCenterModal()" class="royal-hero-card">
+              <div>
+                <span class="royal-tile-badge">💳 ROYAL BANK WORLD VIP</span>
+                <div class="text-base font-black text-white mt-1">VIP Kredi Kartı &amp; Nakit Avans</div>
+                <div class="text-xs text-pink-200">Limit: ${window.fmtMoney(ccLimit)} • Borç: ${window.fmtMoney(G.creditCard.debt)}</div>
+              </div>
+              <span class="px-3.5 py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black shrink-0">KARTIM &rarr;</span>
+            </div>
+
+            <div onclick="if(typeof openBarberAndSalonModal==='function') openBarberAndSalonModal();" class="royal-hero-card">
+              <div>
+                <span class="royal-tile-badge">💈 KARAKTER &amp; İMAJ STÜDYOSU</span>
+                <div class="text-base font-black text-white mt-1">VIP Kuaför, Sakal &amp; Kombin</div>
+                <div class="text-xs text-sky-200">Mevcut Karizma / Görünüm: %${G.looks}</div>
+              </div>
+              <span class="px-3.5 py-2.5 rounded-xl bg-sky-400 text-slate-950 text-xs font-black shrink-0">STÜDYO &rarr;</span>
+            </div>
+          </div>
+        ` : ''}
+
+        ${activeTab === 'invest' ? `
+          <div class="royal-bento-grid">
+            ${investCards.map(function (mc) {
+              return `
+                <button type="button" onclick="${mc.onclick}" class="royal-menu-tile">
+                  <div class="flex items-center justify-between w-full mb-1.5">
+                    <span class="royal-tile-badge">YATIRIM &amp; VİTRİN</span>
+                    <span class="text-amber-300 font-black text-xs">&rarr;</span>
+                  </div>
+                  <div>
+                    <div class="text-xs font-black text-white leading-snug">${mc.title}</div>
+                    <div class="text-[10px] text-slate-300 mt-0.5 line-clamp-1">${mc.desc}</div>
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${activeTab === 'life' ? `
+          <div class="space-y-2.5">
+            <!-- ÖSYM YKS & Üniversite Hızlı Giriş Kartı -->
+            <div onclick="window.openOSYMUniversityCenter()" class="royal-hero-card">
+              <div>
+                <span class="royal-tile-badge">🎓 ÖSYM YKS &amp; ÜNİVERSİTE MERKEZİ</span>
+                <div class="text-base font-black text-white mt-1">Üniversite Sınavı, Tercih &amp; Ehliyet</div>
+                <div class="text-xs text-sky-200">Durum: ${G.uniGrad ? ('Mezun (' + (G.uniDeptName || 'Üniversite') + ')') : (G.inUni ? (G.uniDeptName + ' - ' + G.uniYears + '. Yıl') : 'Sınava Hazır')}</div>
+              </div>
+              <span class="px-3.5 py-2.5 rounded-xl bg-sky-400 text-slate-950 text-xs font-black shrink-0">AKADEMİ &rarr;</span>
+            </div>
+
+            <div class="royal-bento-grid">
+              ${lifeCards.map(function (mc) {
+                return `
+                  <button type="button" onclick="${mc.onclick}" class="royal-menu-tile">
+                    <div class="flex items-center justify-between w-full mb-1.5">
+                      <span class="royal-tile-badge">YAŞAM</span>
+                      <span class="text-amber-300 font-black text-xs">&rarr;</span>
+                    </div>
+                    <div>
+                      <div class="text-xs font-black text-white leading-snug">${mc.title}</div>
+                      <div class="text-[10px] text-slate-300 mt-0.5 line-clamp-1">${mc.desc}</div>
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+
+              <button type="button" onclick="window.closeBottomSheetSafe(); window.openSingleStartMenu(true);" class="royal-menu-tile">
+                <div class="flex items-center justify-between w-full mb-1.5">
+                  <span class="royal-tile-badge">KAYIT SİSTEMİ</span>
+                  <span class="text-amber-300 font-black text-xs">🔄</span>
+                </div>
+                <div>
+                  <div class="text-xs font-black text-white leading-snug">3'lü Kayıt Slotu &amp; Yeni Karakter</div>
+                  <div class="text-[10px] text-slate-300 mt-0.5">Aktif Slot #0${window.currentSelectedSlot || 1}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  // ============================================================================
+  // 4. TAM ÇALIŞAN ÖSYM YKS ÜNİVERSİTE SINAVI, TERCİH, MEZUNİYET VE EHLİYET MOTORU
+  // ============================================================================
+  window.yksExamState = {
+    inExam: false,
+    qIndex: 0,
+    correctCount: 0,
+    lastScore: 0
+  };
+
+  window.openOSYMUniversityCenter = function () {
+    if (!G) return;
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '🎓 ÖSYM YKS, Üniversite & Ehliyet Merkezi';
+    document.getElementById('sheetSubtitle').textContent = 'Zeka: %' + (G.smart || 75) + ' • Eğitim: ' + (G.uniGrad ? 'Üniversite Mezunu' : (G.inUni ? 'Üniversite Öğrencisi' : (G.eduStage || 'Lise')));
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    var db = window.OSYM_YKS_DB || { questions: [], departments: [] };
+    var c = window.getCountry();
+    var prepCost = Math.round(c.monthlyMinWage * 0.25);
+    var bLicenseCost = Math.round(c.monthlyMinWage * 0.45);
+    var ceLicenseCost = Math.round(c.monthlyMinWage * 0.85);
+    if (!G.licenses) G.licenses = { B: false, CE: false };
+
+    // A) Eğer Canlı YKS Sınavı Başladıysa Soruyu Göster
+    if (window.yksExamState.inExam) {
+      var qObj = db.questions[window.yksExamState.qIndex];
+      body.innerHTML = `
+        <div class="osym-exam-card space-y-3">
+          <div class="flex items-center justify-between border-b border-sky-400/30 pb-2">
+            <span class="px-2.5 py-0.5 rounded bg-sky-400 text-slate-950 text-[10px] font-black">
+              ÖSYM YKS OTURUMU • SORU ${window.yksExamState.qIndex + 1} / ${db.questions.length}
+            </span>
+            <span class="text-xs font-mono-num font-bold text-amber-300">Doğru: ${window.yksExamState.correctCount}</span>
+          </div>
+
+          <div class="text-sm font-black text-white leading-relaxed py-2">
+            ${qObj.q}
+          </div>
+
+          <div class="space-y-2">
+            ${qObj.opts.map(function (optText, idx) {
+              return `
+                <button type="button" onclick="window.answerYKSQuestion(${idx})" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400 text-left text-xs font-bold text-white flex items-center gap-2.5">
+                  <span class="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black flex items-center justify-center shrink-0">${['A', 'B', 'C', 'D'][idx]}</span>
+                  <span>${optText}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+      return;
+    }
+
+    // B) Normal Akademi, YKS Sonuç & Üniversite Tercih Ekranı
+    var currentScore = G.yksScore || window.yksExamState.lastScore || 0;
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 1. ÖSYM YKS SINAV VE DURUM KARTI -->
+        <div class="osym-exam-card space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[9.5px] font-black text-sky-300 uppercase tracking-widest">T.C. ÖSYM BAŞKANLIĞI • YKS MERKEZİ</div>
+              <div class="text-sm font-black text-white mt-0.5">
+                ${G.uniGrad ? ('🎓 Mezun: ' + (G.uniDeptName || 'Üniversite Diploması')) : (G.inUni ? ('📚 Öğrenci: ' + G.uniDeptName + ' (' + G.uniYears + '/' + (G.uniTotalYears || 4) + '. Yıl)') : '📝 YKS (TYT-AYT) Üniversite Sınavı')}
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-xl bg-amber-400 text-slate-950 font-mono-num text-xs font-black">
+              Puan: ${currentScore > 0 ? currentScore : 'Girmedi'}
+            </span>
+          </div>
+
+          ${G.age < 17 ? `
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-amber-400/40 text-xs text-amber-200 font-bold">
+              ⚠️ Üniversite sınavına (YKS) girebilmek için en az <strong>17-18 yaşında (Lise son)</strong> olmalısın. Şu anki yaşın: <strong>${G.age}</strong>.
+            </div>
+          ` : ''}
+
+          ${G.inUni && !G.uniGrad ? `
+            <div class="p-3 rounded-xl bg-emerald-950/50 border border-emerald-400/40 space-y-2">
+              <div class="text-xs font-bold text-emerald-200">
+                Şu an <strong>${G.uniDeptName}</strong> bölümünde okuyorsun (${G.uniYears} / ${G.uniTotalYears || 4}. Yıl). Her <strong>+1 Yaş</strong> ilerlediğinde sınıf atlarsın veya hemen tezini verip mezun olabilirsin:
+              </div>
+              <button type="button" onclick="window.advanceOrGraduateUniNow()" class="w-full py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black">
+                🎓 DÖNEMİ TAMAMLA &amp; DİPLOMAYI AL
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="window.startInteractiveYKSExam()" class="p-3 rounded-xl bg-amber-400 text-slate-950 text-xs font-black text-center">
+              📝 YKS Sınavına Gir (Kendin Çöz)
+            </button>
+            <button type="button" onclick="window.quickCalculateYKSScore()" class="p-3 rounded-xl bg-sky-400 text-slate-950 text-xs font-black text-center">
+              ⚡ Hızlı YKS Sonucu Al (Zekaya Göre)
+            </button>
+          </div>
+
+          <button type="button" onclick="window.takePrivateTutoring(${prepCost})" class="w-full py-2 rounded-xl bg-slate-900 border border-sky-400/40 text-xs font-bold text-white">
+            📚 Özel Dershane &amp; YKS Kampına Katıl (${window.fmtMoney(prepCost)} &rarr; +10 Zeka &amp; +35 Ek Puan)
+          </button>
+        </div>
+
+        <!-- 2. ÜNİVERSİTE BÖLÜM TERCİHLERİ LİSTESİ -->
+        <div class="space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase tracking-wider px-1">
+            🏛️ ÖSYM ÜNİVERSİTE BÖLÜM TERCİHLERİ (YKS PUANIN: ${currentScore})
+          </div>
+          ${db.departments.map(function (dep) {
+            var canEnroll = currentScore >= dep.minScore;
+            var isThisGrad = G.uniGrad && G.uniDeptId === dep.id;
+            var isThisActive = G.inUni && G.uniDeptId === dep.id;
+            return `
+              <div class="p-3 rounded-2xl bg-slate-950 border ${canEnroll ? 'border-emerald-400/50' : 'border-slate-800'} flex items-center justify-between gap-2.5">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono-num text-[9.5px] font-black">Taban: ${dep.minScore} Puan</span>
+                    <span class="text-[9.5px] font-bold text-sky-300">${dep.years} Yıl • ${dep.degreeType}</span>
+                  </div>
+                  <div class="text-xs font-black text-white mt-1">${dep.name}</div>
+                  <div class="text-[10px] text-slate-300">${dep.uni} • Maaş Çarpanı: <strong>${dep.salaryBonusMult}x</strong></div>
+                </div>
+                <div class="shrink-0">
+                  ${isThisGrad ? `
+                    <span class="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black block">MEZUN ✓</span>
+                  ` : isThisActive ? `
+                    <button type="button" onclick="window.advanceOrGraduateUniNow()" class="px-3 py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10px] font-black">MEZUN OL</button>
+                  ` : `
+                    <button type="button" onclick="window.enrollInUniversityDept('${dep.id}')" class="px-3 py-2 rounded-xl ${canEnroll ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'} text-[10px] font-black">
+                      ${canEnroll ? 'KAYIT OL' : 'PUAN YETMİYOR'}
+                    </button>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- 3. SÜRÜCÜ KURSU & EHLİYET MERKEZİ (B VE CE TİR EHLİYETİ) -->
+        <div class="space-y-2 pt-2">
+          <div class="text-[10px] font-black text-sky-300 uppercase tracking-wider px-1">
+            🚗 MİLLİ EĞİTİM SÜRÜCÜ KURSU &amp; EHLİYET SINAVI
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div class="text-xs font-black text-white">🪪 B Sınıfı Otomobil Ehliyeti</div>
+              <div class="text-[10px] text-slate-300">Durum: <strong class="${G.licenses.B ? 'text-emerald-400' : 'text-rose-400'}">${G.licenses.B ? 'ALINDI ✓' : 'YOK'}</strong></div>
+              ${!G.licenses.B ? `
+                <button type="button" onclick="window.obtainDriverLicense('B', ${bLicenseCost})" class="w-full py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10.5px] font-black">
+                  Sınava Gir (${window.fmtMoney(bLicenseCost)})
+                </button>
+              ` : ''}
+            </div>
+            <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div class="text-xs font-black text-white">🚛 CE Sınıfı Tır &amp; Lojistik Ehliyeti</div>
+              <div class="text-[10px] text-slate-300">Durum: <strong class="${G.licenses.CE ? 'text-emerald-400' : 'text-rose-400'}">${G.licenses.CE ? 'ALINDI ✓' : 'YOK'}</strong></div>
+              ${!G.licenses.CE ? `
+                <button type="button" onclick="window.obtainDriverLicense('CE', ${ceLicenseCost})" class="w-full py-2 rounded-xl bg-amber-400 text-slate-950 text-[10.5px] font-black">
+                  Sınava Gir (${window.fmtMoney(ceLicenseCost)})
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  window.startInteractiveYKSExam = function () {
+    if (G.age < 17) {
+      showToast('YKS sınavına girmek için en az 17 yaşında olmalısın!');
+      return;
+    }
+    window.yksExamState.inExam = true;
+    window.yksExamState.qIndex = 0;
+    window.yksExamState.correctCount = 0;
+    window.openOSYMUniversityCenter();
+  };
+
+  window.answerYKSQuestion = function (selectedIdx) {
+    var db = window.OSYM_YKS_DB;
+    var qObj = db.questions[window.yksExamState.qIndex];
+    if (qObj && selectedIdx === qObj.ans) {
+      window.yksExamState.correctCount += 1;
+    }
+    window.yksExamState.qIndex += 1;
+
+    if (window.yksExamState.qIndex >= db.questions.length) {
+      window.yksExamState.inExam = false;
+      var baseFromSmart = Math.round((G.smart || 75) * 2.4);
+      var bonusFromCorrect = window.yksExamState.correctCount * 68;
+      var finalScore = Math.min(500, Math.max(180, 140 + baseFromSmart + bonusFromCorrect));
+      window.yksExamState.lastScore = finalScore;
+      G.yksScore = finalScore;
+      window.addLog(G.age, '📝 **ÖSYM YKS SONUCU AÇIKLANDI:** Sınavda **' + window.yksExamState.correctCount + '/' + db.questions.length + '** doğru yaptın ve **' + finalScore + ' YKS Puanı** aldın! Şimdi bölüm tercihi yapabilirsin.', 'milestone');
+      if (typeof saveGame === 'function') saveGame();
+      if (typeof renderAll === 'function') renderAll();
+    }
+    window.openOSYMUniversityCenter();
+  };
+
+  window.quickCalculateYKSScore = function () {
+    if (G.age < 17) {
+      showToast('YKS sınavına girmek için en az 17 yaşında olmalısın!');
+      return;
+    }
+    var smartVal = G.smart || G.intel || 78;
+    var score = Math.min(500, Math.max(210, Math.round(165 + smartVal * 3.1 + (Math.random() * 35))));
+    window.yksExamState.lastScore = score;
+    G.yksScore = score;
+    window.addLog(G.age, '📝 **ÖSYM YKS SONUCU:** Sınav sonucunda **' + score + ' Puan** elde ettin! Puanının yettiği fakülteye hemen kayıt olabilirsin.', 'milestone');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openOSYMUniversityCenter();
+  };
+
+  window.takePrivateTutoring = function (cost) {
+    if (G.money < cost) { showToast('Dershane ücreti için nakit bakiyen yetersiz!'); return; }
+    G.money -= cost;
+    G.smart = Math.min(100, (G.smart || 75) + 10);
+    G.intel = G.smart;
+    G.yksScore = Math.min(500, (G.yksScore || 240) + 35);
+    window.yksExamState.lastScore = G.yksScore;
+    window.addLog(G.age, '📚 **YKS HAZIRLIK KAMPI:** Yoğun dershane kampını tamamladın (+10 Zeka). YKS puanın **' + G.yksScore + '** seviyesine yükseldi!', 'good');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openOSYMUniversityCenter();
+  };
+
+  window.enrollInUniversityDept = function (deptId) {
+    if (G.age < 17) { showToast('Üniversiteye kayıt için en az 17-18 yaşında olmalısın!'); return; }
+    var db = window.OSYM_YKS_DB;
+    var dep = db.departments.find(function (d) { return d.id === deptId; });
+    if (!dep) return;
+
+    var curScore = G.yksScore || window.yksExamState.lastScore || 0;
+    if (curScore < dep.minScore) {
+      showToast('Bu bölüm için en az ' + dep.minScore + ' YKS puanı gerekiyor! Önce YKS sınavına gir veya dershane kampına katıl.');
+      return;
+    }
+
+    G.inUni = true;
+    G.uniGrad = false;
+    G.uniDeptId = dep.id;
+    G.uniDeptName = dep.name;
+    G.uniYears = 1;
+    G.uniTotalYears = dep.years;
+    G.eduStage = 'Üniversite (' + dep.name + ')';
+
+    window.addLog(G.age, '🏛️ **ÜNİVERSİTEYİ KAZANDIN:** **' + dep.uni + ' - ' + dep.name + '** bölümüne yerleştin!', 'milestone');
+    showToast('🎉 Tebrikler! ' + dep.name + ' bölümüne kaydoldun!');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openOSYMUniversityCenter();
+  };
+
+  window.advanceOrGraduateUniNow = function () {
+    if (!G.inUni && !G.uniDeptName) return;
+    G.inUni = false;
+    G.uniGrad = true;
+    G.uniYears = G.uniTotalYears || 4;
+    G.eduStage = 'Üniversite Mezunu (' + (G.uniDeptName || 'Lisans') + ')';
+    G.smart = Math.min(100, (G.smart || 80) + 12);
+    G.intel = G.smart;
+
+    window.addLog(G.age, '🎓 **ÜNİVERSİTE MEZUNİYETİ:** **' + (G.uniDeptName || 'Üniversite') + '** bölümünden başarıyla mezun olup diplomanı aldın! Artık tüm üst düzey mesleklere başvurabilirsin.', 'milestone');
+    showToast('🎓 Diplomanı aldın! Tüm yüksek maaşlı kariyerlerin kilidi açıldı.');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openOSYMUniversityCenter();
+  };
+
+  window.obtainDriverLicense = function (licType, cost) {
+    if (G.age < 18) { showToast('Ehliyet alabilmek için 18 yaşını doldurmuş olmalısın!'); return; }
+    if (G.money < cost) { showToast('Sürücü kursu harcı için nakit yetersiz!'); return; }
+    if (!G.licenses) G.licenses = { B: false, CE: false };
+    G.money -= cost;
+    G.licenses[licType] = true;
+    window.addLog(G.age, '🪪 **EHLİYET SINAVINI GEÇTİN:** Direksiyon sınavını tek seferde geçerek **' + licType + ' Sınıfı Sürücü Belgesi** aldın!', 'good');
+    showToast(licType + ' Sınıfı Ehliyetin cüzdanına eklendi!');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openOSYMUniversityCenter();
+  };
+
+  // Orijinal oyundaki bozuk üniversite / sınav fonksiyonlarının tamamını çalışan merkeze bağla!
+  ['takeUniExam', 'startUniExam', 'enterUniExam', 'openUniModal', 'enrollUni', 'applyUniversity', 'studyUni', 'openEducationModal'].forEach(function (fnName) {
+    window[fnName] = function () {
+      window.openOSYMUniversityCenter();
+    };
+  });
+
+  // +1 Yaş ilerlediğinde üniversitede okuyan oyuncunun sınıfını otomatik ilerlet ve mezun et
+  var _prevAdvanceAgeV9 = window.advanceAge;
+  window.advanceAge = advanceAge = function () {
+    if (typeof _prevAdvanceAgeV9 === 'function') _prevAdvanceAgeV9();
+    if (typeof G !== 'undefined' && G && G.inUni && !G.uniGrad) {
+      G.uniYears = (G.uniYears || 1) + 1;
+      var needed = G.uniTotalYears || 4;
+      if (G.uniYears > needed) {
+        window.advanceOrGraduateUniNow();
+      } else {
+        window.addLog(G.age, '📚 **ÜNİVERSİTE DÖNEMİ:** **' + (G.uniDeptName || 'Üniversite') + '** ' + G.uniYears + '. sınıfa geçtin.', 'good');
+      }
+    }
+    window.fixUnreadableBlackTexts();
+  };
+
+  // Kariyer veya Eğitim sekmesi açıldığında en üste ÖSYM YKS & Üniversite Kartını yerleştir
+  function injectUniBannerIntoCareerOrEduSheet() {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // İçerideki çalışmayan eski "Üniversite Sınavı / YKS" butonlarını yakalayıp çalışan merkeze bağla
+    body.querySelectorAll('button').forEach(function (btn) {
+      var t = (btn.innerText || '').toLowerCase();
+      var oc = (btn.getAttribute('onclick') || '').toLowerCase();
+      if (/üniversite|yks|sınav|fakülte|mezun|uni/.test(t + ' ' + oc) && oc.indexOf('openosymuniversitycenter') === -1) {
+        btn.setAttribute('onclick', 'window.openOSYMUniversityCenter()');
+      }
+    });
+
+    if (!document.getElementById('careerTopOsymBanner')) {
+      var statusText = G.uniGrad
+        ? ('Mezun: ' + (G.uniDeptName || 'Lisans Diploması'))
+        : (G.inUni ? (G.uniDeptName + ' (' + G.uniYears + '. Sınıf)') : ('YKS Puanı: ' + (G.yksScore || 'Girmedi')));
+
+      body.insertAdjacentHTML('afterbegin', `
+        <div id="careerTopOsymBanner" onclick="window.openOSYMUniversityCenter()" class="royal-hero-card mb-3">
+          <div>
+            <span class="royal-tile-badge">🎓 ÖSYM YKS &amp; DİPLOMA MERKEZİ</span>
+            <div class="text-sm font-black text-white mt-1">Üniversite Sınavı (YKS), Bölüm Tercihi &amp; Ehliyet</div>
+            <div class="text-[11px] text-sky-200">${statusText}</div>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">SINAV / TERCİH &rarr;</span>
+        </div>
+      `);
+    }
+  }
+
+  // Navigasyon ve Alt Menü Kancaları
+  var _prevOpenNavV9 = window.openNavSheet;
+  window.openNavSheet = openNavSheet = function (tab) {
+    if (typeof _prevOpenNavV9 === 'function') _prevOpenNavV9(tab);
+    if (tab === 'finance') {
+      window.organizeFinanceSheetIntoTabs();
+    } else if (tab === 'career') {
+      injectUniBannerIntoCareerOrEduSheet();
+    } else if (tab === 'menu') {
+      window.renderRoyalCasinoStyledMenu();
+    }
+    window.fixUnreadableBlackTexts();
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  var _prevOpenMenuSecV9 = window.openMenuSection;
+  window.openMenuSection = openMenuSection = function (sec) {
+    var s = String(sec || '').toLowerCase();
+    if (/edu|eğitim|okul|uni|yks|sınav/.test(s)) {
+      window.openOSYMUniversityCenter();
+      return;
+    }
+    if (typeof _prevOpenMenuSecV9 === 'function') _prevOpenMenuSecV9(sec);
+    window.fixUnreadableBlackTexts();
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+})();
+
