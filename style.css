@@ -2018,3 +2018,84 @@ button:active {
   font-size: 9.5px;
   font-weight: 800;
 }
+
+/* ============================================================================
+   BİRLEŞTİRİLMİŞ TEKİL TEMA MOTORU (ESKİ-YENİ TEMA ÇAKIŞMASINI GİDERİR)
+   Renk Paleti: Royal Obsidian (#090d18) • Gece İndigosu (#111827) • Altın (#facc15)
+   ============================================================================ */
+
+/* Çakışma Yaratan İkinci HUD Barını Gizle (Orijinal Portreli HUD Korunur) */
+#execCustomHudBanner {
+  display: none !important;
+}
+
+/* Ana Zemin ve Üst Profil (Orijinal HUD + Karakter Portresi) Uyumu */
+body, #appShell {
+  background: radial-gradient(circle at 50% 0%, #151934 0%, #090d18 55%, #04070f 100%) !important;
+  color: #f8fafc !important;
+}
+
+header, #topHud {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98) 0%, rgba(9, 13, 24, 0.96) 100%) !important;
+  border-bottom: 1.5px solid rgba(250, 204, 21, 0.38) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Karakter Portresi (#charAvatar) — Her Zaman Görünür, Altın Çerçeveli */
+#charAvatar {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 16px !important;
+  border: 2px solid #facc15 !important;
+  background: #0f172a !important;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.35), 0 6px 14px rgba(0, 0, 0, 0.6) !important;
+  cursor: pointer !important;
+  object-fit: cover !important;
+}
+#charAvatar:hover {
+  transform: scale(1.05);
+  border-color: #38bdf8 !important;
+}
+
+/* Alt Çekmece (Bottom Sheet) ve Pencereler — Göz Yormayan Tekil Kurumsal Tema */
+#bottomSheet > div, #eventModal > div {
+  background: linear-gradient(175deg, #13182e 0%, #0b0f1d 60%, #050811 100%) !important;
+  border-top: 2px solid #facc15 !important;
+  box-shadow: 0 -20px 55px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Tüm İç Kartların Eski/Yeni Çakışmasını Önleyen Standart Görünüm */
+#sheetBody .rounded-2xl,
+#sheetBody .rounded-xl,
+.showroom-item-card,
+.royal-menu-tile {
+  background: linear-gradient(155deg, rgba(19, 26, 46, 0.95) 0%, rgba(10, 14, 26, 0.98) 100%) !important;
+  border: 1px solid rgba(250, 204, 21, 0.25) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45) !important;
+}
+
+.royal-hero-card,
+.showroom-header-banner {
+  background:
+    radial-gradient(circle at 90% 20%, rgba(250, 204, 21, 0.16) 0%, transparent 45%),
+    linear-gradient(135deg, #1e1b4b 0%, #111827 65%, #090d16 100%) !important;
+  border: 1.5px solid rgba(250, 204, 21, 0.5) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Ana Ekran Yıllık Günlük Blokları */
+.year-log-block {
+  background: linear-gradient(155deg, rgba(19, 26, 46, 0.9) 0%, rgba(9, 13, 24, 0.96) 100%) !important;
+  border: 1px solid rgba(250, 204, 21, 0.28) !important;
+  border-left: 4px solid #facc15 !important;
+  border-radius: 16px !important;
+}
+
+/* Alt Navigasyon Barı Uyumu */
+nav, footer, #bottomNav {
+  background: rgba(9, 13, 24, 0.98) !important;
+  border-top: 1px solid rgba(250, 204, 21, 0.28) !important;
+}
