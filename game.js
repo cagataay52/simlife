@@ -19467,3 +19467,757 @@ window.renderVIPCasinoModal = function () {
     }
   };
 })();
+
+/* ============================================================================
+   MASTER DEBUG & STABILIZER PATCH V13 (GAME.JS)
+   1. Üstteki Yaş (0'da Takılma) ve Para Göstergesini Doğrudan DOM Üzerinden Günceller
+   2. Açılmayan Finans, Kariyer ve İlişkiler Sekmelerini Bağımsız Motorla Açar
+   3. Casino Göstergelerini Mobil Ekrana Sığdırır (Taşmaları Kaldırır)
+   ============================================================================ */
+(function () {
+  if (window._masterStabilizerV13Loaded) return;
+  window._masterStabilizerV13Loaded = true;
+
+  // ============================================================================
+  // 1. ÜST BAR (YAŞ, PARA, İSİM VE STATLAR) KESİN GÜNCELLEME MOTORU
+  // ============================================================================
+  window.forceUpdateTopHudDOM = function () {
+    if (typeof G === 'undefined' || !G) return;
+
+    var curAge = typeof G.age === 'number' ? G.age : 0;
+    var curMoney = typeof G.money === 'number' ? G.money : 0;
+    var fullName = (G.firstName || 'Çağatay') + ' ' + (G.lastName || 'Kılıç');
+    var roleText = G.jobTitle || (curAge < 6 ? 'Bebeklik Dönemi' : (curAge < 14 ? 'İlköğretim Öğrencisi' : (curAge < 18 ? 'Lise Öğrencisi' : (G.uniGrad ? 'Üniversite Mezunu' : (G.inUni ? 'Üniversite Öğrencisi' : 'Serbest / İşsiz')))));
+
+    // A) Bilinen tüm Yaş ID'lerini güncelle
+    ['hudAge', 'charAge', 'ageVal', 'ageText', 'topAge', 'playerAge', 'ageDisplay'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = curAge + ' Yaş';
+    });
+
+    // B) Bilinen tüm Para ID'lerini güncelle
+    ['hudMoney', 'charMoney', 'moneyVal', 'moneyText', 'topMoney', 'playerMoney', 'cashDisplay'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = window.fmtMoney(curMoney);
+    });
+
+    // C) Bilinen tüm İsim ve Meslek ID'lerini güncelle
+    ['hudName', 'charName', 'playerName', 'nameText'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = fullName;
+    });
+    ['hudJob', 'charJob', 'jobText', 'roleText', 'hudSub', 'charRole'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = roleText;
+    });
+
+    // D) ID'si farklı olsa bile üst bardaki (header / #topHud) "0 Yaş" veya "Yaş: X" yazan düğümleri bulup anında güncelle!
+    var headerRoot = document.querySelector('header') || document.getElementById('topHud') || document.getElementById('appShell');
+    if (headerRoot) {
+      var allEls = headerRoot.querySelectorAll('span, div, p, strong, b');
+      allEls.forEach(function (el) {
+        if (el.children.length > 0) return; // Sadece uç metin elemanlarını kontrol et
+        var txt = (el.textContent || '').trim();
+        // "0 Yaş", "18 Yaş", "Yaş: 0", "Yaş 0" formatlarını yakala
+        if (/^\d+\s*Yaş$/i.test(txt)) {
+          el.textContent = curAge + ' Yaş';
+        } else if (/^Yaş\s*:?\s*\d+$/i.test(txt)) {
+          el.textContent = 'Yaş: ' + curAge;
+        } else if (/^[+-]?\d[\d.,]*\s*₺$/.test(txt) && !el.closest('#logContainer') && !el.closest('#bottomSheet')) {
+          el.textContent = window.fmtMoney(curMoney);
+        }
+      });
+    }
+  };
+
+  // ============================================================================
+  // 2. +1 YAŞ İLERLEME MOTORU (ORİJİNAL FONKSİYON ÇÖKSE BİLE YAŞI ARTIRIR)
+  // ============================================================================
+  window.safeMasterAdvanceAge = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (typeof window.healGameState === 'function') window.healGameState();
+
+    var prevAge = typeof G.age === 'number' ? G.age : 0;
+    G.age = prevAge + 1;
+
+    // 1. Maaşlı bir işte çalışıyorsa yıllık maaşını yatır
+    if (G.jobId && G.jobSalary && G.age >= 18) {
+      var yearlyPay = Math.round(G.jobSalary * 12);
+      G.money = (G.money || 0) + yearlyPay;
+      window.addLog(G.age, '💼 **YILLIK MAAŞ GELİRİ:** **' + (G.jobTitle || 'Kariyer') + '** görevinden yıllık toplam **+' + window.fmtMoney(yearlyPay) + '** maaş aldın.', 'good');
+    }
+
+    // 2. Bankada vadeli mevduatı varsa %48 yıllık faiz işlet
+    var sav = G.bankSavings || G.savings || 0;
+    if (sav > 0) {
+      var interest = Math.round(sav * 0.48);
+      G.bankSavings = sav + interest;
+      G.savings = G.bankSavings;
+      window.addLog(G.age, '🏦 **VADELİ MEVDUAT FAİZİ:** Bankadaki birikimine yıllık %48 faizle **+' + window.fmtMoney(interest) + '** eklendi.', 'good');
+    }
+
+    // 3. Emlak kira gelirlerini yatır
+    if (Array.isArray(G.houses) && G.houses.length > 0) {
+      var c = window.getCountry();
+      var rentTotal = G.houses.length * Math.round((c.monthlyMinWage || 22104) * 3.5);
+      G.money += rentTotal;
+      window.addLog(G.age, '🏠 **KİRA GELİRLERİ:** Sahip olduğun ' + G.houses.length + ' mülkten yıllık **+' + window.fmtMoney(rentTotal) + '** kira tahsil ettin.', 'good');
+    }
+
+    // 4. Yaş dönüm noktası mesajları
+    if (G.age === 6) {
+      G.eduStage = 'İlkokul';
+      window.addLog(G.age, '🎒 **OKULA BAŞLADIN:** 6 yaşına geldin ve İlkokul 1. sınıfa başladın!', 'milestone');
+    } else if (G.age === 14) {
+      G.eduStage = 'Lise';
+      window.addLog(G.age, '🏫 **LİSE DÖNEMİ:** 14 yaşına girdin ve liseye başladın! YKS hazırlık sürecin başlıyor.', 'milestone');
+    } else if (G.age === 18) {
+      G.eduStage = 'Reşit / Üniversite Adayı';
+      var gift = Math.round((window.getCountry().monthlyMinWage || 22104) * 2);
+      G.money += gift;
+      window.addLog(G.age, '🎓 **18 YAŞ REŞİTLİK:** Artık 18 yaşındasın! Ailen başlangıç desteği olarak **+' + window.fmtMoney(gift) + '** verdi. Kariyer, Finans ve Üniversite sınavı açıldı!', 'milestone');
+    } else {
+      window.addLog(G.age, '📅 **' + G.age + ' YAŞINA GİRDİN:** Yeni bir yıl başladı. Sağlık: %' + (G.health || 90) + ' • Mutluluk: %' + (G.happy || 85) + '.', 'normal');
+    }
+
+    // 5. Üniversitede okuyorsa sınıf atlat
+    if (G.inUni && !G.uniGrad) {
+      G.uniYears = (G.uniYears || 1) + 1;
+      if (G.uniYears > (G.uniTotalYears || 4)) {
+        if (typeof window.advanceOrGraduateUniNow === 'function') window.advanceOrGraduateUniNow();
+      } else {
+        window.addLog(G.age, '📚 **ÜNİVERSİTE:** **' + (G.uniDeptName || 'Fakülte') + '** ' + G.uniYears + '. sınıfa geçtin.', 'good');
+      }
+    }
+
+    // 6. Kredi kartı, Holding ve Kulüp yıllık gelirlerini çalıştır
+    if (typeof window.processAnnualCreditCardTurn === 'function') {
+      try { window.processAnnualCreditCardTurn(); } catch (e) {}
+    }
+
+    // 7. Yaşa ve imkanlara uygun gerçekçi olay çıkar (%55 ihtimal)
+    if (typeof window.pickRealisticEventForPlayer === 'function' && Math.random() < 0.55) {
+      var ev = window.pickRealisticEventForPlayer();
+      if (ev && typeof window.showRealisticContextModal === 'function') {
+        window.showRealisticContextModal(ev);
+      }
+    }
+
+    // 8. Kaydet ve tüm ekranı + üst yaş göstergesini güncelle
+    if (typeof saveGame === 'function') {
+      try { saveGame(); } catch (e) {}
+    }
+    try {
+      localStorage.setItem(window.getSlotStorageKey(window.currentSelectedSlot || 1), JSON.stringify(G));
+    } catch (e) {}
+
+    window.forceUpdateTopHudDOM();
+    if (typeof window.renderGuaranteedMainTimeline === 'function') window.renderGuaranteedMainTimeline();
+  };
+
+  // window.advanceAge çağrılarını doğrudan güvenli motora bağla
+  window.advanceAge = advanceAge = window.safeMasterAdvanceAge;
+
+  // ============================================================================
+  // 3. FİNANS MERKEZİ (BANKA, BORSA, KRİPTO, ALTIN & KREDİ KARTI - %100 ÇALIŞAN)
+  // ============================================================================
+  window.ensureFinancePortfolioState = function () {
+    if (!G) return;
+    if (typeof window.ensureCreditCardState === 'function') window.ensureCreditCardState();
+    if (!G.finPortfolio) {
+      G.finPortfolio = {
+        THYAO: 0, ASELS: 0, TUPRS: 0, GARAN: 0,
+        BTC: 0, ETH: 0, SOL: 0,
+        gramGold: 0, usdPack: 0
+      };
+    }
+    if (typeof G.bankSavings !== 'number') G.bankSavings = G.savings || 0;
+    if (typeof G.loanDebt !== 'number') G.loanDebt = 0;
+  };
+
+  window.render bulletproofFinanceHub = function () {
+    window.ensureFinancePortfolioState();
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    var sub = (window.uiSubTabs && window.uiSubTabs.finance) || 'bank';
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var cc = G.creditCard || { tierName: 'Royal Gold Card', limitMult: 4.5, debt: 0 };
+    var ccLim = Math.round(minW * (cc.limitMult || 4.5));
+
+    document.getElementById('sheetTitle').textContent = '🏦 Finans, Bankacılık & Borsa Merkezi';
+    document.getElementById('sheetSubtitle').textContent = 'Nakit: ' + window.fmtMoney(G.money) + ' • Mevduat: ' + window.fmtMoney(G.bankSavings) + ' • Findeks: ' + (G.creditScore || 1350);
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    var navHtml = `
+      <div class="space-y-3 pb-5">
+        <div class="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-slate-950 border border-amber-400/35 text-center">
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase">NAKİT CÜZDAN</div>
+            <div class="text-xs font-mono-num font-black text-emerald-400 mt-0.5">${window.fmtMoney(G.money)}</div>
+          </div>
+          <div class="border-x border-slate-800">
+            <div class="text-[9px] font-bold text-slate-400 uppercase">VADELİ MEVDUAT</div>
+            <div class="text-xs font-mono-num font-black text-sky-400 mt-0.5">${window.fmtMoney(G.bankSavings)}</div>
+          </div>
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase">KREDİ / KART BORCU</div>
+            <div class="text-xs font-mono-num font-black text-rose-400 mt-0.5">${window.fmtMoney((G.loanDebt || 0) + (cc.debt || 0))}</div>
+          </div>
+        </div>
+
+        <div class="clean-subtab-bar" style="grid-template-columns: repeat(3, 1fr);">
+          <button type="button" onclick="window.uiSubTabs.finance='bank'; window.renderBulletproofFinanceHub();" class="clean-subtab-btn ${sub === 'bank' ? 'active' : ''}">🏦 Banka &amp; Kart</button>
+          <button type="button" onclick="window.uiSubTabs.finance='market'; window.renderBulletproofFinanceHub();" class="clean-subtab-btn ${sub === 'market' ? 'active' : ''}">📈 Borsa &amp; Kripto</button>
+          <button type="button" onclick="window.uiSubTabs.finance='gold'; window.renderBulletproofFinanceHub();" class="clean-subtab-btn ${sub === 'gold' ? 'active' : ''}">🪙 Altın &amp; Döviz</button>
+        </div>
+    `;
+
+    var contentHtml = '';
+    var depAmt = Math.round(minW * 2);
+    var loanAmt = Math.round(minW * 5);
+
+    if (sub === 'bank') {
+      contentHtml = `
+        <!-- 1. VIP Kredi Kartı Merkezi Girişi -->
+        <div onclick="window.openCreditCardCenterModal()" class="royal-hero-card">
+          <div>
+            <span class="royal-tile-badge">💳 ${cc.tierName} • FİNDEKS: ${G.creditScore || 1350}</span>
+            <div class="text-sm font-black text-white mt-1">VIP Kredi Kartı, Nakit Avans &amp; Limit</div>
+            <div class="text-[11px] text-amber-200">Limit: ${window.fmtMoney(ccLim)} • Borç: ${window.fmtMoney(cc.debt)}</div>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">KARTIM &rarr;</span>
+        </div>
+
+        <!-- 2. Vadeli Mevduat Hesabı (%48 Faiz) -->
+        <div class="merged-expansion-box space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="royal-tile-badge">🏦 VADELİ MEVDUAT HESABI (YILLIK %48 FAİZ)</span>
+              <div class="text-sm font-black text-white mt-1">Mevduat Bakiyesi: ${window.fmtMoney(G.bankSavings)}</div>
+              <div class="text-[11px] text-slate-300">Her +1 Yaş ilerlediğinde paran %48 bileşik faizle büyür.</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="window.bankActionV13('dep_part', ${depAmt})" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-[10.5px] font-black">+${window.fmtMoney(depAmt)} Yatır</button>
+            <button type="button" onclick="window.bankActionV13('dep_all', 0)" class="py-2.5 rounded-xl bg-sky-400 text-slate-950 text-[10.5px] font-black">Tüm Nakiti Yatır</button>
+            <button type="button" onclick="window.bankActionV13('withdraw_all', 0)" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-[10.5px] font-black">Mevduatı Çek</button>
+          </div>
+        </div>
+
+        <!-- 3. Banka Ticari & İhtiyaç Kredisi -->
+        <div class="merged-expansion-box space-y-2.5">
+          <div>
+            <span class="royal-tile-badge">📑 BANKA İHTİYAÇ &amp; YATIRIM KREDİSİ</span>
+            <div class="text-sm font-black text-white mt-1">Güncel Kredi Borcu: ${window.fmtMoney(G.loanDebt || 0)}</div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="window.bankActionV13('take_loan', ${loanAmt})" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">💸 +${window.fmtMoney(loanAmt)} Kredi Çek</button>
+            <button type="button" onclick="window.bankActionV13('pay_loan', 0)" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black">✅ Kredi Borcunu Kapat</button>
+          </div>
+        </div>
+      `;
+    } else if (sub === 'market') {
+      var stocks = [
+        { code: 'THYAO', name: 'Türk Hava Yolları (BIST)', price: Math.round(minW * 0.8), yieldTxt: 'Temettü & Büyüme' },
+        { code: 'ASELS', name: 'Aselsan Savunma Sanayi', price: Math.round(minW * 0.6), yieldTxt: 'Yüksek Teknoloji' },
+        { code: 'TUPRS', name: 'Tüpraş Enerji & Rafineri', price: Math.round(minW * 0.9), yieldTxt: 'Yüksek Temettü' },
+        { code: 'BTC', name: 'Bitcoin (BTC / USDT)', price: Math.round(minW * 3.5), yieldTxt: 'Kripto Lideri' },
+        { code: 'SOL', name: 'Solana (SOL / USDT)', price: Math.round(minW * 1.2), yieldTxt: 'Yüksek Volatilite' }
+      ];
+      var marAmt = Math.round(minW * 2.0);
+
+      contentHtml = `
+        <div class="space-y-2">
+          ${stocks.map(function (st) {
+            var owned = G.finPortfolio[st.code] || 0;
+            return `
+              <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono-num text-[9.5px] font-black">${st.code} • ${st.yieldTxt}</span>
+                  <div class="text-xs font-black text-white mt-1">${st.name}</div>
+                  <div class="text-[10.5px] text-emerald-400 font-mono-num">Lot Fiyatı: ${window.fmtMoney(st.price)} • Portföy: ${owned} Lot</div>
+                </div>
+                <div class="flex gap-1.5 shrink-0">
+                  <button type="button" onclick="window.tradeAssetV13('${st.code}', ${st.price}, true)" class="px-3 py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10px] font-black">AL</button>
+                  <button type="button" onclick="window.tradeAssetV13('${st.code}', ${st.price}, false)" class="px-3 py-2 rounded-xl bg-rose-500 text-white text-[10px] font-black">SAT</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="merged-expansion-box mt-3 space-y-2">
+          <span class="royal-tile-badge">⚡ VADELİ İŞLEMLER • 20X KALDIRAÇLI KRİPTO MASASI</span>
+          <div class="text-xs font-black text-white">BTC/USDT 20x Long &amp; Short (Teminat: ${window.fmtMoney(marAmt)})</div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button type="button" onclick="window.executeLeverageTrade('LONG 📈')" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black">📈 20X LONG AÇ</button>
+            <button type="button" onclick="window.executeLeverageTrade('SHORT 📉')" class="py-2.5 rounded-xl bg-rose-500 text-white text-xs font-black">📉 20X SHORT AÇ</button>
+          </div>
+        </div>
+      `;
+    } else {
+      var goldP = Math.round(minW * 0.75);
+      var usdP = Math.round(minW * 1.5);
+      contentHtml = `
+        <div class="merged-expansion-box space-y-3">
+          <span class="royal-tile-badge">🪙 KAPALIÇARŞI 24 AYAR HAS ALTIN &amp; DÖVİZ MERKEZİ</span>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="p-3 rounded-xl bg-slate-950 border border-amber-400/40">
+              <div class="text-[9.5px] font-black text-amber-300">24K GRAM ALTIN PAKETİ</div>
+              <div class="text-sm font-black text-white mt-1">${G.finPortfolio.gramGold || 0} Paket</div>
+              <div class="text-[10px] text-emerald-400 font-mono-num">Değer: ${window.fmtMoney((G.finPortfolio.gramGold || 0) * goldP)}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-950 border border-sky-400/40">
+              <div class="text-[9.5px] font-black text-sky-300">USD / EUR DÖVİZ SEPETİ</div>
+              <div class="text-sm font-black text-white mt-1">${G.finPortfolio.usdPack || 0} Lot</div>
+              <div class="text-[10px] text-emerald-400 font-mono-num">Değer: ${window.fmtMoney((G.finPortfolio.usdPack || 0) * usdP)}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="window.tradeAssetV13('gramGold', ${goldP}, true)" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">+Altın Al (${window.fmtMoney(goldP)})</button>
+            <button type="button" onclick="window.tradeAssetV13('gramGold', ${goldP}, false)" class="py-2.5 rounded-xl bg-slate-800 text-white text-xs font-black">Altın Bozdur</button>
+            <button type="button" onclick="window.tradeAssetV13('usdPack', ${usdP}, true)" class="py-2.5 rounded-xl bg-sky-400 text-slate-950 text-xs font-black">+Döviz Al (${window.fmtMoney(usdP)})</button>
+            <button type="button" onclick="window.tradeAssetV13('usdPack', ${usdP}, false)" class="py-2.5 rounded-xl bg-slate-800 text-white text-xs font-black">Döviz Bozdur</button>
+          </div>
+        </div>
+      `;
+    }
+
+    body.innerHTML = navHtml + contentHtml + '</div>';
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+  window.renderBulletproofFinanceHub = window['render bulletproofFinanceHub'];
+
+  window.bankActionV13 = function (type, amt) {
+    window.ensureFinancePortfolioState();
+    if (type === 'dep_part') {
+      if (G.money < amt) { showToast('Mevduata yatırmak için nakit yetersiz!'); return; }
+      G.money -= amt;
+      G.bankSavings += amt;
+    } else if (type === 'dep_all') {
+      if (G.money <= 0) { showToast('Yatırılacak nakit yok!'); return; }
+      G.bankSavings += G.money;
+      G.money = 0;
+    } else if (type === 'withdraw_all') {
+      if (G.bankSavings <= 0) { showToast('Mevduatta çekilecek para yok!'); return; }
+      G.money += G.bankSavings;
+      G.bankSavings = 0;
+    } else if (type === 'take_loan') {
+      G.money += amt;
+      G.loanDebt = (G.loanDebt || 0) + Math.round(amt * 1.20);
+      window.addLog(G.age, '🏦 **BANKA KREDİSİ:** Bankadan **+' + window.fmtMoney(amt) + '** nakit kredi kullandın.', 'normal');
+    } else if (type === 'pay_loan') {
+      if (!G.loanDebt || G.loanDebt <= 0) { showToast('Kredi borcun bulunmuyor!'); return; }
+      if (G.money < G.loanDebt) { showToast('Kredi borcunu kapatmak için nakit yetersiz!'); return; }
+      G.money -= G.loanDebt;
+      G.loanDebt = 0;
+      G.creditScore = Math.min(1900, (G.creditScore || 1350) + 40);
+      window.addLog(G.age, '✅ **KREDİ KAPATILDI:** Tüm banka kredi borcunu kapattın (+40 Findeks).', 'good');
+    }
+    G.savings = G.bankSavings;
+    if (typeof saveGame === 'function') saveGame();
+    window.forceUpdateTopHudDOM();
+    window.renderBulletproofFinanceHub();
+  };
+
+  window.tradeAssetV13 = function (code, price, isBuy) {
+    window.ensureFinancePortfolioState();
+    if (isBuy) {
+      if (G.money < price) { showToast('Alım için nakit bakiyen yetersiz!'); return; }
+      G.money -= price;
+      G.finPortfolio[code] = (G.finPortfolio[code] || 0) + 1;
+      showToast(code + ' portföye eklendi!');
+    } else {
+      if (!G.finPortfolio[code] || G.finPortfolio[code] <= 0) { showToast('Elinde satılacak ' + code + ' yok!'); return; }
+      G.finPortfolio[code] -= 1;
+      var sellPrice = Math.round(price * (1.05 + Math.random() * 0.15));
+      G.money += sellPrice;
+      showToast(code + ' +' + window.fmtMoney(sellPrice) + ' fiyattan satıldı!');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    window.forceUpdateTopHudDOM();
+    window.renderBulletproofFinanceHub();
+  };
+
+  // ============================================================================
+  // 4. KARİYER & MESLEK MERKEZİ (%100 ÇALIŞAN İŞ BAŞVURU, MAAŞ & TERFİ SİSTEMİ)
+  // ============================================================================
+  var JOBS_CATALOG_V13 = [
+    { id: 'job_courier', title: 'Motorlu Kurye & Dağıtım', company: 'Hızlı Lojistik A.Ş.', salMult: 1.3, minAge: 18, reqUni: false, reqLicB: false },
+    { id: 'job_preacc', title: 'Ön Muhasebe & Luca Uzmanı', company: 'RKN Süzer Tekstil', salMult: 2.2, minAge: 18, reqUni: false, reqLicB: false },
+    { id: 'job_costctrl', title: 'Otel Cost Controller (Maliyet Kontrol)', company: 'Ramada & Sultanahmet Hotels', salMult: 3.1, minAge: 18, reqUni: false, reqLicB: false },
+    { id: 'job_logmgr', title: 'Uluslararası Lojistik & Filo Müdürü', company: 'Marmara Global Lojistik', salMult: 4.2, minAge: 20, reqUni: true, reqLicB: true },
+    { id: 'job_kpss', title: 'Gümrük & Ticaret Bakanlığı Uzmanı (KPSS)', company: 'T.C. Ticaret Bakanlığı', salMult: 3.8, minAge: 20, reqUni: true, reqLicB: false },
+    { id: 'job_softdev', title: 'Kıdemli Mobil & Oyun Geliştirici', company: 'Peak & Dream Tech', salMult: 5.8, minAge: 20, reqUni: true, reqLicB: false },
+    { id: 'job_lawyer', title: 'Şirketler & Ceza Avukatı', company: 'Kılıç Hukuk Bürosu', salMult: 6.5, minAge: 22, reqUni: true, reqLicB: false },
+    { id: 'job_surgeon', title: 'Başhekim & Uzman Cerrah', company: 'Acıbadem / Cerrahpaşa Tıp', salMult: 8.5, minAge: 24, reqUni: true, reqLicB: false },
+    { id: 'job_ceo', title: 'Holding İcra Kurulu Başkanı (CEO)', company: 'Kılıç Global Holding', salMult: 14.0, minAge: 25, reqUni: true, reqLicB: false }
+  ];
+
+  window.renderBulletproofCareerHub = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    document.getElementById('sheetTitle').textContent = '💼 Kariyer, Meslek & Eğitim Merkezi';
+    document.getElementById('sheetSubtitle').textContent = (G.jobTitle ? ('Meslek: ' + G.jobTitle + ' • Aylık: ' + window.fmtMoney(G.jobSalary || minW)) : 'Aktif İş: Yok • Eğitim: ' + (G.eduStage || 'Okul'));
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    var statusText = G.uniGrad
+      ? ('🎓 Mezun: ' + (G.uniDeptName || 'Üniversite Diploması'))
+      : (G.inUni ? ('📚 Öğrenci: ' + G.uniDeptName + ' (' + G.uniYears + '. Sınıf)') : ('YKS Puanı: ' + (G.yksScore || 'Girmedi')));
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 1. ÖSYM YKS, ÜNİVERSİTE VE EHLİYET MERKEZİ KARTI -->
+        <div onclick="window.openOSYMUniversityCenter()" class="royal-hero-card">
+          <div>
+            <span class="royal-tile-badge">🎓 ÖSYM YKS • ÜNİVERSİTE • EHLİYET (B/CE)</span>
+            <div class="text-sm font-black text-white mt-1">Akademi, Üniversite Tercihi &amp; Sürücü Kursu</div>
+            <div class="text-[11px] text-sky-200">${statusText}</div>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">AKADEMİ &rarr;</span>
+        </div>
+
+        <!-- 2. AKTİF İŞ / KARİYER DURUMU -->
+        ${G.jobId ? `
+          <div class="merged-expansion-box space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="royal-tile-badge">💼 MEVCUT KARİYERİN</span>
+                <div class="text-sm font-black text-white mt-1">${G.jobTitle} (${G.jobCompany || 'Kurumsal'})</div>
+                <div class="text-xs text-emerald-400 font-mono-num">Aylık Maaş: ${window.fmtMoney(G.jobSalary)} • Yıllık: ${window.fmtMoney(G.jobSalary * 12)}</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" onclick="window.careerActionV13('work_hard')" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-[10.5px] font-black">⚡ Mesai Yap (+Prim)</button>
+              <button type="button" onclick="window.careerActionV13('promote')" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-[10.5px] font-black">📈 Terfi / Zam İste</button>
+              <button type="button" onclick="window.careerActionV13('quit')" class="py-2.5 rounded-xl bg-rose-500 text-white text-[10.5px] font-black">🚪 İstifa Et</button>
+            </div>
+          </div>
+        ` : `
+          <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
+            ${G.age < 18 ? ('👶 Şu an <strong>' + G.age + ' yaşındasın (' + (G.eduStage || 'Okul Dönemi') + ')</strong>. 18 yaşına geldiğinde tam zamanlı mesleklere başvurabilirsin.') : '💡 Şu an aktif bir işte çalışmıyorsun. Aşağıdaki ilanlardan hemen iş başvurusu yapabilirsin:'}
+          </div>
+        `}
+
+        <!-- 3. TAM KAPSAMLI İŞ İLANLARI PORTALI -->
+        <div class="space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase px-1">📋 KARİYER.NET &amp; KPSS AÇIK İŞ İLANLARI</div>
+          ${JOBS_CATALOG_V13.map(function (jb) {
+            var monthlySal = Math.round(minW * jb.salMult);
+            var isCurrent = G.jobId === jb.id;
+            return `
+              <div class="p-3 rounded-2xl bg-slate-950 border ${isCurrent ? 'border-emerald-400' : 'border-slate-800'} flex items-center justify-between gap-2.5">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[9px] font-black">${jb.company}</span>
+                    <span class="text-[9.5px] text-sky-300 font-bold">${jb.reqUni ? '🎓 Diploma Şartlı' : 'Lise / Genel'}</span>
+                  </div>
+                  <div class="text-xs font-black text-white mt-1">${jb.title}</div>
+                  <div class="text-[10.5px] text-emerald-400 font-mono-num">Aylık Maaş: ${window.fmtMoney(monthlySal)} (Yıllık: ${window.fmtMoney(monthlySal * 12)})</div>
+                </div>
+                ${isCurrent ? `
+                  <span class="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black shrink-0">ÇALIŞIYORSUN ✓</span>
+                ` : `
+                  <button type="button" onclick="window.applyForJobV13('${jb.id}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black shrink-0">
+                    BAŞVUR &rarr;
+                  </button>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  window.applyForJobV13 = function (jobId) {
+    if (G.age < 18) { showToast('Tam zamanlı bir işe girmek için en az 18 yaşında olmalısın!'); return; }
+    var jb = JOBS_CATALOG_V13.find(function (x) { return x.id === jobId; });
+    if (!jb) return;
+
+    if (jb.reqUni && !G.uniGrad) {
+      showToast('Bu pozisyon için Üniversite Mezunu olmalısın! Üstteki Akademi kartından YKS sınavına girip mezun ol.');
+      return;
+    }
+    if (jb.reqLicB && !(G.licenses && G.licenses.B)) {
+      showToast('Bu pozisyon için B Sınıfı Ehliyet gerekiyor! Akademiden ehliyet alabilirsin.');
+      return;
+    }
+
+    var c = window.getCountry();
+    var sal = Math.round((c.monthlyMinWage || 22104) * jb.salMult);
+    G.jobId = jb.id;
+    G.jobTitle = jb.title;
+    G.jobCompany = jb.company;
+    G.jobSalary = sal;
+
+    window.addLog(G.age, '💼 **YENİ İŞE BAŞLADIN:** **' + jb.company + '** bünyesinde **' + jb.title + '** olarak işe başladın! Aylık maaşın: **' + window.fmtMoney(sal) + '**.', 'milestone');
+    showToast('🎉 İşe kabul edildin: ' + jb.title);
+    if (typeof saveGame === 'function') saveGame();
+    window.forceUpdateTopHudDOM();
+    window.renderBulletproofCareerHub();
+  };
+
+  window.careerActionV13 = function (act) {
+    if (!G.jobId) return;
+    if (act === 'work_hard') {
+      var bonus = Math.round((G.jobSalary || 25000) * 1.5);
+      G.money += bonus;
+      G.happy = Math.max(10, (G.happy || 80) - 3);
+      window.addLog(G.age, '⚡ **FAZLA MESAİ PRİMİ:** İş yerinde üstün performans gösterip **+' + window.fmtMoney(bonus) + '** nakit prim kazandın!', 'good');
+      showToast('💸 Mesai primi yattı: +' + window.fmtMoney(bonus));
+    } else if (act === 'promote') {
+      G.jobSalary = Math.round((G.jobSalary || 25000) * 1.25);
+      window.addLog(G.age, '📈 **TERFİ & MAAŞ ZAMMI:** Yöneticin performansını ödüllendirdi! Yeni aylık maaşın **' + window.fmtMoney(G.jobSalary) + '** oldu!', 'good');
+      showToast('🚀 Terfi aldın! Maaşın %25 arttı.');
+    } else if (act === 'quit') {
+      window.addLog(G.age, '🚪 **İSTİFA:** **' + (G.jobTitle || 'Mevcut') + '** görevinden kendi isteğinle ayrıldın.', 'normal');
+      G.jobId = null;
+      G.jobTitle = null;
+      G.jobSalary = 0;
+    }
+    if (typeof saveGame === 'function') saveGame();
+    window.forceUpdateTopHudDOM();
+    window.renderBulletproofCareerHub();
+  };
+
+  // ============================================================================
+  // 5. İLİŞKİLER & AİLE MERKEZİ (%100 ÇALIŞAN GARANTİLİ EKRAN)
+  // ============================================================================
+  window.renderBulletproofRelationsHub = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '❤️ Aile, Sosyal Çevre & İlişkiler';
+    document.getElementById('sheetSubtitle').textContent = (G.spouse ? ('Eş/Partner: ' + G.spouse.name) : 'Medeni Durum: Bekar') + ' • Çocuk: ' + (Array.isArray(G.children) ? G.children.length : 0);
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    if (!Array.isArray(G.relations) || G.relations.length === 0) {
+      var lName = G.lastName || 'Kılıç';
+      G.relations = [
+        { id: 'r_mom', name: 'Anne (' + lName + ')', role: 'Anne', love: 95 },
+        { id: 'r_dad', name: 'Baba (' + lName + ')', role: 'Baba', love: 92 },
+        { id: 'r_bro', name: 'Çağrı ' + lName, role: 'Kardeş / Dost', love: 96 },
+        { id: 'r_fr1', name: 'Muhammed', role: 'Yakın Arkadaş', love: 90 },
+        { id: 'r_fr2', name: 'Emin', role: 'Müzik & Dost', love: 90 }
+      ];
+    }
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        ${G.age >= 18 ? `
+          <div class="merged-expansion-box space-y-2">
+            <span class="royal-tile-badge">💍 ROMANTİK İLİŞKİ &amp; EVLİLİK</span>
+            <div class="text-xs font-black text-white">${G.spouse ? ('Partnerin: ' + G.spouse.name + ' (Sevgi: %' + (G.spouse.love || 90) + ')') : 'Henüz hayatında biri yok.'}</div>
+            <div class="grid grid-cols-2 gap-2">
+              ${!G.spouse ? `
+                <button type="button" onclick="window.relActionV13('find_partner')" class="py-2.5 rounded-xl bg-pink-500 text-white text-xs font-black">💘 Yeni Sevgili / Eş Bul</button>
+              ` : `
+                <button type="button" onclick="window.relActionV13('date_partner')" class="py-2.5 rounded-xl bg-pink-500 text-white text-xs font-black">🥂 Romantik Akşam Yemeği</button>
+              `}
+              <button type="button" onclick="window.adoptOrAddHeirChild()" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">👶 Çocuk Sahibi Ol (Veliaht)</button>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase px-1">👨‍👩‍👦 AİLE &amp; DOST ÇEVRESİ</div>
+          ${G.relations.map(function (rel, idx) {
+            return `
+              <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[9px] font-black">${rel.role || 'Aile'}</span>
+                  <div class="text-xs font-black text-white mt-1">${rel.name}</div>
+                  <div class="text-[10px] text-emerald-400">İlişki Seviyesi: %${rel.love || 90}</div>
+                </div>
+                <div class="flex gap-1.5">
+                  <button type="button" onclick="window.relActionV13('chat', ${idx})" class="px-3 py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10px] font-black">Sohbet Et</button>
+                  <button type="button" onclick="window.relActionV13('ask_money', ${idx})" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black">Harçlık İste</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  window.relActionV13 = function (act, idx) {
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    if (act === 'find_partner') {
+      var pName = G.gender === 'Kadın' ? 'Burak' : 'Selin';
+      G.spouse = { name: pName, love: 92 };
+      G.happy = Math.min(100, (G.happy || 80) + 12);
+      window.addLog(G.age, '💘 **YENİ AŞK:** **' + pName + '** ile harika bir ilişkiye başladın!', 'good');
+    } else if (act === 'date_partner') {
+      G.happy = Math.min(100, (G.happy || 80) + 10);
+      window.addLog(G.age, '🥂 Partnerinle Boğaz\'da romantik bir akşam yemeği yediniz (+10 Mutluluk).', 'good');
+    } else if (act === 'chat' && G.relations[idx]) {
+      G.relations[idx].love = Math.min(100, (G.relations[idx].love || 85) + 6);
+      G.happy = Math.min(100, (G.happy || 80) + 5);
+      showToast(G.relations[idx].name + ' ile keyifli vakit geçirdin (+5 Mutluluk)');
+    } else if (act === 'ask_money' && G.relations[idx]) {
+      var gift = Math.round(minW * 0.4);
+      G.money += gift;
+      showToast(G.relations[idx].name + ' sana +' + window.fmtMoney(gift) + ' harçlık verdi!');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    window.forceUpdateTopHudDOM();
+    window.renderBulletproofRelationsHub();
+  };
+
+  // ============================================================================
+  // 6. CASINO MODALINI EKRANDAN TAŞMAYACAK KOMPAKT MOBİL DÜZENLE YENİDEN ÇİZ
+  // ============================================================================
+  window.renderVIPCasinoModal = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (!sheet || !G) return;
+    sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '🎰 Pragmatic Play VIP Casino';
+    document.getElementById('sheetSubtitle').textContent = 'Kasa: ' + window.fmtMoney(G.money);
+
+    var rawBet = window.casinoUI.customBetAmount || 2000;
+    var bonusBuyCost = rawBet * 100;
+    var isBonanza = window.casinoUI.gameTab === 'bonanza';
+
+    document.getElementById('sheetBody').innerHTML = `
+      <div class="space-y-2 pb-4 max-w-full overflow-hidden">
+        <!-- Üst Oyun Seçici -->
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-950 border border-amber-400/40 text-[10px] font-black">
+          <button type="button" onclick="window.casinoUI.freeSpinsLeft=0; window.casinoUI.grid=[]; window.openVIPCasinoModal('bonanza')" class="py-1.5 rounded-lg ${isBonanza ? 'bg-pink-500 text-white' : 'text-slate-300'}">🍭 Sweet Bonanza 1000</button>
+          <button type="button" onclick="window.casinoUI.freeSpinsLeft=0; window.casinoUI.grid=[]; window.openVIPCasinoModal('olympus')" class="py-1.5 rounded-lg ${!isBonanza ? 'bg-amber-400 text-slate-950' : 'text-slate-300'}">⚡ Gates of Olympus 1000</button>
+        </div>
+
+        <!-- Kompakt Manuel Bahis Barı (Taşma Yapmaz) -->
+        <div class="pragmatic-bottom-hud space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <span class="text-[8.5px] text-slate-400 block font-bold">KASA BAKİYESİ</span>
+              <strong class="text-emerald-400 font-mono-num text-xs truncate block">${window.fmtMoney(G.money)}</strong>
+            </div>
+            <div class="w-36 shrink-0">
+              <label class="text-[8px] text-amber-300 font-extrabold block text-center">✍️ BAHİS YAZ (₺)</label>
+              <input id="customCasinoBetInput" type="number" min="10" step="500" value="${rawBet}" oninput="window.setManualCasinoBet(this.value)" class="bet-manual-input" />
+            </div>
+          </div>
+          <div class="grid grid-cols-5 gap-1 text-[9px] font-black">
+            <button type="button" onclick="window.adjustManualCasinoBet('minus')" class="py-1 rounded bg-slate-800 text-white">-1K</button>
+            <button type="button" onclick="window.adjustManualCasinoBet('half')" class="py-1 rounded bg-slate-800 text-amber-300">1/2</button>
+            <button type="button" onclick="window.adjustManualCasinoBet('double')" class="py-1 rounded bg-slate-800 text-emerald-300">2X</button>
+            <button type="button" onclick="window.adjustManualCasinoBet('plus')" class="py-1 rounded bg-slate-800 text-white">+1K</button>
+            <button type="button" onclick="window.adjustManualCasinoBet('max')" class="py-1 rounded bg-amber-400 text-slate-950">MAX</button>
+          </div>
+        </div>
+
+        <!-- 6x5 Slot Kabini (Mobil Ekrana Tam Sığan Boyut) -->
+        <div class="${isBonanza ? 'sb1000-cabinet' : 'go1000-cabinet'} space-y-1.5">
+          <div class="pragmatic-top-banner">
+            <span class="truncate">${isBonanza ? '🍭 SWEET BONANZA 1000' : '⚡ GATES OF OLYMPUS 1000'}</span>
+            <span class="font-mono-num text-amber-300 shrink-0">${window.casinoUI.freeSpinsLeft > 0 ? ('FS: ' + window.casinoUI.freeSpinsLeft) : '8+ EŞLEŞME'}</span>
+          </div>
+
+          <div class="${isBonanza ? 'sb1000-reel-frame' : 'go1000-reel-frame'}">
+            ${window.casinoUI.grid.map(function (cell) {
+              return '<div class="' + (isBonanza ? 'sb1000-cell' : 'go1000-cell') + ' ' + (cell.isWinning ? 'cell-tumble-win' : '') + '">' + window.getPragmaticSymbolSVG(cell) + '</div>';
+            }).join('')}
+          </div>
+
+          <div class="p-1.5 rounded-lg bg-slate-950/90 border border-white/20 text-center text-[11px] font-black text-amber-300 truncate">
+            ${window.casinoUI.lastWinLog}
+          </div>
+
+          <!-- Alt Spin ve Bonus Satın Al Barı (Grid Korumalı, Asla Taşmaz) -->
+          <div class="casino-controls-row pt-0.5">
+            <button type="button" onclick="window.spinPragmaticSlot(true)" class="p-1.5 rounded-xl bg-gradient-to-b from-pink-500 to-red-700 border border-yellow-300 text-white text-left overflow-hidden">
+              <div class="text-[8px] font-black text-amber-200 truncate">🍭 BONUS AL (100x)</div>
+              <div class="font-mono-num text-[10px] font-black truncate">${window.fmtMoney(bonusBuyCost)}</div>
+            </button>
+
+            <button type="button" onclick="window.spinPragmaticSlot(false)" class="pragmatic-spin-btn">↻</button>
+
+            <button type="button" onclick="window.casinoUI.doubleChance=!window.casinoUI.doubleChance; window.renderVIPCasinoModal()" class="p-1.5 rounded-xl border ${window.casinoUI.doubleChance ? 'bg-emerald-600 border-yellow-300 text-white' : 'bg-slate-900 border-white/25 text-slate-300'} text-right overflow-hidden">
+              <div class="text-[8px] font-black truncate">ANTE BET (2X)</div>
+              <div class="text-[10px] font-black truncate">${window.casinoUI.doubleChance ? 'AÇIK ✓' : 'KAPALI'}</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  // ============================================================================
+  // 7. ALT NAVİGASYON BARINI (KARİYER, FİNANS, +1 YAŞ, İLİŞKİLER, YÖNETİM) DOĞRUDAN BAĞLA
+  // ============================================================================
+  window.openNavSheet = openNavSheet = function (tab) {
+    var t = String(tab || '').toLowerCase();
+    if (t === 'finance' || t === 'finans') {
+      window.renderBulletproofFinanceHub();
+    } else if (t === 'career' || t === 'kariyer' || t === 'job') {
+      window.renderBulletproofCareerHub();
+    } else if (t === 'relations' || t === 'rel' || t === 'social' || t === 'family') {
+      window.renderBulletproofRelationsHub();
+    } else if (t === 'menu' || t === 'menü') {
+      window.renderRoyalCasinoStyledMenu();
+    } else {
+      window.renderRoyalCasinoStyledMenu();
+    }
+    window.forceUpdateTopHudDOM();
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  // Sayfadaki Alt Bar Butonlarını Tarayıp Tıklamalarını %100 Çalışacak Şekilde Sabitle
+  window.bindBottomNavButtonsDirectly = function () {
+    var btns = document.querySelectorAll('nav button, footer button, #bottomNav button, [onclick*="openNavSheet"], #ageBtn, [onclick*="advanceAge"]');
+    btns.forEach(function (btn) {
+      var raw = ((btn.getAttribute('onclick') || '') + ' ' + (btn.id || '') + ' ' + (btn.innerText || '')).toLowerCase();
+      if (raw.indexOf('advanceage') !== -1 || raw.indexOf('agebtn') !== -1 || raw.indexOf('+1') !== -1 || raw.indexOf('ilerle') !== -1) {
+        btn.setAttribute('onclick', 'window.safeMasterAdvanceAge()');
+        btn.onclick = function (e) { e.preventDefault(); window.safeMasterAdvanceAge(); };
+      } else if (raw.indexOf('finance') !== -1 || raw.indexOf('finans') !== -1) {
+        btn.setAttribute('onclick', "window.openNavSheet('finance')");
+        btn.onclick = function (e) { e.preventDefault(); window.openNavSheet('finance'); };
+      } else if (raw.indexOf('career') !== -1 || raw.indexOf('kariyer') !== -1) {
+        btn.setAttribute('onclick', "window.openNavSheet('career')");
+        btn.onclick = function (e) { e.preventDefault(); window.openNavSheet('career'); };
+      } else if (raw.indexOf('rel') !== -1 || raw.indexOf('ilişki') !== -1) {
+        btn.setAttribute('onclick', "window.openNavSheet('relations')");
+        btn.onclick = function (e) { e.preventDefault(); window.openNavSheet('relations'); };
+      } else if (raw.indexOf('menu') !== -1 || raw.indexOf('menü') !== -1 || raw.indexOf('yönetim') !== -1) {
+        btn.setAttribute('onclick', "window.openNavSheet('menu')");
+        btn.onclick = function (e) { e.preventDefault(); window.openNavSheet('menu'); };
+      }
+    });
+  };
+
+  var _prevRenderAllV13 = window.renderAll;
+  window.renderAll = renderAll = function () {
+    if (typeof _prevRenderAllV13 === 'function') {
+      try { _prevRenderAllV13(); } catch (e) {}
+    }
+    window.forceUpdateTopHudDOM();
+    window.bindBottomNavButtonsDirectly();
+  };
+
+  setTimeout(function () {
+    window.bindBottomNavButtonsDirectly();
+    window.forceUpdateTopHudDOM();
+  }, 150);
+})();
+
