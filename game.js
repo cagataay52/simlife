@@ -15356,3 +15356,820 @@ window.renderVIPCasinoModal = function () {
     upgradeBottomNavBarToVectors();
   }
 })();
+
+/* ============================================================================
+   MASTER PATCH V6: TAM ONARIM, 0 YAŞ BAŞLANGIÇ, ANA EKRAN YILLIK GÜNLÜK,
+   KAPATMA (✕) TUŞU TAMİRİ, GERÇEK KREDİ KARTI SİSTEMİ & ROYAL CASINO MENÜ
+   ============================================================================ */
+(function () {
+  if (window._masterPatchV6Applied) return;
+  window._masterPatchV6Applied = true;
+
+  // 1. ÖNCEKİ YAMADAKİ KAPATMA (✕) TUŞUNU SİLEN HATALI FİLTREYİ DEVRE DIŞI BIRAK
+  window.scrubAllEmojisInNode = function () {};
+  window.stripEmojisGlobal = function (str) { return String(str || ''); };
+
+  // 2. ROYAL CASINO (MOR / ALTIN / NEON PEMBE) MENÜ & ARAYÜZ TASARIMI
+  var oldSt = document.getElementById('pragmaticMasterAutoStyles');
+  if (oldSt) oldSt.remove();
+
+  var st = document.createElement('style');
+  st.id = 'pragmaticMasterAutoStyles';
+  st.textContent = `
+    #cityMapRootContainer, #menuMapSettingsBar, .avatar-ring-svg, .sticky-modal-hud {
+      display: none !important;
+    }
+
+    /* Her Pencerede Görünür Altın Kapatma (✕ KAPAT) Butonu */
+    .royal-close-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      padding: 7px 13px !important;
+      border-radius: 12px !important;
+      background: linear-gradient(135deg, #be185d 0%, #881337 100%) !important;
+      border: 1.5px solid #fde047 !important;
+      color: #ffffff !important;
+      font-size: 11.5px !important;
+      font-weight: 900 !important;
+      box-shadow: 0 4px 14px rgba(190, 24, 93, 0.5) !important;
+      cursor: pointer !important;
+      z-index: 50 !important;
+      flex-shrink: 0 !important;
+    }
+    .royal-close-btn:active { transform: scale(0.94) !important; }
+
+    /* Alt Çekmece (Bottom Sheet) Royal Casino Teması */
+    #bottomSheet > div {
+      background:
+        radial-gradient(circle at 85% 10%, rgba(236, 72, 153, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 15% 20%, rgba(250, 204, 21, 0.12) 0%, transparent 40%),
+        linear-gradient(175deg, #2e1065 0%, #1e1b4b 45%, #090d16 100%) !important;
+      border-top: 2.5px solid #facc15 !important;
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.9) !important;
+    }
+
+    /* Royal Casino Menü Kartları */
+    .royal-hero-card {
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, #701a75 0%, #3b0764 55%, #1e1b4b 100%);
+      border: 2px solid #fde047;
+      border-radius: 20px; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      box-shadow: 0 12px 30px rgba(112, 26, 117, 0.5), inset 0 0 20px rgba(250, 204, 21, 0.15);
+      cursor: pointer; transition: transform 0.15s ease;
+    }
+    .royal-hero-card:active { transform: scale(0.98); }
+
+    .royal-bento-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .royal-menu-tile {
+      position: relative; overflow: hidden;
+      background: linear-gradient(150deg, rgba(74, 4, 78, 0.78) 0%, rgba(30, 27, 75, 0.92) 60%, rgba(15, 23, 42, 0.98) 100%);
+      border: 1.5px solid rgba(250, 204, 21, 0.42);
+      border-radius: 18px; padding: 13px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 96px; text-align: left; cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .royal-menu-tile:hover {
+      transform: translateY(-2px);
+      border-color: #fde047;
+      box-shadow: 0 12px 28px rgba(236, 72, 153, 0.35);
+    }
+    .royal-menu-tile:active { transform: scale(0.96); }
+
+    .royal-tile-badge {
+      display: inline-block;
+      padding: 2px 7px; border-radius: 999px;
+      background: rgba(250, 204, 21, 0.18);
+      border: 1px solid rgba(250, 204, 21, 0.45);
+      color: #fde047; font-size: 8.5px; font-weight: 900;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* Gerçekçi VIP Kredi Kartı Görseli */
+    .vip-credit-card-visual {
+      background:
+        radial-gradient(circle at 85% 20%, rgba(250, 204, 21, 0.32) 0%, transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(236, 72, 153, 0.28) 0%, transparent 45%),
+        linear-gradient(135deg, #1e1b4b 0%, #3b0764 50%, #090d16 100%);
+      border: 2px solid #facc15;
+      border-radius: 22px; padding: 16px;
+      color: #ffffff;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), inset 0 0 24px rgba(250, 204, 21, 0.12);
+      position: relative; overflow: hidden;
+    }
+    .card-chip-gold {
+      width: 40px; height: 30px; border-radius: 7px;
+      background: linear-gradient(135deg, #fde047 0%, #ca8a04 100%);
+      border: 1px solid #fef08a;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
+    }
+
+    /* Ana Ekran Yıllık Olay Günlüğü Kartları */
+    .year-log-block {
+      background: linear-gradient(145deg, rgba(30, 27, 75, 0.75) 0%, rgba(15, 23, 42, 0.94) 100%);
+      border: 1px solid rgba(250, 204, 21, 0.28);
+      border-left: 4px solid #facc15;
+      border-radius: 16px; padding: 12px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Giriş Ekranı ve Slot Stilleri */
+    .cinematic-main-menu { position: fixed; inset: 0; z-index: 99990; background: radial-gradient(circle at 50% 20%, #3b0764 0%, #0f172a 55%, #020617 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .save-slot-card { width: 100%; max-width: 440px; background: linear-gradient(135deg, rgba(46, 16, 101, 0.9) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1.5px solid rgba(250, 204, 21, 0.45); border-left: 5px solid #facc15; border-radius: 18px; padding: 15px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 14px 34px rgba(0,0,0,0.75); }
+    .char-creator-modal { position: fixed; inset: 0; z-index: 99999; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+    .char-creator-box { width: 100%; max-width: 450px; background: linear-gradient(165deg, #3b0764 0%, #1e1b4b 55%, #090d16 100%); border: 2px solid #fde047; border-radius: 26px; padding: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.95); }
+    .creator-preview-frame { width: 112px; height: 124px; border-radius: 20px; border: 2.5px solid #fde047; overflow: hidden; background: #0f172a; margin: 0 auto; }
+
+    /* Sweet Bonanza 1000 & Gates of Olympus 1000 */
+    .sb1000-cabinet { background: radial-gradient(circle at 15% 15%, rgba(255,255,255,0.45) 0%, transparent 35%), linear-gradient(180deg, #38bdf8 0%, #f472b6 48%, #ec4899 78%, #be185d 100%); border: 3px solid #fde047; border-radius: 22px; padding: 10px; }
+    .sb1000-reel-frame { background: linear-gradient(180deg, rgba(255,245,250,0.96), rgba(252,231,243,0.94)); border: 4px solid #f59e0b; outline: 2px solid #ec4899; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .sb1000-cell { aspect-ratio: 1/1; border-radius: 11px; background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.98), rgba(251,207,232,0.6)); border: 1px solid rgba(244,114,182,0.4); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; }
+    .go1000-cabinet { background: radial-gradient(circle at 80% 18%, rgba(56,189,248,0.4) 0%, transparent 40%), linear-gradient(180deg, #1e1b4b 0%, #3b0764 52%, #172554 100%); border: 3px solid #facc15; border-radius: 22px; padding: 10px; }
+    .go1000-reel-frame { background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(23,15,45,0.98)); border: 4px solid #eab308; outline: 2px solid #fef08a; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .go1000-cell { aspect-ratio: 1/1; border-radius: 10px; background: radial-gradient(circle at 50% 35%, rgba(51,65,85,0.8), rgba(15,23,42,0.96)); border: 1px solid rgba(250,204,21,0.3); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; }
+    .cell-tumble-win { background: radial-gradient(circle, #fef08a 0%, #f59e0b 75%, #b45309 100%) !important; border: 2px solid #ffffff !important; box-shadow: 0 0 18px #facc15 !important; transform: scale(1.07); z-index: 5; }
+    .pragmatic-top-banner { background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%); border: 2px solid #fde047; border-radius: 999px; padding: 5px 14px; text-align: center; color: #ffffff; font-weight: 900; font-size: 11px; }
+    .pragmatic-bottom-hud { background: rgba(9,13,22,0.95); border: 1.5px solid rgba(250,204,21,0.35); border-radius: 18px; padding: 10px; color: #ffffff; }
+    .pragmatic-spin-btn { width: 62px; height: 62px; border-radius: 999px; background: radial-gradient(circle at 30% 25%, #ffffff 0%, #e2e8f0 50%, #94a3b8 100%); border: 4px solid #facc15; box-shadow: 0 0 22px rgba(250,204,21,0.75); color: #0f172a; font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .bet-manual-input { background: #020617; border: 1.5px solid #facc15; border-radius: 10px; color: #fde047; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 900; padding: 5px 8px; width: 100%; text-align: center; outline: none; }
+  `;
+  document.head.appendChild(st);
+
+  // 3. TÜM PENCERELERDE KAPATMA (✕ KAPAT) TUŞUNU GARANTİ ALTINA ALAN FONKSİYON
+  window.closeBottomSheetSafe = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.add('hidden');
+    if (typeof closeSheet === 'function') {
+      try { closeSheet(); } catch (e) {}
+    }
+  };
+
+  window.ensureCloseButtonsVisible = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) {
+      // Mevcut kapatma tuşu varsa içini ve görünümünü onar
+      var existingClose = sheet.querySelector('#closeSheetBtn, #sheetClose, [onclick*="closeSheet"], [onclick*="bottomSheet"]');
+      if (existingClose) {
+        existingClose.innerHTML = '✕ KAPAT';
+        existingClose.className = 'royal-close-btn';
+        existingClose.onclick = window.closeBottomSheetSafe;
+      } else {
+        // Yoksa başlığın sağ üstüne doğrudan yerleştir
+        var titleEl = document.getElementById('sheetTitle');
+        if (titleEl && titleEl.parentNode) {
+          var headerRow = titleEl.parentNode.parentNode || titleEl.parentNode;
+          if (!headerRow.querySelector('.royal-close-btn')) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'royal-close-btn';
+            btn.innerHTML = '✕ KAPAT';
+            btn.onclick = window.closeBottomSheetSafe;
+            headerRow.appendChild(btn);
+          }
+        }
+      }
+    }
+  };
+
+  // 4. 0 YAŞINDAN BAŞLAYAN VE ANA EKRAN GÜNLÜĞÜ (LOGS) TAM UYUMLU OYUN NESNESİ
+  window.createCompleteValidGameObject = function (opts) {
+    opts = opts || {};
+    var c = window.getCountry();
+    var baseWage = c.monthlyMinWage || 22104;
+    // Varsayılan başlangıç yaşı: 0 YAŞ (Bebeklik)!
+    var startAge = typeof opts.age === 'number' ? opts.age : 0;
+    var startMoney = typeof opts.money === 'number' ? opts.money : (startAge === 0 ? 0 : Math.round(baseWage * 2));
+    var fName = opts.firstName || 'Çağatay';
+    var lName = opts.lastName || 'Kılıç';
+    var bCity = opts.birthCity || 'İstanbul';
+
+    var birthLogText = '👶 **DÜNYAYA GELDİN:** **' + bCity + '** şehrinde **' + fName + ' ' + lName + '** adıyla hayata gözlerini açtın!';
+    var familyLogText = '👨‍👩‍👦 **AİLE OCAĞI:** Ailen seni sevgiyle kucakladı. Çocukluk yılların başlıyor (+1 Yaş butonuna basarak büyü!).';
+
+    // Hem grup (items/events) hem düz (text) şemayı aynı anda destekleyen Evrensel Log Yapısı
+    var initialLogs = [
+      {
+        age: startAge,
+        text: birthLogText,
+        type: 'milestone',
+        items: [
+          { text: birthLogText, type: 'milestone' },
+          { text: familyLogText, type: 'good' }
+        ],
+        events: [
+          { text: birthLogText, type: 'milestone' },
+          { text: familyLogText, type: 'good' }
+        ]
+      }
+    ];
+
+    return {
+      firstName: fName, lastName: lName, gender: opts.gender || 'Erkek',
+      age: startAge, countryId: 'TR', birthCity: bCity, portraitIdx: 0,
+      money: startMoney, bankSavings: 0, savings: 0, loanDebt: 0, mortgageDebt: 0, creditScore: 1350,
+      health: 95, happy: 90, smart: randInt(70, 92), intel: 82, looks: randInt(72, 92), fame: 0, stress: 0,
+      energy: 100, maxEnergy: 100,
+      eduStage: startAge < 6 ? 'Bebeklik' : (startAge < 14 ? 'İlköğretim' : (startAge < 18 ? 'Lise' : 'Üniversite')),
+      uniYears: 0, uniGrad: false,
+      jobId: null, jobExp: 0, jobPerf: 70, inPrison: false, prisonYears: 0, criminalRecord: false, alive: true,
+      licenses: { B: false, CE: false }, houses: [], cars: [], businesses: [],
+      stockHoldings: {}, cryptoHoldings: {}, stocks: {}, crypto: {},
+      spouse: null, lover: null, children: [], achievements: [],
+      relations: [
+        { id: 'rel_mom', name: 'Anne (' + lName + ')', role: 'Anne', rel: 'Anne', type: 'parent', love: 95, relation: 95, age: 28 + startAge, alive: true },
+        { id: 'rel_dad', name: 'Baba (' + lName + ')', role: 'Baba', rel: 'Baba', type: 'parent', love: 92, relation: 92, age: 31 + startAge, alive: true }
+      ],
+      logs: initialLogs,
+      charLook: {
+        skinId: opts.skinId || 'skin_wheat', hairStyleId: opts.hairStyleId || 'fade_crop',
+        hairColorId: opts.hairColorId || 'hc_darkbrown', beardStyleId: opts.beardStyleId || 'beard_stubble',
+        browStyleId: 'brow_natural', eyeColorId: opts.eyeColorId || 'eye_hazel',
+        outfitId: opts.outfitId || 'out_tshirt', glassesId: 'gl_none', yearsSinceHaircut: 0
+      },
+      creditCard: {
+        hasCard: true,
+        tierId: 'gold',
+        tierName: 'Royal Gold Card',
+        limitMult: 3.5,
+        debt: 0,
+        bonusPoints: 250,
+        lastPaidAge: startAge
+      }
+    };
+  };
+
+  // 5. ANA EKRANDA YILLIK YAPILANLARIN (LOGS) HER ZAMAN YAZMASINI GARANTİ EDEN MOTOR
+  window.normalizeAndRepairLogs = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (!Array.isArray(G.logs)) G.logs = [];
+
+    if (G.logs.length === 0) {
+      var initTxt = '🌟 **' + (G.firstName || 'Oyuncu') + ' ' + (G.lastName || '') + '** (' + (G.birthCity || 'İstanbul') + ') — Hayat yolculuğun devam ediyor.';
+      G.logs.push({
+        age: G.age || 0,
+        text: initTxt,
+        type: 'milestone',
+        items: [{ text: initTxt, type: 'milestone' }],
+        events: [{ text: initTxt, type: 'milestone' }]
+      });
+    }
+
+    // Her log kaydının hem grup (items) hem düz (text) özelliğini doldur ki orijinal renderLogs asla hata vermesin!
+    G.logs.forEach(function (entry) {
+      if (!entry) return;
+      if (typeof entry.age !== 'number') entry.age = G.age || 0;
+      if (Array.isArray(entry.items) && entry.items.length > 0 && !entry.text) {
+        entry.text = entry.items.map(function (x) { return x.text || x; }).join(' • ');
+        entry.type = entry.items[0].type || 'normal';
+      } else if (entry.text && (!Array.isArray(entry.items) || entry.items.length === 0)) {
+        entry.items = [{ text: entry.text, type: entry.type || 'normal' }];
+      }
+      if (!Array.isArray(entry.events)) entry.events = entry.items || [];
+    });
+  };
+
+  window.renderGuaranteedMainTimeline = function () {
+    if (typeof G === 'undefined' || !G) return;
+    window.normalizeAndRepairLogs();
+
+    // Ana ekrandaki log kutusunu bul
+    var logBox = document.getElementById('logContainer') ||
+                 document.getElementById('eventLog') ||
+                 document.getElementById('timeline') ||
+                 document.getElementById('logsContainer') ||
+                 document.getElementById('lifeLog');
+
+    if (!logBox) return;
+
+    // Eğer orijinal renderAll() log kutusunu boş bıraktıysa veya bozuk çizdiyse biz çizelim!
+    var currentText = (logBox.innerText || '').trim();
+    if (currentText.length < 10 || logBox.children.length === 0 || logBox.dataset.royalTimeline === '1') {
+      logBox.dataset.royalTimeline = '1';
+
+      // Yaşlara göre grupla (En son yaş en üstte veya kronolojik)
+      var groupedByAge = {};
+      var ageOrder = [];
+      G.logs.forEach(function (lg) {
+        var a = typeof lg.age === 'number' ? lg.age : 0;
+        if (!groupedByAge[a]) {
+          groupedByAge[a] = [];
+          ageOrder.push(a);
+        }
+        if (Array.isArray(lg.items) && lg.items.length > 0) {
+          lg.items.forEach(function (it) {
+            var t = typeof it === 'string' ? it : (it && it.text ? it.text : '');
+            if (t && groupedByAge[a].indexOf(t) === -1) groupedByAge[a].push(t);
+          });
+        } else if (lg.text) {
+          if (groupedByAge[a].indexOf(lg.text) === -1) groupedByAge[a].push(lg.text);
+        }
+      });
+
+      // En güncel yaş en üstte görünsün
+      ageOrder.sort(function (a, b) { return b - a; });
+
+      logBox.innerHTML = ageOrder.map(function (ageNum) {
+        var lines = groupedByAge[ageNum] || [];
+        return `
+          <div class="year-log-block">
+            <div class="flex items-center justify-between border-b border-amber-400/25 pb-1.5 mb-2">
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-mono-num text-[11px] font-black">
+                ${ageNum} YAŞ
+              </span>
+              <span class="text-[10px] font-bold text-amber-300/80 uppercase tracking-wider">
+                ${ageNum < 6 ? 'Bebeklik Dönemi' : (ageNum < 14 ? 'İlköğretim Yılları' : (ageNum < 18 ? 'Lise & Gençlik' : 'Yetişkinlik & Kariyer'))}
+              </span>
+            </div>
+            <div class="space-y-1.5 text-xs text-slate-100 leading-relaxed">
+              ${lines.map(function (line) {
+                var formatted = String(line).replace(/\*\*([^*]+)\*\*/g, '<strong class="text-amber-300 font-extrabold">$1</strong>');
+                return '<div class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">▸</span><span>' + formatted + '</span></div>';
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  };
+
+  // addLog fonksiyonunu her zaman G.logs'a hatasız yazacak şekilde güçlendir
+  var _prevAddLogV6 = window.addLog;
+  window.addLog = addLog = function (ageOrText, maybeText, maybeType) {
+    if (typeof G === 'undefined' || !G) return;
+    window.normalizeAndRepairLogs();
+
+    var ageVal = typeof ageOrText === 'number' ? ageOrText : (G.age || 0);
+    var txtVal = typeof ageOrText === 'number' ? String(maybeText || '') : String(ageOrText || '');
+    var typeVal = (typeof ageOrText === 'number' ? maybeType : maybeText) || 'normal';
+
+    if (!txtVal) return;
+
+    // Önce orijinal addLog'u dene
+    var prevLen = G.logs.length;
+    if (typeof _prevAddLogV6 === 'function') {
+      try { _prevAddLogV6(ageVal, txtVal, typeVal); } catch (e) {}
+    }
+
+    // Aynı yaşa ait grup varsa içine de ekle, yoksa yeni yaş bloğu aç
+    var existingAgeBlock = G.logs.find(function (x) { return x && x.age === ageVal; });
+    if (existingAgeBlock) {
+      if (!Array.isArray(existingAgeBlock.items)) existingAgeBlock.items = [];
+      var alreadyIn = existingAgeBlock.items.some(function (i) { return (i.text || i) === txtVal; });
+      if (!alreadyIn) {
+        existingAgeBlock.items.push({ text: txtVal, type: typeVal });
+        existingAgeBlock.text = existingAgeBlock.items.map(function (i) { return i.text || i; }).join(' • ');
+      }
+    } else if (G.logs.length === prevLen) {
+      G.logs.push({
+        age: ageVal,
+        text: txtVal,
+        type: typeVal,
+        items: [{ text: txtVal, type: typeVal }],
+        events: [{ text: txtVal, type: typeVal }]
+      });
+    }
+
+    window.renderGuaranteedMainTimeline();
+  };
+
+  // +1 Yaş ilerlediğinde çocukluk/okul/hayat olaylarının ana ekrana yazılmasını garanti et
+  var _prevAdvanceAgeV6 = window.advanceAge;
+  window.advanceAge = advanceAge = function () {
+    if (typeof G === 'undefined' || !G) return;
+    var oldAge = G.age || 0;
+
+    if (typeof _prevAdvanceAgeV6 === 'function') {
+      try { _prevAdvanceAgeV6(); } catch (e) {}
+    }
+    if ((G.age || 0) === oldAge) {
+      G.age = oldAge + 1;
+    }
+
+    // Eğitim kademesini yaşa göre güncelle
+    if (G.age === 6) {
+      G.eduStage = 'İlkokul';
+      window.addLog(G.age, '🎒 **OKULA BAŞLADIN:** İlkokul 1. sınıfa başladın! Okuma yazmayı söküyorsun.', 'milestone');
+    } else if (G.age === 14) {
+      G.eduStage = 'Lise';
+      window.addLog(G.age, '🏫 **LİSE YILLARI:** Liseye geçtin! Arkadaş çevren ve hedeflerin şekilleniyor.', 'milestone');
+    } else if (G.age === 18) {
+      G.eduStage = 'Üniversite / Kariyer';
+      var gift = Math.round(window.getCountry().monthlyMinWage * 1.5);
+      G.money = (G.money || 0) + gift;
+      window.addLog(G.age, '🎓 **18 YAŞ REŞİTLİK:** Artık reşitsin! Ailen başlangıç harçlığı olarak **' + window.fmtMoney(gift) + '** verdi. Ehliyet, üniversite, iş ve kredi kartı kapıları açıldı!', 'milestone');
+    }
+
+    // O yaşta hiç günlük satırı oluşmadıysa yaşa uygun özet satırı ekle
+    var hasLogForThisAge = G.logs && G.logs.some(function (x) { return x && x.age === G.age; });
+    if (!hasLogForThisAge) {
+      if (G.age < 6) {
+        var babyLogs = [
+          '🍼 Ailenle birlikte sağlıklı ve neşeli bir yıl geçirdin (+Mutluluk).',
+          '🧸 İlk kelimelerini söyledin ve evin içinde koşuşturmaya başladın!',
+          '🎨 Oyun parkında yeni arkadaşlar edindin, zekan gelişiyor.'
+        ];
+        window.addLog(G.age, babyLogs[G.age % babyLogs.length], 'good');
+      } else if (G.age < 18) {
+        var schoolLogs = [
+          '📚 Derslerine çalıştın ve okulda başarılı bir dönem geçirdin.',
+          '⚽ Okul bahçesinde arkadaşlarınla maç yaptın, enerjin tavan yaptı!',
+          '🏆 Karnende takdir belgesi alarak aileni gururlandırdın!'
+        ];
+        window.addLog(G.age, schoolLogs[G.age % schoolLogs.length], 'good');
+      } else {
+        window.addLog(G.age, '📅 **' + G.age + ' yaşına** girdin. Yeni fırsatlar ve kararlar seni bekliyor.', 'normal');
+      }
+    }
+
+    // Kredi kartı yıllık faiz / Findeks güncellemesi
+    window.processAnnualCreditCardTurn();
+    window.renderGuaranteedMainTimeline();
+    if (typeof renderAll === 'function') renderAll();
+  };
+
+  // 6. GERÇEK VIP KREDİ KARTI & FİNDEKS BANKACILIK SİSTEMİ
+  var CREDIT_CARD_TIERS = [
+    { id: 'classic', name: 'Royal Classic Card', minFindeks: 0, limitMult: 2.0, cashbackRate: 0.02 },
+    { id: 'gold', name: 'Royal Gold Card', minFindeks: 1250, limitMult: 4.5, cashbackRate: 0.04 },
+    { id: 'platinum', name: 'Royal Platinum VIP', minFindeks: 1500, limitMult: 10.0, cashbackRate: 0.06 },
+    { id: 'black', name: 'Royal World Black 4K', minFindeks: 1720, limitMult: 25.0, cashbackRate: 0.10 }
+  ];
+
+  window.ensureCreditCardState = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (!G.creditCard) {
+      G.creditCard = {
+        hasCard: true,
+        tierId: 'gold',
+        tierName: 'Royal Gold Card',
+        limitMult: 4.5,
+        debt: 0,
+        bonusPoints: 500,
+        lastPaidAge: G.age || 18
+      };
+    }
+    // Eski fxGold içindeki kredi kartı borcunu buraya birleştir ve sıfırla
+    if (G.fxGold && G.fxGold.ccStatementDebt > 0) {
+      G.creditCard.debt += G.fxGold.ccStatementDebt;
+      G.fxGold.ccStatementDebt = 0;
+    }
+  };
+
+  window.processAnnualCreditCardTurn = function () {
+    if (typeof G === 'undefined' || !G) return;
+    window.ensureCreditCardState();
+    var cc = G.creditCard;
+    if (cc.debt > 0) {
+      var interest = Math.round(cc.debt * 0.24);
+      cc.debt += interest;
+      G.creditScore = Math.max(600, (G.creditScore || 1350) - 35);
+      window.addLog(G.age, '💳 **KREDİ KARTI EKSTRESİ:** Ödenmeyen dönem borcuna **' + window.fmtMoney(interest) + '** akdi faiz işledi. Toplam borç: **' + window.fmtMoney(cc.debt) + '**.', 'bad');
+    } else if (G.age >= 18) {
+      G.creditScore = Math.min(1900, (G.creditScore || 1350) + 15);
+    }
+  };
+
+  window.openCreditCardCenterModal = function () {
+    window.ensureCreditCardState();
+    var sheet = document.getElementById('bottomSheet');
+    if (!sheet) return;
+    sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '💳 Royal Bank VIP Kredi Kartı Merkezi';
+    document.getElementById('sheetSubtitle').textContent = 'Findeks Kredi Notu: ' + (G.creditScore || 1350) + ' / 1900 • Nakit: ' + window.fmtMoney(G.money);
+
+    var c = window.getCountry();
+    var cc = G.creditCard;
+    var totalLimit = Math.round(c.monthlyMinWage * cc.limitMult);
+    var availLimit = Math.max(0, totalLimit - cc.debt);
+    var minPay = Math.round(cc.debt * 0.20);
+    var shopAmt = Math.round(c.monthlyMinWage * 0.50);
+    var cashAdvAmt = Math.round(c.monthlyMinWage * 1.0);
+
+    document.getElementById('sheetBody').innerHTML = `
+      <div class="space-y-3 pb-4">
+        <!-- Gerçekçi Çipli VIP Kredi Kartı Görseli -->
+        <div class="vip-credit-card-visual space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[9px] font-black text-amber-300 uppercase tracking-widest">ROYAL BANK OF TURKEY • WORLD VIP</div>
+              <div class="text-sm font-black text-white">${cc.tierName}</div>
+            </div>
+            <div class="card-chip-gold"></div>
+          </div>
+
+          <div class="font-mono-num text-base font-black tracking-widest text-amber-200">
+            5406 •••• •••• ${1000 + ((G.age || 18) * 37) % 8999}
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-1 border-t border-white/15 text-[10px]">
+            <div>
+              <span class="text-slate-400 block">KART SAHİBİ</span>
+              <strong class="text-white uppercase truncate block">${G.firstName} ${G.lastName}</strong>
+            </div>
+            <div>
+              <span class="text-slate-400 block">KULLANILABİLİR LİMİT</span>
+              <strong class="text-emerald-400 font-mono-num">${window.fmtMoney(availLimit)}</strong>
+            </div>
+            <div class="text-right">
+              <span class="text-slate-400 block">TOPLAM LİMİT</span>
+              <strong class="text-amber-300 font-mono-num">${window.fmtMoney(totalLimit)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ekstre, Borç ve WorldPuan Özeti -->
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-rose-500/40">
+            <div class="text-[9px] font-bold text-rose-300 uppercase">DÖNEM BORCU</div>
+            <div class="text-xs font-mono-num font-black text-white mt-0.5">${window.fmtMoney(cc.debt)}</div>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-amber-400/40">
+            <div class="text-[9px] font-bold text-amber-300 uppercase">ASGARİ ÖDEME (%20)</div>
+            <div class="text-xs font-mono-num font-black text-white mt-0.5">${window.fmtMoney(minPay)}</div>
+          </div>
+          <div class="p-2.5 rounded-2xl bg-slate-950/90 border border-emerald-400/40">
+            <div class="text-[9px] font-bold text-emerald-300 uppercase">WORLDPUAN (ÖDÜL)</div>
+            <div class="text-xs font-mono-num font-black text-emerald-400 mt-0.5">${window.fmtMoney(cc.bonusPoints)}</div>
+          </div>
+        </div>
+
+        <!-- Kredi Kartı İşlem Butonları -->
+        <div class="space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase tracking-wider px-1">KART İŞLEMLERİ &amp; HARCAMA</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="window.execCreditCardAction('shop', ${shopAmt})" class="p-3 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-700 border border-amber-300/50 text-left">
+              <div class="text-xs font-black text-white">🛍️ VIP Alışveriş Yap</div>
+              <div class="text-[10px] text-amber-200 font-mono-num">${window.fmtMoney(shopAmt)} (+Mutluluk &amp; Puan)</div>
+            </button>
+            <button onclick="window.execCreditCardAction('cash_advance', ${cashAdvAmt})" class="p-3 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-700 border border-sky-300/50 text-left">
+              <div class="text-xs font-black text-white">💵 Nakit Avans Çek</div>
+              <div class="text-[10px] text-sky-200 font-mono-num">+${window.fmtMoney(cashAdvAmt)} Cüzdana Geçer</div>
+            </button>
+          </div>
+
+          <div class="text-[10px] font-black text-emerald-300 uppercase tracking-wider px-1 pt-1">BORÇ ÖDEME &amp; LİMİT YÜKSELTME</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="window.execCreditCardAction('pay_full', 0)" class="p-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 text-left">
+              <div class="text-xs font-black">✅ Tüm Borcu Kapat</div>
+              <div class="text-[10px] font-extrabold">${window.fmtMoney(cc.debt)} (+30 Findeks Puanı)</div>
+            </button>
+            <button onclick="window.execCreditCardAction('pay_min', 0)" class="p-3 rounded-2xl bg-slate-900 border border-amber-400/50 text-left">
+              <div class="text-xs font-black text-amber-300">⏳ Asgari Tutar Öde (%20)</div>
+              <div class="text-[10px] text-slate-300 font-mono-num">${window.fmtMoney(minPay)} Öde</div>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="window.execCreditCardAction('upgrade_limit', 0)" class="p-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">
+              🚀 Kart Limitini Yükselt
+            </button>
+            <button onclick="window.execCreditCardAction('redeem_points', 0)" class="p-2.5 rounded-xl bg-purple-600 border border-amber-300 text-white text-xs font-black">
+              🎁 Puanları Nakite Çevir
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    window.ensureCloseButtonsVisible();
+  };
+
+  window.execCreditCardAction = function (act, amount) {
+    window.ensureCreditCardState();
+    var c = window.getCountry();
+    var cc = G.creditCard;
+    var totalLimit = Math.round(c.monthlyMinWage * cc.limitMult);
+    var availLimit = Math.max(0, totalLimit - cc.debt);
+
+    if (act === 'shop') {
+      if (availLimit < amount) { showToast('Kart kullanılabilir limitin yetersiz!'); return; }
+      cc.debt += amount;
+      var earnedPts = Math.round(amount * 0.06);
+      cc.bonusPoints += earnedPts;
+      G.happy = Math.min(100, (G.happy || 75) + 8);
+      G.looks = Math.min(100, (G.looks || 75) + 3);
+      window.addLog(G.age, '💳 **KREDİ KARTI HARCAMASI:** Kartınla **' + window.fmtMoney(amount) + '** tutarında lüks alışveriş yaptın (+8 Mutluluk, +' + window.fmtMoney(earnedPts) + ' WorldPuan).', 'good');
+    } else if (act === 'cash_advance') {
+      if (availLimit < amount) { showToast('Nakit avans için kart limitin yetersiz!'); return; }
+      var fee = Math.round(amount * 0.05);
+      cc.debt += (amount + fee);
+      G.money += amount;
+      window.addLog(G.age, '💵 **TAKSiTLİ NAKİT AVANS:** Kredi kartından **+' + window.fmtMoney(amount) + '** nakit avans çekip cüzdanına aktardın.', 'normal');
+    } else if (act === 'pay_full') {
+      if (cc.debt <= 0) { showToast('Kredi kartı borcun bulunmuyor!'); return; }
+      if (G.money < cc.debt) { showToast('Tüm borcu kapatmak için nakit bakiyen yetersiz!'); return; }
+      var paid = cc.debt;
+      G.money -= paid;
+      cc.debt = 0;
+      G.creditScore = Math.min(1900, (G.creditScore || 1350) + 30);
+      window.addLog(G.age, '✅ **KART EKSTRESİ KAPATILDI:** **' + window.fmtMoney(paid) + '** kredi kartı borcunun tamamını ödedin! Findeks notun **' + G.creditScore + '** puana yükseldi.', 'good');
+    } else if (act === 'pay_min') {
+      if (cc.debt <= 0) { showToast('Kredi kartı borcun bulunmuyor!'); return; }
+      var minPay = Math.max(100, Math.round(cc.debt * 0.20));
+      if (G.money < minPay) { showToast('Asgari ödeme için nakit yetersiz!'); return; }
+      G.money -= minPay;
+      cc.debt -= minPay;
+      G.creditScore = Math.min(1900, (G.creditScore || 1350) + 5);
+      window.addLog(G.age, '💳 **ASGARİ ÖDEME YAPILDI:** Kredi kartı borcunun asgari tutarı olan **' + window.fmtMoney(minPay) + '** ödendi.', 'normal');
+    } else if (act === 'upgrade_limit') {
+      var score = G.creditScore || 1350;
+      if (cc.debt > totalLimit * 0.5) {
+        showToast('Limit artışı için önce mevcut kart borcunun en az yarısını kapatmalısın!');
+        return;
+      }
+      cc.limitMult = Number((cc.limitMult * 1.6).toFixed(1));
+      if (score >= 1700) cc.tierName = 'Royal World Black 4K';
+      else if (score >= 1500) cc.tierName = 'Royal Platinum VIP';
+      else cc.tierName = 'Royal Gold Plus Card';
+      var newLim = Math.round(c.monthlyMinWage * cc.limitMult);
+      window.addLog(G.age, '🚀 **KREDİ KARTI LİMİT ARTIŞI:** Banka talebini onayladı! Yeni kartın **' + cc.tierName + '**, yeni limitin **' + window.fmtMoney(newLim) + '** oldu!', 'fame');
+    } else if (act === 'redeem_points') {
+      if (cc.bonusPoints <= 0) { showToast('Birikmiş WorldPuan bulunmuyor!'); return; }
+      var pts = cc.bonusPoints;
+      G.money += pts;
+      cc.bonusPoints = 0;
+      showToast('🎁 +' + window.fmtMoney(pts) + ' WorldPuan cüzdanına nakit aktarıldı!');
+    }
+
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openCreditCardCenterModal();
+  };
+
+  // 7. BEĞENDİĞİN CASINO RENKLERİYLE (MOR / ALTIN / NEON) YENİLENMİŞ YÖNETİM MENÜSÜ
+  window.renderRoyalCasinoStyledMenu = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    window.ensureCreditCardState();
+
+    var titleEl = document.getElementById('sheetTitle');
+    var subEl = document.getElementById('sheetSubtitle');
+    if (titleEl) titleEl.textContent = '👑 ROYAL VIP YÖNETİM & YAŞAM MERKEZİ';
+    if (subEl) subEl.textContent = G.firstName + ' ' + G.lastName + ' (' + G.age + ' Yaş) • Bakiye: ' + window.fmtMoney(G.money);
+
+    // Orijinal menünün alt sekmelerini oku (hiçbir özellik kaybolmasın)
+    var rawButtons = Array.from(body.querySelectorAll('button'));
+    var seen = {};
+    var menuCards = [];
+
+    rawButtons.forEach(function (btn) {
+      var oc = (btn.getAttribute('onclick') || '').trim();
+      if (!oc) return;
+      if (/casino|gambling|openVIPCasinoModal|openBarberAndSalonModal|openCreditCardCenterModal|openSingleStartMenu/.test(oc)) return;
+      if (seen[oc]) return;
+      seen[oc] = true;
+
+      var lines = btn.innerText.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+      var title = lines[0] || 'Bölüm';
+      var desc = lines[1] || 'Görüntüle ve yönet';
+
+      menuCards.push({
+        onclick: oc.replace(/"/g, '&quot;'),
+        title: title,
+        desc: desc
+      });
+    });
+
+    var c = window.getCountry();
+    var ccLimit = Math.round(c.monthlyMinWage * (G.creditCard.limitMult || 4.5));
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 1. VİTRİN: PRAGMATIC PLAY VIP CASINO (SWEET BONANZA & OLYMPUS) -->
+        <div onclick="window.openVIPCasinoModal('bonanza')" class="royal-hero-card">
+          <div>
+            <span class="royal-tile-badge">🎰 PRAGMATIC PLAY LIVE LOUNGE</span>
+            <div class="text-base font-black text-white mt-1">VIP Royal Casino &amp; Slot Merkezi</div>
+            <div class="text-xs text-amber-200">Sweet Bonanza 1000 • Gates of Olympus 1000 • Blackjack</div>
+          </div>
+          <span class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-300 to-yellow-500 text-slate-950 text-xs font-black shrink-0 shadow-lg">
+            OYNA &rarr;
+          </span>
+        </div>
+
+        <!-- 2. VİTRİN: ROYAL BANK VIP KREDİ KARTI & FİNDEKS MERKEZİ -->
+        <div onclick="window.openCreditCardCenterModal()" class="royal-hero-card" style="background: linear-gradient(135deg, #1e1b4b 0%, #3b0764 55%, #831843 100%);">
+          <div>
+            <span class="royal-tile-badge">💳 ROYAL BANK WORLD VIP</span>
+            <div class="text-base font-black text-white mt-1">Kredi Kartı, Nakit Avans &amp; Limit</div>
+            <div class="text-xs text-pink-200">Kart Limitin: ${window.fmtMoney(ccLimit)} • Borç: ${window.fmtMoney(G.creditCard.debt)}</div>
+          </div>
+          <span class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-black shrink-0 shadow-lg">
+            KARTIM &rarr;
+          </span>
+        </div>
+
+        <!-- 3. VİTRİN: KARAKTER, BERBER, KUAFÖR & STİL STÜDYOSU -->
+        <div onclick="if(typeof openBarberAndSalonModal==='function') openBarberAndSalonModal();" class="royal-hero-card" style="background: linear-gradient(135deg, #311042 0%, #1e1b4b 60%, #0f172a 100%);">
+          <div>
+            <span class="royal-tile-badge">💈 KARAKTER &amp; STİL STÜDYOSU</span>
+            <div class="text-base font-black text-white mt-1">VIP Kuaför, Saç Boyama &amp; Kombin</div>
+            <div class="text-xs text-sky-200">Mevcut Karizma / Görünüm: %${G.looks}</div>
+          </div>
+          <span class="px-3.5 py-2.5 rounded-xl bg-sky-400 text-slate-950 text-xs font-black shrink-0 shadow-lg">
+            AYNA &rarr;
+          </span>
+        </div>
+
+        <!-- TÜM OYUN BÖLÜMLERİ (CASINO RENKLERİNDE ROYAL BENTO KARTLAR) -->
+        <div class="royal-bento-grid">
+          ${menuCards.map(function (mc) {
+            return `
+              <button type="button" onclick="${mc.onclick}" class="royal-menu-tile">
+                <div class="flex items-center justify-between w-full mb-1.5">
+                  <span class="royal-tile-badge">VIP BÖLÜM</span>
+                  <span class="text-amber-300 font-black text-xs">&rarr;</span>
+                </div>
+                <div>
+                  <div class="text-xs font-black text-white leading-snug">${mc.title}</div>
+                  <div class="text-[10px] text-pink-200/80 mt-0.5 line-clamp-1">${mc.desc}</div>
+                </div>
+              </button>
+            `;
+          }).join('')}
+
+          <!-- 0 Yaşından Yeni Karakter / Kayıt Slotu Değiştirme Kartı -->
+          <button type="button" onclick="window.closeBottomSheetSafe(); window.openSingleStartMenu(true);" class="royal-menu-tile">
+            <div class="flex items-center justify-between w-full mb-1.5">
+              <span class="royal-tile-badge">3 KAYIT SLOTU</span>
+              <span class="text-amber-300 font-black text-xs">🔄</span>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white leading-snug">Kayıt Slotları &amp; 0 Yaş Yeni Hayat</div>
+              <div class="text-[10px] text-amber-200/80 mt-0.5">Aktif Slot #0${window.currentSelectedSlot || 1} • Değiştir / Sıfırla</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    `;
+    window.ensureCloseButtonsVisible();
+  };
+
+  // 8. FİNANS SEKMESİNE GERÇEK KREDİ KARTI KUTUSUNU EKLE VE ESKİ BOZUK KARTI TEMİZLE
+  var _prevOpenNavV6 = window.openNavSheet;
+  window.openNavSheet = openNavSheet = function (tab) {
+    if (typeof _prevOpenNavV6 === 'function') _prevOpenNavV6(tab);
+    window.ensureCloseButtonsVisible();
+
+    if (tab === 'menu') {
+      window.renderRoyalCasinoStyledMenu();
+    } else if (tab === 'finance') {
+      window.ensureCreditCardState();
+      var body = document.getElementById('sheetBody');
+      if (body) {
+        // Eski yarım kredi kartı satırlarını temizle, yerine tam VIP Kredi Kartı girişini koy
+        var oldCcBox = document.getElementById('financeRoyalCreditCardBanner');
+        if (oldCcBox) oldCcBox.remove();
+
+        var c = window.getCountry();
+        var cc = G.creditCard;
+        var lim = Math.round(c.monthlyMinWage * cc.limitMult);
+
+        body.insertAdjacentHTML('afterbegin', `
+          <div id="financeRoyalCreditCardBanner" onclick="window.openCreditCardCenterModal()" class="royal-hero-card mb-3">
+            <div>
+              <span class="royal-tile-badge">💳 ${cc.tierName} • FİNDEKS: ${G.creditScore || 1350}</span>
+              <div class="text-sm font-black text-white mt-1">VIP Kredi Kartı &amp; Nakit Avans Merkezi</div>
+              <div class="text-[11px] text-amber-200">Limit: ${window.fmtMoney(lim)} • Dönem Borcu: ${window.fmtMoney(cc.debt)}</div>
+            </div>
+            <span class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">YÖNET &rarr;</span>
+          </div>
+        `);
+      }
+    }
+  };
+
+  var _prevOpenMenuSecV6 = window.openMenuSection;
+  window.openMenuSection = openMenuSection = function (sec) {
+    if (typeof _prevOpenMenuSecV6 === 'function') _prevOpenMenuSecV6(sec);
+    window.ensureCloseButtonsVisible();
+  };
+
+  var _prevRenderAllV6 = window.renderAll;
+  window.renderAll = renderAll = function () {
+    if (typeof window.destroyAllLegacyStartScreens === 'function') window.destroyAllLegacyStartScreens();
+    if (typeof window.healGameState === 'function') window.healGameState();
+    window.normalizeAndRepairLogs();
+    if (typeof _prevRenderAllV6 === 'function') {
+      try { _prevRenderAllV6(); } catch (e) {}
+    }
+    window.renderGuaranteedMainTimeline();
+    window.ensureCloseButtonsVisible();
+  };
+
+  // İlk yüklemede ana ekran günlüğünü ve kapatma tuşlarını hemen aktif et
+  setTimeout(function () {
+    if (typeof G !== 'undefined' && G) {
+      window.ensureCreditCardState();
+      window.renderGuaranteedMainTimeline();
+      window.ensureCloseButtonsVisible();
+    }
+  }, 120);
+})();
