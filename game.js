@@ -14968,3 +14968,391 @@ window.renderVIPCasinoModal = function () {
     window.openSingleStartMenu(false);
   }, 60);
 })();
+
+/* ============================================================================
+   MASTER EXECUTIVE OVERHAUL V5 (SADECE GAME.JS EN ALTINA YAPIŞTIRIN)
+   1. Eski 2. Giriş Ekranını Tespit Edip DOM'dan Kalıcı Olarak Siler
+   2. Tüm Oyundaki (HUD, Log, Kariyer, Finans, Menü, Modal) Emojileri Kazır
+   3. Tüm Arayüzü 1. Sınıf Koyu Kurumsal (Executive Glass) Tasarıma Dönüştürür
+   ============================================================================ */
+(function () {
+  if (window._masterExecutiveV5Loaded) return;
+  window._masterExecutiveV5Loaded = true;
+
+  // 1. GLOBAL EMOJİ SİLİCİ REGEX VE YARDIMCI FONKSİYONLAR
+  var EMOJI_CLEAN_REGEX = /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}\u{FE0F}]/gu;
+
+  window.stripEmojisGlobal = function (str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(EMOJI_CLEAN_REGEX, '').replace(/\s{2,}/g, ' ').trim();
+  };
+
+  // DOM İçindeki Tüm Metin Düğümlerinden Emojileri Anında Kazır
+  window.scrubAllEmojisInNode = function (root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue && EMOJI_CLEAN_REGEX.test(node.nodeValue)) {
+        node.nodeValue = node.nodeValue.replace(EMOJI_CLEAN_REGEX, '').replace(/^\s+/, '');
+      }
+    }
+  };
+
+  // 2. 1. SINIF KURUMSAL (EXECUTIVE 4K) GLOBAL CSS TASARIMI
+  var prevStyle = document.getElementById('pragmaticMasterAutoStyles');
+  if (prevStyle) prevStyle.remove();
+
+  var styleEl = document.createElement('style');
+  styleEl.id = 'pragmaticMasterAutoStyles';
+  styleEl.textContent = `
+    /* İstenmeyen Harita ve Eski Barları Kaldır */
+    #cityMapRootContainer, #menuMapSettingsBar, .avatar-ring-svg, .sticky-modal-hud {
+      display: none !important;
+    }
+
+    /* Genel Oyun Zemini ve Tipografi Kalitesi */
+    body, #appShell {
+      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #070b14 60%, #020617 100%) !important;
+      color: #f8fafc !important;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      letter-spacing: -0.01em;
+    }
+
+    /* Üst HUD ve Kartları 1. Sınıf Koyu Cam (Obsidian Glass) Yap */
+    header, #topHud, .hud-card {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(9, 13, 22, 0.98) 100%) !important;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65) !important;
+    }
+
+    /* Olay Geçmişi (Log) Kartlarını Modernize Et */
+    #logContainer > div, #timeline > div, .log-entry-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.92) 0%, rgba(9, 13, 22, 0.96) 100%) !important;
+      border: 1px solid rgba(148, 163, 184, 0.16) !important;
+      border-left: 3.5px solid #38bdf8 !important;
+      border-radius: 16px !important;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    /* Alt Çekmece (Bottom Sheet) ve Olay Pencereleri (Event Modal) */
+    #bottomSheet > div, #eventModal > div {
+      background: linear-gradient(170deg, #0f172a 0%, #090d16 70%, #020617 100%) !important;
+      border-top: 1.5px solid rgba(56, 189, 248, 0.35) !important;
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.85) !important;
+    }
+
+    /* Çekmece İçindeki Tüm Standart Kartları ve Butonları Kaliteli Hale Getir */
+    #sheetBody .rounded-2xl, #sheetBody .rounded-xl {
+      border-color: rgba(148, 163, 184, 0.18) !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    #sheetBody button, #eventModal button {
+      font-weight: 800 !important;
+      letter-spacing: 0.01em !important;
+      transition: transform 0.14s ease, filter 0.14s ease, border-color 0.14s ease !important;
+    }
+    #sheetBody button:active, #eventModal button:active {
+      transform: scale(0.97) !important;
+    }
+
+    /* Tekil Sinematik Giriş Ekranı */
+    .cinematic-main-menu {
+      position: fixed; inset: 0; z-index: 99990;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(234, 179, 8, 0.12) 0%, transparent 45%),
+        linear-gradient(180deg, #050811 0%, #0b1120 55%, #020617 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+    .save-slot-card {
+      width: 100%; max-width: 440px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(7, 11, 20, 0.99) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.32); border-left: 4px solid #38bdf8;
+      border-radius: 18px; padding: 15px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.75);
+    }
+    .char-creator-modal {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto;
+    }
+    .char-creator-box {
+      width: 100%; max-width: 450px;
+      background: linear-gradient(165deg, #0f172a 0%, #090d16 70%, #172554 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.5); border-radius: 26px; padding: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+    }
+    .creator-preview-frame {
+      width: 112px; height: 124px; border-radius: 20px; border: 2.5px solid #38bdf8;
+      overflow: hidden; background: #0f172a; margin: 0 auto;
+    }
+
+    /* 4K Bento Menü Kartları */
+    .hd-menu-hero-card {
+      position: relative; overflow: hidden; border-radius: 20px; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      cursor: pointer; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+    }
+    .hd-menu-bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .hd-menu-tile {
+      background: linear-gradient(155deg, rgba(15, 23, 42, 0.96) 0%, rgba(9, 13, 22, 0.99) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 18px; padding: 13px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 98px; text-align: left; cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+    .hd-icon-box {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    /* Pragmatic Play 1:1 Slot Stilleri */
+    .sb1000-cabinet { background: radial-gradient(circle at 15% 15%, rgba(255,255,255,0.45) 0%, transparent 35%), linear-gradient(180deg, #38bdf8 0%, #f472b6 48%, #ec4899 78%, #be185d 100%); border: 3px solid #fde047; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(190,24,93,0.55); }
+    .sb1000-reel-frame { background: linear-gradient(180deg, rgba(255,245,250,0.96), rgba(252,231,243,0.94)); border: 4px solid #f59e0b; outline: 2px solid #ec4899; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .sb1000-cell { aspect-ratio: 1/1; border-radius: 11px; background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.98), rgba(251,207,232,0.6)); border: 1px solid rgba(244,114,182,0.4); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; }
+    .go1000-cabinet { background: radial-gradient(circle at 80% 18%, rgba(56,189,248,0.4) 0%, transparent 40%), linear-gradient(180deg, #1e1b4b 0%, #3b0764 52%, #172554 100%); border: 3px solid #facc15; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(0,0,0,0.8); }
+    .go1000-reel-frame { background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(23,15,45,0.98)); border: 4px solid #eab308; outline: 2px solid #fef08a; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .go1000-cell { aspect-ratio: 1/1; border-radius: 10px; background: radial-gradient(circle at 50% 35%, rgba(51,65,85,0.8), rgba(15,23,42,0.96)); border: 1px solid rgba(250,204,21,0.3); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; }
+    .cell-tumble-win { background: radial-gradient(circle, #fef08a 0%, #f59e0b 75%, #b45309 100%) !important; border: 2px solid #ffffff !important; box-shadow: 0 0 18px #facc15 !important; transform: scale(1.07); z-index: 5; }
+    .pragmatic-top-banner { background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%); border: 2px solid #fde047; border-radius: 999px; padding: 5px 14px; text-align: center; color: #ffffff; font-weight: 900; font-size: 11px; letter-spacing: 0.04em; }
+    .pragmatic-bottom-hud { background: rgba(9,13,22,0.95); border: 1.5px solid rgba(255,255,255,0.16); border-radius: 18px; padding: 10px; color: #ffffff; }
+    .pragmatic-spin-btn { width: 62px; height: 62px; border-radius: 999px; background: radial-gradient(circle at 30% 25%, #ffffff 0%, #e2e8f0 50%, #94a3b8 100%); border: 4px solid #facc15; box-shadow: 0 0 22px rgba(250,204,21,0.75); color: #0f172a; font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .bet-manual-input { background: #020617; border: 1.5px solid #facc15; border-radius: 10px; color: #fde047; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 900; padding: 5px 8px; width: 100%; text-align: center; outline: none; }
+  `;
+  document.head.appendChild(styleEl);
+
+  // 3. ESKİ 2. GİRİŞ EKRANINI BULUP DOM'DAN KALICI OLARAK SİLEN AKILLI TARAYICI
+  window.destroyAllLegacyStartScreens = function () {
+    // A) Bilinen tüm başlangıç ekranı ID'lerini doğrudan sil
+    ['startModal', 'introModal', 'newGameModal', 'welcomeModal', 'setupModal', 'startScreen', 'newLifeModal', 'birthModal', 'createModal', 'onboardingModal'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+
+    // B) ID'si farklı olsa bile sayfadaki tüm fixed/modal katmanları tara;
+    // içinde isim/cinsiyet/ülke inputu veya "Yeni Hayat / Hayata Başla" butonu olan eski giriş ekranını bul ve sil!
+    var candidates = document.querySelectorAll('.fixed, [class*="inset-0"], [id*="Modal"], [id*="Screen"]');
+    candidates.forEach(function (el) {
+      if (!el || !el.parentNode) return;
+      var id = el.id || '';
+      if (id === 'cinematicMainMenuRoot' || id === 'charCreatorModalRoot' || id === 'appShell' || id === 'bottomSheet' || id === 'eventModal') return;
+
+      var txt = (el.innerText || '').toLowerCase();
+      var hasInputs = el.querySelectorAll('input, select').length >= 1;
+      if (hasInputs && (txt.indexOf('hayat') !== -1 || txt.indexOf('başla') !== -1 || txt.indexOf('karakter') !== -1 || txt.indexOf('isim') !== -1 || txt.indexOf('adın') !== -1 || txt.indexOf('ülke') !== -1 || txt.indexOf('cinsiyet') !== -1)) {
+        el.remove();
+      }
+    });
+
+    // C) Eğer eski giriş ekranı #eventModal içine çizildiyse ve oyun yeni başlıyorsa onu da kapat
+    var evModal = document.getElementById('eventModal');
+    if (evModal && !evModal.classList.contains('hidden')) {
+      var evTxt = (evModal.innerText || '').toLowerCase();
+      if (evModal.querySelectorAll('input, select').length >= 1 || evTxt.indexOf('yeni hayat') !== -1 || evTxt.indexOf('karakter oluştur') !== -1) {
+        evModal.classList.add('hidden');
+      }
+    }
+
+    // D) Ana oyun kabuğunu (#appShell) görünür tut
+    var shell = document.getElementById('appShell');
+    if (shell) shell.classList.remove('hidden');
+  };
+
+  // Orijinal oyunun eski giriş ekranı açma fonksiyonlarını etkisizleştir
+  ['openStartModal', 'showStartModal', 'openNewGameModal', 'showNewGameModal', 'openIntroModal', 'initStartScreen'].forEach(function (fnName) {
+    if (typeof window[fnName] === 'function') {
+      window[fnName] = function () { window.destroyAllLegacyStartScreens(); };
+    }
+  });
+
+  // 4. ALT NAVİGASYON BARINDAKİ EMOJİLERİ SİLİP 4K VEKTÖREL İKONLARA DÖNÜŞTÜRME
+  function upgradeBottomNavBarToVectors() {
+    var navButtons = document.querySelectorAll('nav button, footer button, [onclick*="openNavSheet"], #ageBtn, [onclick*="advanceAge"]');
+    navButtons.forEach(function (btn) {
+      if (btn.dataset.vectorUpgraded === '1') return;
+      var oc = (btn.getAttribute('onclick') || '') + ' ' + (btn.id || '') + ' ' + (btn.innerText || '');
+      var lower = oc.toLowerCase();
+
+      var svgIcon = '';
+      var cleanLabel = '';
+
+      if (lower.indexOf('career') !== -1 || lower.indexOf('kariyer') !== -1 || lower.indexOf('iş') !== -1) {
+        cleanLabel = 'Kariyer';
+        svgIcon = '<svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-0.5" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="2" y1="13" x2="22" y2="13"/></svg>';
+      } else if (lower.indexOf('finance') !== -1 || lower.indexOf('finans') !== -1 || lower.indexOf('서vet') !== -1 || lower.indexOf('para') !== -1) {
+        cleanLabel = 'Finans';
+        svgIcon = '<svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-0.5" fill="none" stroke="#10b981" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+      } else if (lower.indexOf('advanceage') !== -1 || lower.indexOf('agebtn') !== -1 || lower.indexOf('+1') !== -1 || lower.indexOf('yaş') !== -1) {
+        btn.dataset.vectorUpgraded = '1';
+        btn.innerHTML = '<div class="flex flex-col items-center justify-center leading-none"><span class="text-sm font-black tracking-wider text-slate-950">+1 YAŞ</span><span class="text-[8.5px] font-extrabold text-slate-900 uppercase mt-0.5">İLERLE</span></div>';
+        return;
+      } else if (lower.indexOf('rel') !== -1 || lower.indexOf('ilişki') !== -1 || lower.indexOf('aile') !== -1 || lower.indexOf('sosyal') !== -1) {
+        cleanLabel = 'İlişkiler';
+        svgIcon = '<svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-0.5" fill="none" stroke="#f43f5e" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+      } else if (lower.indexOf('menu') !== -1 || lower.indexOf('menü') !== -1) {
+        cleanLabel = 'Yönetim';
+        svgIcon = '<svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-0.5" fill="none" stroke="#facc15" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>';
+      }
+
+      if (svgIcon && cleanLabel) {
+        btn.dataset.vectorUpgraded = '1';
+        btn.innerHTML = svgIcon + '<span class="text-[10px] font-extrabold tracking-wide text-slate-200 block">' + cleanLabel + '</span>';
+      }
+    });
+  }
+
+  // 5. KAYIT SLOTU YÜKLEME VE YENİ KARAKTER BAŞLATMAYI ORİJİNAL KAYIT ANAHTARIYLA EŞİTLE
+  function syncWithOriginalGameStorage(gameObj) {
+    try {
+      // Orijinal saveGame fonksiyonunun kullandığı localStorage anahtarını bul ve oraya da yaz
+      if (typeof window.saveGame === 'function') {
+        var fnText = window.saveGame.toString();
+        var m = fnText.match(/setItem\(\s*['"]([^'"]+)['"]/);
+        if (m && m[1]) {
+          localStorage.setItem(m[1], JSON.stringify(gameObj));
+        }
+      }
+    } catch (e) {}
+  }
+
+  window.loadGameFromSlot = function (sNum) {
+    window.currentSelectedSlot = sNum;
+    var raw = localStorage.getItem(window.getSlotStorageKey(sNum));
+    if (!raw) {
+      window.openCharacterCreatorModal(sNum);
+      return;
+    }
+    try {
+      var loaded = JSON.parse(raw);
+      var fallback = window.createCompleteValidGameObject(loaded);
+      var merged = Object.assign(fallback, loaded);
+      if (!Array.isArray(merged.logs) || merged.logs.length === 0) merged.logs = fallback.logs;
+
+      try { G = merged; } catch (e) {}
+      window.G = merged;
+      window._gameEnteredSuccessfully = true;
+
+      syncWithOriginalGameStorage(merged);
+      window.closeAllStartOverlaysAndEnterGame();
+      window.destroyAllLegacyStartScreens();
+      if (typeof window.healGameState === 'function') window.healGameState();
+      if (typeof saveGame === 'function') saveGame();
+      if (typeof renderAll === 'function') renderAll();
+      window.scrubAllEmojisInNode(document.body);
+      upgradeBottomNavBarToVectors();
+      if (typeof showToast === 'function') showToast('Kayıt Slotu 0' + sNum + ' aktif edildi.');
+    } catch (err) {
+      window.openCharacterCreatorModal(sNum);
+    }
+  };
+
+  window.finalizeAndStartNewLife = function () {
+    var ni = document.getElementById('creatorInputName');
+    var si = document.getElementById('creatorInputSurname');
+    if (ni && ni.value.trim()) window.creationState.firstName = ni.value.trim();
+    if (si && si.value.trim()) window.creationState.lastName = si.value.trim();
+
+    var newG = window.createCompleteValidGameObject(window.creationState);
+    try { G = newG; } catch (e) {}
+    window.G = newG;
+    window._gameEnteredSuccessfully = true;
+
+    try { localStorage.setItem(window.getSlotStorageKey(window.currentSelectedSlot), JSON.stringify(newG)); } catch (e) {}
+    syncWithOriginalGameStorage(newG);
+
+    window.closeAllStartOverlaysAndEnterGame();
+    window.destroyAllLegacyStartScreens();
+    if (typeof window.healGameState === 'function') window.healGameState();
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.scrubAllEmojisInNode(document.body);
+    upgradeBottomNavBarToVectors();
+    if (typeof showToast === 'function') showToast('Hoş geldin ' + newG.firstName + ' ' + newG.lastName);
+  };
+
+  // 6. TÜM OYUN FONKSİYONLARINI (LOG, TOAST, MODAL, RENDER) EMOJİSİZ HALE GETİR
+  var _rawAddLog = window.addLog;
+  if (typeof _rawAddLog === 'function') {
+    window.addLog = addLog = function (age, text, type) {
+      var cleanText = window.stripEmojisGlobal(String(text || ''));
+      return _rawAddLog(age, cleanText, type);
+    };
+  }
+
+  var _rawShowToast = window.showToast;
+  if (typeof _rawShowToast === 'function') {
+    window.showToast = showToast = function (msg) {
+      return _rawShowToast(window.stripEmojisGlobal(String(msg || '')));
+    };
+  }
+
+  var _rawOpenEventModal = window.openEventModal;
+  if (typeof _rawOpenEventModal === 'function') {
+    window.openEventModal = openEventModal = function (cfg) {
+      if (cfg) {
+        if (cfg.badge) cfg.badge = window.stripEmojisGlobal(cfg.badge);
+        if (cfg.title) cfg.title = window.stripEmojisGlobal(cfg.title);
+        if (cfg.desc) cfg.desc = window.stripEmojisGlobal(cfg.desc);
+        if (cfg.npc && cfg.npc.name) cfg.npc.name = window.stripEmojisGlobal(cfg.npc.name);
+        if (cfg.npc && cfg.npc.avatar) cfg.npc.avatar = 'ID';
+        if (Array.isArray(cfg.choices)) {
+          cfg.choices.forEach(function (ch) {
+            if (ch && ch.label) ch.label = window.stripEmojisGlobal(ch.label);
+          });
+        }
+      }
+      _rawOpenEventModal(cfg);
+      var evEl = document.getElementById('eventModal');
+      if (evEl) window.scrubAllEmojisInNode(evEl);
+    };
+  }
+
+  var _prevRenderAllV5 = window.renderAll;
+  if (typeof _prevRenderAllV5 === 'function') {
+    window.renderAll = renderAll = function () {
+      window.destroyAllLegacyStartScreens();
+      if (typeof window.healGameState === 'function') window.healGameState();
+      // Mevcut geçmiş loglardaki eski emojileri de temizle
+      if (typeof G !== 'undefined' && G && Array.isArray(G.logs)) {
+        G.logs.forEach(function (lg) {
+          if (lg && Array.isArray(lg.items)) {
+            lg.items.forEach(function (it) {
+              if (it && typeof it.text === 'string') it.text = window.stripEmojisGlobal(it.text);
+            });
+          }
+        });
+      }
+      try { _prevRenderAllV5(); } catch (e) {}
+      window.destroyAllLegacyStartScreens();
+      window.scrubAllEmojisInNode(document.body);
+      upgradeBottomNavBarToVectors();
+    };
+  }
+
+  // 7. CANLI DOM GÖZLEMCİSİ (MUTATION OBSERVER):
+  // Hangi sekme açılırsa açılsın ekrana düşen her türlü emojiyi ve 2. giriş ekranını 0 sn'de temizler!
+  var domObserver = new MutationObserver(function (mutations) {
+    window.destroyAllLegacyStartScreens();
+    mutations.forEach(function (m) {
+      if (m.addedNodes && m.addedNodes.length > 0) {
+        m.addedNodes.forEach(function (n) {
+          if (n.nodeType === 1) window.scrubAllEmojisInNode(n);
+          else if (n.nodeType === 3 && EMOJI_CLEAN_REGEX.test(n.nodeValue)) {
+            n.nodeValue = n.nodeValue.replace(EMOJI_CLEAN_REGEX, '');
+          }
+        });
+      }
+    });
+  });
+
+  if (document.body) {
+    domObserver.observe(document.body, { childList: true, subtree: true });
+    window.destroyAllLegacyStartScreens();
+    window.scrubAllEmojisInNode(document.body);
+    upgradeBottomNavBarToVectors();
+  }
+})();
