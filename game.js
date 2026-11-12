@@ -16173,3 +16173,318 @@ window.renderVIPCasinoModal = function () {
     }
   }, 120);
 })();
+
+/* ============================================================================
+   1. ÜST PROFİL (HUD) YENİLEYİCİ
+   2. DEKONT & MANŞET TARZI YILLIK GÜNLÜK MOTORU
+   3. GARAJ, EMLAK VE FİNANS SHOWROOM (VİTRİN) DÖNÜŞTÜRÜCÜSÜ
+   ============================================================================ */
+(function () {
+  if (window._hudTimelineShowroomV7Loaded) return;
+  window._hudTimelineShowroomV7Loaded = true;
+
+  // 1. ÜST PROFİL (HUD) ALANINI DİJİTAL KİMLİK VE NEON STAT BARLARINA YÜKSELT
+  window.renderExecutiveHUDPanel = function () {
+    if (typeof G === 'undefined' || !G) return;
+
+    var logBox = document.getElementById('logContainer') ||
+                 document.getElementById('eventLog') ||
+                 document.getElementById('timeline');
+    if (!logBox || !logBox.parentNode) return;
+
+    var hudPanel = document.getElementById('execCustomHudBanner');
+    if (!hudPanel) {
+      hudPanel = document.createElement('div');
+      hudPanel.id = 'execCustomHudBanner';
+      logBox.parentNode.insertBefore(hudPanel, logBox);
+    }
+
+    var netWorth = typeof getNetWorth === 'function' ? getNetWorth() : (G.money + (G.bankSavings || 0));
+    var jobLabel = G.jobId ? 'Aktif Kariyer' : (G.eduStage || 'Serbest');
+    var hVal = Math.max(0, Math.min(100, Math.round(G.health || 90)));
+    var pVal = Math.max(0, Math.min(100, Math.round(G.happy || 85)));
+    var sVal = Math.max(0, Math.min(100, Math.round(G.smart || G.intel || 78)));
+    var lVal = Math.max(0, Math.min(100, Math.round(G.looks || 78)));
+
+    hudPanel.innerHTML = `
+      <div class="exec-hud-identity-bar">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-mono-num text-[9.5px] font-black">
+              ${G.age || 0} YAŞ
+            </span>
+            <span class="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider truncate">
+              ${G.birthCity || 'İstanbul'} • ${jobLabel}
+            </span>
+          </div>
+          <div class="text-sm font-black text-white truncate mt-0.5">
+            ${G.firstName || 'Çağatay'} ${G.lastName || 'Kılıç'}
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono-num">
+            Net Servet: <strong class="text-sky-300">${window.fmtMoney(netWorth)}</strong> • Findeks: <strong class="text-amber-300">${G.creditScore || 1350}</strong>
+          </div>
+        </div>
+
+        <div onclick="openNavSheet('finance')" class="exec-wallet-pill cursor-pointer shrink-0" title="Finans Merkezini Aç">
+          <div class="text-[8.5px] font-black text-emerald-300 uppercase tracking-wider">NAKİT CÜZDAN</div>
+          <div class="text-xs font-mono-num font-black text-white">${window.fmtMoney(G.money)}</div>
+        </div>
+      </div>
+
+      <div class="exec-stat-grid mb-2.5">
+        <div class="exec-stat-card">
+          <div class="flex justify-between items-center text-[9.5px] font-extrabold">
+            <span class="text-emerald-300">SAĞLIK</span>
+            <span class="font-mono-num text-white">%${hVal}</span>
+          </div>
+          <div class="exec-stat-bar-track">
+            <div class="exec-stat-bar-fill" style="width:${hVal}%; background:linear-gradient(90deg,#10b981,#34d399);"></div>
+          </div>
+        </div>
+
+        <div class="exec-stat-card">
+          <div class="flex justify-between items-center text-[9.5px] font-extrabold">
+            <span class="text-amber-300">MUTLULUK</span>
+            <span class="font-mono-num text-white">%${pVal}</span>
+          </div>
+          <div class="exec-stat-bar-track">
+            <div class="exec-stat-bar-fill" style="width:${pVal}%; background:linear-gradient(90deg,#f59e0b,#fde047);"></div>
+          </div>
+        </div>
+
+        <div class="exec-stat-card">
+          <div class="flex justify-between items-center text-[9.5px] font-extrabold">
+            <span class="text-sky-300">ZEKA</span>
+            <span class="font-mono-num text-white">%${sVal}</span>
+          </div>
+          <div class="exec-stat-bar-track">
+            <div class="exec-stat-bar-fill" style="width:${sVal}%; background:linear-gradient(90deg,#0284c7,#38bdf8);"></div>
+          </div>
+        </div>
+
+        <div class="exec-stat-card">
+          <div class="flex justify-between items-center text-[9.5px] font-extrabold">
+            <span class="text-pink-300">KARİZMA</span>
+            <span class="font-mono-num text-white">%${lVal}</span>
+          </div>
+          <div class="exec-stat-bar-track">
+            <div class="exec-stat-bar-fill" style="width:${lVal}%; background:linear-gradient(90deg,#db2777,#f472b6);"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // 2. ANA EKRAN YILLIK OLAYLARINI "BANKA DEKONTU" VE "MANŞET" OLARAK ÇİZEN MOTOR
+  function formatSingleLogEntryToCard(rawLine) {
+    var text = String(rawLine || '').trim();
+    if (!text) return '';
+
+    var htmlFormatted = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-amber-300 font-extrabold">$1</strong>');
+    var lower = text.toLowerCase();
+
+    // A) İçinde Para Tutarı (₺) veya Finansal İşlem Geçiyorsa -> BANKA DEKONTU KARTI
+    var moneyMatch = text.match(/([+-]?\s*\d[\d.,]*\s*₺)/);
+    var isFinancial = moneyMatch || /maaş|kredi|borç|ekstre|faiz|avans|satın|kazanç|kira|temettü|vergi/.test(lower);
+
+    if (isFinancial && moneyMatch) {
+      var amtStr = moneyMatch[1].trim();
+      var isExpense = amtStr.indexOf('-') !== -1 || /ödedin|borç|faiz|gider|ceza|vergi|kaybettin/.test(lower);
+      var signPrefix = (!isExpense && amtStr.indexOf('+') === -1) ? '+' : (isExpense && amtStr.indexOf('-') === -1 ? '-' : '');
+
+      return `
+        <div class="log-dekont-card ${isExpense ? 'expense' : ''}">
+          <div class="min-w-0">
+            <div class="text-[8.5px] font-black uppercase tracking-widest ${isExpense ? 'text-rose-300' : 'text-emerald-300'}">
+              ${isExpense ? '🧾 HESAP ÇIKIŞ DEKONTU' : '🏦 HESAP GİRİŞ DEKONTU'}
+            </div>
+            <div class="text-[11.5px] text-slate-100 leading-snug mt-0.5">${htmlFormatted}</div>
+          </div>
+          <span class="dekont-amount-badge ${isExpense ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}">
+            ${signPrefix}${amtStr}
+          </span>
+        </div>
+      `;
+    }
+
+    // B) Önemli Dönüm Noktasıysa -> MEDYA MANŞETİ KARTI
+    var isHeadline = /dünyaya geldin|okula başladın|lise|reşitlik|mezun|evlendin|çocuğun|şampiyon|mega win|süper kazanç|terfi|holding|yeni hayat/.test(lower);
+    if (isHeadline) {
+      return `
+        <div class="log-manset-card">
+          <span class="manset-kicker">📰 ÖZEL MANŞET • DÖNÜM NOKTASI</span>
+          <div class="text-xs text-white font-bold leading-snug">${htmlFormatted}</div>
+        </div>
+      `;
+    }
+
+    // C) Standart Yıllık Yaşam Kaydı
+    return `
+      <div class="log-standard-row">
+        <span class="text-amber-400 font-black text-xs mt-0.5">◈</span>
+        <div class="text-[11.5px] text-slate-200 leading-snug">${htmlFormatted}</div>
+      </div>
+    `;
+  }
+
+  window.renderGuaranteedMainTimeline = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (typeof window.normalizeAndRepairLogs === 'function') window.normalizeAndRepairLogs();
+    window.renderExecutiveHUDPanel();
+
+    var logBox = document.getElementById('logContainer') ||
+                 document.getElementById('eventLog') ||
+                 document.getElementById('timeline') ||
+                 document.getElementById('logsContainer') ||
+                 document.getElementById('lifeLog');
+    if (!logBox) return;
+
+    var groupedByAge = {};
+    var ageOrder = [];
+    (G.logs || []).forEach(function (lg) {
+      if (!lg) return;
+      var a = typeof lg.age === 'number' ? lg.age : 0;
+      if (!groupedByAge[a]) {
+        groupedByAge[a] = [];
+        ageOrder.push(a);
+      }
+      if (Array.isArray(lg.items) && lg.items.length > 0) {
+        lg.items.forEach(function (it) {
+          var t = typeof it === 'string' ? it : (it && it.text ? it.text : '');
+          if (t && groupedByAge[a].indexOf(t) === -1) groupedByAge[a].push(t);
+        });
+      } else if (lg.text) {
+        if (groupedByAge[a].indexOf(lg.text) === -1) groupedByAge[a].push(lg.text);
+      }
+    });
+
+    ageOrder.sort(function (a, b) { return b - a; });
+
+    logBox.innerHTML = ageOrder.map(function (ageNum) {
+      var lines = groupedByAge[ageNum] || [];
+      var periodBadge = ageNum < 6 ? 'BEBEKLİK DÖNEMİ' : (ageNum < 14 ? 'İLKÖĞRETİM YILLARI' : (ageNum < 18 ? 'LİSE & GENÇLİK' : 'KARİYER & YETİŞKİNLİK'));
+
+      return `
+        <div class="year-log-block">
+          <div class="flex items-center justify-between border-b border-amber-400/25 pb-2 mb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-mono-num text-[11px] font-black shadow">
+                ${ageNum} YAŞ RAPORU
+              </span>
+              <span class="text-[9.5px] font-extrabold text-amber-200/80 uppercase tracking-wider">${periodBadge}</span>
+            </div>
+            <span class="text-[9.5px] font-mono-num text-slate-400">${lines.length} Kayıt</span>
+          </div>
+          <div class="space-y-2">
+            ${lines.map(formatSingleLogEntryToCard).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  // 3. GARAJ (34 TR PLAKALI OTO GALERİ) VE EMLak (TAPU SHOWROOM) DÖNÜŞTÜRÜCÜSÜ
+  window.upgradeSectionToShowroom = function (secName) {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G || !window.SHOWROOM_ASSETS_DB) return;
+
+    var s = String(secName || '').toLowerCase();
+    var isCars = /car|garage|araç|galeri|oto/.test(s);
+    var isHouses = /house|real|emlak|konut|mülk|ev/.test(s);
+
+    if (!isCars && !isHouses) return;
+
+    // Üste Showroom Özet Banner'ı Ekle
+    if (!document.getElementById('showroomTopHeroBanner')) {
+      var ownedCount = isCars ? (G.cars ? G.cars.length : 0) : (G.houses ? G.houses.length : 0);
+      var bannerHtml = isCars ? `
+        <div id="showroomTopHeroBanner" class="showroom-header-banner flex items-center justify-between">
+          <div>
+            <div class="text-[9px] font-black text-sky-300 uppercase tracking-widest">🏎️ EXECUTIVE MOTORS &amp; EKSPERTİZ VİTRİNİ</div>
+            <div class="text-sm font-black text-white mt-0.5">34 Plaka Özel Tescilli Araç Showroom'u</div>
+            <div class="text-[10.5px] text-slate-300">Garajındaki Araç Sayısı: <strong class="text-amber-300">${ownedCount} Adet</strong></div>
+          </div>
+          <div class="tr-license-plate">
+            <span class="tr-plate-blue">TR</span>
+            <span class="tr-plate-num">34 CK 001</span>
+          </div>
+        </div>
+      ` : `
+        <div id="showroomTopHeroBanner" class="showroom-header-banner flex items-center justify-between" style="border-color:rgba(16,185,129,0.5);">
+          <div>
+            <div class="text-[9px] font-black text-emerald-300 uppercase tracking-widest">🏛️ T.C. TAPU &amp; GAYRİMENKUL YATIRIM VİTRİNİ</div>
+            <div class="text-sm font-black text-white mt-0.5">Kira Getirili Konut, Rezidans &amp; Yalova/Boğaz Portföyü</div>
+            <div class="text-[10.5px] text-slate-300">Tapulu Mülk Sayısı: <strong class="text-emerald-300">${ownedCount} Mülk</strong></div>
+          </div>
+          <span class="tapu-roi-badge">📜 E-TAPU ONAYLI</span>
+        </div>
+      `;
+      body.insertAdjacentHTML('afterbegin', bannerHtml);
+    }
+
+    // Mevcut kartları bozmadan her birinin içine vektörel çizim, 34 Plaka veya Tapu rozeti yerleştir
+    var cards = body.querySelectorAll('.rounded-2xl, .rounded-xl');
+    var idx = 0;
+    cards.forEach(function (card) {
+      if (card.id === 'showroomTopHeroBanner' || card.dataset.showroomUpgraded === '1') return;
+      var hasBtn = card.querySelector('button[onclick]');
+      if (!hasBtn) return;
+
+      card.dataset.showroomUpgraded = '1';
+      card.classList.add('showroom-item-card');
+
+      var cardText = card.innerText || '';
+      if (isCars) {
+        var cMeta = window.SHOWROOM_ASSETS_DB.getCarMeta(cardText, idx++);
+        var svgCar = window.SHOWROOM_ASSETS_DB.carVectors[cMeta.type];
+        card.insertAdjacentHTML('afterbegin', `
+          <div class="flex items-center justify-between gap-2.5 mb-2 pb-2 border-b border-slate-800/80">
+            <div class="showroom-visual-box">${svgCar}</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[8.5px] font-black text-sky-400 uppercase tracking-wider block">${cMeta.seg}</span>
+              <span class="text-[10px] font-extrabold text-amber-300 block">${cMeta.hp}</span>
+            </div>
+            <div class="tr-license-plate">
+              <span class="tr-plate-blue">TR</span>
+              <span class="tr-plate-num">${cMeta.plate}</span>
+            </div>
+          </div>
+        `);
+      } else if (isHouses) {
+        var hMeta = window.SHOWROOM_ASSETS_DB.getHouseMeta(cardText);
+        var svgHouse = window.SHOWROOM_ASSETS_DB.houseVectors[hMeta.type];
+        card.insertAdjacentHTML('afterbegin', `
+          <div class="flex items-center justify-between gap-2.5 mb-2 pb-2 border-b border-slate-800/80">
+            <div class="showroom-visual-box">${svgHouse}</div>
+            <div class="flex-1 min-w-0">
+              <span class="tapu-roi-badge mb-1">${hMeta.tapu}</span>
+              <span class="text-[10px] text-slate-300 block">${hMeta.yieldText}</span>
+            </div>
+          </div>
+        `);
+      }
+    });
+  };
+
+  // Kancaları Bağla
+  var _prevOpenMenuSecV7 = window.openMenuSection;
+  window.openMenuSection = openMenuSection = function (sec) {
+    if (typeof _prevOpenMenuSecV7 === 'function') _prevOpenMenuSecV7(sec);
+    window.upgradeSectionToShowroom(sec);
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  var _prevRenderAllV7 = window.renderAll;
+  window.renderAll = renderAll = function () {
+    if (typeof _prevRenderAllV7 === 'function') {
+      try { _prevRenderAllV7(); } catch (e) {}
+    }
+    window.renderGuaranteedMainTimeline();
+  };
+
+  setTimeout(function () {
+    if (typeof G !== 'undefined' && G) {
+      window.renderGuaranteedMainTimeline();
+    }
+  }, 150);
+})();
