@@ -1856,4 +1856,51 @@ const TURKEY_BIRTH_CITIES_DB = [
   { id: 'bursa', name: 'Bursa', region: 'Marmara', bonusStartMoney: 1.15 }
 ];
 
+/* ============================================================================
+   SHOWROOM VİTRİN VEKTÖRLERİ, PLAKA ÜRETİCİ VE DEKONT/MANŞET SINIFLANDIRICI
+   ============================================================================ */
 
+window.SHOWROOM_ASSETS_DB = {
+  // Araç Sınıfına Göre Vektörel Showroom Çizimleri
+  carVectors: {
+    supercar: `<svg viewBox="0 0 120 60" class="w-full h-full"><defs><linearGradient id="scG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#9f1239"/></linearGradient></defs><path d="M10,42 L24,26 L56,18 L92,24 L112,36 L110,45 L8,45 Z" fill="url(#scG)" stroke="#fda4af" stroke-width="1.5"/><polygon points="30,27 56,21 82,25 68,32 28,32" fill="#090d16"/><circle cx="28" cy="44" r="9" fill="#0f172a" stroke="#fde047" stroke-width="2.5"/><circle cx="90" cy="44" r="9" fill="#0f172a" stroke="#fde047" stroke-width="2.5"/></svg>`,
+    suv: `<svg viewBox="0 0 120 60" class="w-full h-full"><defs><linearGradient id="suvG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs><path d="M12,42 L16,20 L74,18 L92,28 L108,32 L108,45 L10,45 Z" fill="url(#suvG)" stroke="#bae6fd" stroke-width="1.5"/><polygon points="22,23 46,22 46,32 20,32" fill="#090d16"/><polygon points="50,22 72,22 84,30 50,32" fill="#090d16"/><circle cx="28" cy="45" r="9.5" fill="#0f172a" stroke="#e2e8f0" stroke-width="2.5"/><circle cx="88" cy="45" r="9.5" fill="#0f172a" stroke="#e2e8f0" stroke-width="2.5"/></svg>`,
+    sedan: `<svg viewBox="0 0 120 60" class="w-full h-full"><defs><linearGradient id="sedG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#334155"/></linearGradient></defs><path d="M10,42 L22,26 L42,20 L78,20 L94,28 L110,34 L110,45 L10,45 Z" fill="url(#sedG)" stroke="#e2e8f0" stroke-width="1.5"/><polygon points="38,23 74,23 86,30 28,30" fill="#090d16"/><circle cx="28" cy="44" r="8.5" fill="#0f172a" stroke="#cbd5e1" stroke-width="2.5"/><circle cx="88" cy="44" r="8.5" fill="#0f172a" stroke="#cbd5e1" stroke-width="2.5"/></svg>`
+  },
+
+  // Emlak Sınıfına Göre Vektörel Mimari Çizimler
+  houseVectors: {
+    villa: `<svg viewBox="0 0 100 65" class="w-full h-full"><polygon points="50,8 14,30 86,30" fill="#f59e0b" stroke="#fde047" stroke-width="1.5"/><rect x="20" y="30" width="60" height="28" fill="#1e293b" stroke="#94a3b8" stroke-width="1.5"/><rect x="28" y="36" width="14" height="12" fill="#38bdf8"/><rect x="58" y="36" width="14" height="12" fill="#38bdf8"/><rect x="45" y="42" width="10" height="16" fill="#facc15"/><rect x="10" y="56" width="80" height="4" rx="2" fill="#10b981"/></svg>`,
+    residence: `<svg viewBox="0 0 100 65" class="w-full h-full"><rect x="28" y="6" width="44" height="54" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/><line x1="34" y1="16" x2="66" y2="16" stroke="#38bdf8" stroke-width="3"/><line x1="34" y1="26" x2="66" y2="26" stroke="#38bdf8" stroke-width="3"/><line x1="34" y1="36" x2="66" y2="36" stroke="#38bdf8" stroke-width="3"/><line x1="34" y1="46" x2="66" y2="46" stroke="#facc15" stroke-width="3"/></svg>`,
+    apartment: `<svg viewBox="0 0 100 65" class="w-full h-full"><polygon points="50,12 20,28 80,28" fill="#10b981"/><rect x="24" y="28" width="52" height="30" fill="#334155" stroke="#cbd5e1" stroke-width="1.5"/><rect x="32" y="34" width="10" height="9" fill="#fde047"/><rect x="58" y="34" width="10" height="9" fill="#fde047"/><rect x="45" y="44" width="10" height="14" fill="#090d16"/></svg>`
+  },
+
+  // Araç Adına Göre Otomatik Plaka ve Beygir Gücü Üretici
+  getCarMeta: function (titleText, idx) {
+    var lower = String(titleText || '').toLowerCase();
+    var letters = ['CK', 'FB', 'VIP', 'RKN', 'IST', 'TR', 'BJK', 'GS'];
+    var letCode = letters[(idx || 0) % letters.length];
+    var numCode = 1907 + ((idx || 0) * 145) % 7999;
+    var plate = '34 ' + letCode + ' ' + numCode;
+
+    if (/ferrari|lamborghini|porsche|bugatti|mclaren|gt|spor|super/.test(lower)) {
+      return { type: 'supercar', hp: '680 HP • V8 Biturbo', seg: 'SÜPER SPOR', plate: plate };
+    }
+    if (/suv|tiggo|chery|range|jeep|g63|x5|q7|aircross|citroen/.test(lower)) {
+      return { type: 'suv', hp: '245 HP • 4x4 AWD', seg: 'PREMİUM SUV', plate: plate };
+    }
+    return { type: 'sedan', hp: '170 HP • Otomatik', seg: 'EXECUTIVE SEDAN', plate: plate };
+  },
+
+  // Konut Adına Göre Otomatik Mimari ve Tapu Bilgisi Üretici
+  getHouseMeta: function (titleText) {
+    var lower = String(titleText || '').toLowerCase();
+    if (/yalı|villa|köşk|malikane|şato/.test(lower)) {
+      return { type: 'villa', tapu: 'MÜSTAKİL VİLLA TAPUSU', yieldText: 'Yüksek Kira & Değer Artışı' };
+    }
+    if (/rezidans|penthouse|plaza|kule|loft/.test(lower)) {
+      return { type: 'residence', tapu: 'VIP REZİDANS TAPUSU', yieldText: 'Kurumsal Döviz Kira Getirisi' };
+    }
+    return { type: 'apartment', tapu: 'KAT MÜLKİYETLİ TAPU', yieldText: 'Düzenli Aylık Kira Getirisi' };
+  }
+};
