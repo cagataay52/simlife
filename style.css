@@ -2099,3 +2099,121 @@ nav, footer, #bottomNav {
   background: rgba(9, 13, 24, 0.98) !important;
   border-top: 1px solid rgba(250, 204, 21, 0.28) !important;
 }
+
+/* ============================================================================
+   1. SİYAH YAZI (OKUNMAMA) HATASI KESİN ÇÖZÜMÜ & YÜKSEK KONTRAST MOTORU
+   ============================================================================ */
+
+/* Koyu kartların sadece DIV olanlarına koyu zemin ver; butonların kendi renklerini ezme! */
+#sheetBody div.rounded-2xl:not(.vip-credit-card-visual):not(.sb1000-cabinet):not(.go1000-cabinet),
+#sheetBody div.rounded-xl:not(.sb1000-cell):not(.go1000-cell) {
+  background: linear-gradient(155deg, rgba(19, 26, 46, 0.96) 0%, rgba(10, 14, 26, 0.99) 100%) !important;
+  border: 1px solid rgba(250, 204, 21, 0.24) !important;
+  color: #f8fafc !important;
+}
+
+/* Koyu zemin üzerindeki tüm siyah / koyu gri yazıları parlak beyaza zorla */
+#appShell .text-black,
+#appShell .text-slate-950,
+#appShell .text-slate-900,
+#appShell .text-slate-800,
+#appShell .text-slate-700,
+#appShell .text-gray-900,
+#appShell .text-gray-800,
+#sheetBody .text-black,
+#sheetBody .text-slate-950,
+#sheetBody .text-slate-900,
+#sheetBody .text-slate-800,
+#sheetBody .text-slate-700,
+#sheetBody .text-gray-900,
+#eventModal .text-black,
+#eventModal .text-slate-900,
+#eventModal .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+/* Parlak sarı, yeşil, mavi butonların zeminini koru ve içindeki yazıyı net koyu yap */
+button.bg-amber-400, button.bg-amber-500, button.bg-yellow-400,
+button.from-amber-400, button.from-amber-300 {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important;
+  color: #090d16 !important;
+}
+button.bg-emerald-400, button.bg-emerald-500, button.from-emerald-400, button.from-emerald-500 {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+  color: #090d16 !important;
+}
+button.bg-sky-400, button.bg-sky-500, button.from-sky-400 {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+  color: #090d16 !important;
+}
+button.bg-amber-400 *, button.bg-emerald-400 *, button.bg-emerald-500 *,
+button.bg-sky-400 *, button.bg-sky-500 *, button.from-amber-400 *, button.from-emerald-400 * {
+  color: #090d16 !important;
+}
+
+/* Koyu butonların içindeki yazıları her zaman beyaz yap */
+button.bg-slate-900, button.bg-slate-800, button.bg-slate-950,
+.royal-menu-tile, .royal-menu-tile * {
+  color: #f8fafc !important;
+}
+.royal-menu-tile .royal-tile-badge {
+  color: #fde047 !important;
+}
+
+/* Input ve Select (Açılır Liste) içindeki siyah okunmayan yazıları düzelt */
+input:not(.bet-manual-input), select, textarea, option {
+  background-color: #090d16 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+}
+
+/* ============================================================================
+   2. DÜZENLİ ALT SEKME (SUB-TAB) SİSTEMİ (FİNANS, KARİYER VE MENÜ İÇİN)
+   ============================================================================ */
+
+.clean-subtab-bar {
+  display: grid;
+  gap: 6px;
+  padding: 5px;
+  background: rgba(5, 8, 17, 0.95);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+}
+
+.clean-subtab-btn {
+  padding: 9px 6px;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  color: #94a3b8 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.clean-subtab-btn.active {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important;
+  color: #090d16 !important;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.35);
+}
+
+/* ÖSYM YKS & Eğitim Kartı Tasarımı */
+.osym-exam-card {
+  background:
+    radial-gradient(circle at 90% 15%, rgba(56, 189, 248, 0.22) 0%, transparent 45%),
+    linear-gradient(145deg, #0f172a 0%, #1e1b4b 60%, #090d16 100%) !important;
+  border: 1.5px solid #38bdf8 !important;
+  border-radius: 20px !important;
+  padding: 15px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6) !important;
+}
+
