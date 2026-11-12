@@ -17510,3 +17510,957 @@ window.renderVIPCasinoModal = function () {
     }
   };
 })();
+
+/* ============================================================================
+   MASTER PATCH V11 (GAME.JS):
+   1. Menülerdeki İsimleri Kaliteli HD Vektörel Simgeli ve Tam İsimli Olarak Yazar
+   2. Oto Al-Sat, Lojistik/Tekstil/Otel Holding, Spor Medya & Kulüp, Müzik Stüdyosu,
+      20x Kaldıraçlı Kripto ve Miras Sistemlerini Mevcut Menülerle Tekilleştirip Birleştirir!
+   ============================================================================ */
+(function () {
+  if (window._masterExpansionAndHdMenuV11) return;
+  window._masterExpansionAndHdMenuV11 = true;
+
+  // 1. YENİ BİRLEŞTİRİLMİŞ SİSTEMLERİN KAYIT VERİSİNİ HAZIRLA
+  window.ensureExpansionV11State = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (!G.alsatGarage) G.alsatGarage = []; // Al-sat için alınan ekspertizli araçlar
+    if (!G.holdingV11) {
+      G.holdingV11 = { ownedIds: [], costControlOptimized: false };
+    }
+    if (!G.sportsV11) {
+      G.sportsV11 = { hasMediaBrand: false, mediaFollowers: 0, ownsClub: false, clubName: 'İstanbul Sarı-Lacivert SK', starLevel: 1 };
+    }
+    if (!G.studioV11) {
+      G.studioV11 = { hasStudio: false, tracks: [], annualRoyaltyMult: 0 };
+    }
+  };
+
+  // ============================================================================
+  // 2. KALİTELİ HD SİMGELİ, NET İSİMLİ VE SIFIR TEKRARLI YÖNETİM MENÜSÜ
+  // ============================================================================
+  function mapMenuButtonToHdConfig(oc, rawText) {
+    var s = (oc + ' ' + rawText).toLowerCase();
+    var carCnt = (G && Array.isArray(G.cars) ? G.cars.length : 0) + (G && Array.isArray(G.alsatGarage) ? G.alsatGarage.length : 0);
+    var houseCnt = (G && Array.isArray(G.houses) ? G.houses.length : 0);
+    var bizCnt = (G && Array.isArray(G.businesses) ? G.businesses.length : 0) + (G && G.holdingV11 ? G.holdingV11.ownedIds.length : 0);
+
+    if (/car|garage|araç|araba|galeri|oto/.test(s)) {
+      return {
+        key: 'cars_merged',
+        tab: 'invest',
+        icon: 'cars',
+        iconBg: 'linear-gradient(135deg, rgba(239,68,68,0.28), rgba(153,27,27,0.45))',
+        iconBorder: '#f87171',
+        badge: 'SHOWROOM & EKSPERTİZ AL-SAT',
+        title: 'Oto Galeri, Garaj & Ekspertiz Al-Sat',
+        sub: 'Garaj: ' + carCnt + ' Araç • 34 Plaka Vitrin & 2. El Pazarlık',
+        btnText: 'GALERİ',
+        btnClass: 'bg-rose-500 text-white',
+        onclick: oc
+      };
+    }
+    if (/house|real|emlak|konut|ev|mülk|gayrimenkul|yapsat/.test(s)) {
+      return {
+        key: 'houses_merged',
+        tab: 'invest',
+        icon: 'houses',
+        iconBg: 'linear-gradient(135deg, rgba(16,185,129,0.28), rgba(6,95,70,0.45))',
+        iconBorder: '#34d399',
+        badge: 'T.C. E-TAPU & KONUT PORTFÖYÜ',
+        title: 'Gayrimenkul, Rezidans & Kira Yönetimi',
+        sub: 'Tapulu Mülk: ' + houseCnt + ' Adet • Kira & Değer Artışı',
+        btnText: 'TAPULAR',
+        btnClass: 'bg-emerald-400 text-slate-950',
+        onclick: oc
+      };
+    }
+    if (/busi|comp|şirket|holding|ticaret|işletme|fabrika|girişim/.test(s)) {
+      return {
+        key: 'holding_merged',
+        tab: 'invest',
+        icon: 'holding',
+        iconBg: 'linear-gradient(135deg, rgba(59,130,246,0.28), rgba(30,58,138,0.5))',
+        iconBorder: '#60a5fa',
+        badge: 'HOLDİNG • LOJİSTİK • TEKSTİL • OTEL',
+        title: 'Holding, Tır Filosu & Şirket Yönetimi',
+        sub: 'Aktif Yatırım: ' + bizCnt + ' Kurum • Cost Control & İhracat',
+        btnText: 'HOLDİNG',
+        btnClass: 'bg-sky-400 text-slate-950',
+        onclick: oc
+      };
+    }
+    if (/foot|sport|club|futbol|kulüp|stadyum|maç|iddaa|bahis/.test(s)) {
+      return {
+        key: 'sports_merged',
+        tab: 'vip',
+        icon: 'sports',
+        iconBg: 'linear-gradient(135deg, rgba(250,204,21,0.28), rgba(161,98,7,0.5))',
+        iconBorder: '#facc15',
+        badge: 'KULÜP BAŞKANLIĞI & SPOR MEDYA',
+        title: 'Futbol Kulübü, Skor Medya & Derbi İddaa',
+        sub: 'Kulüp Yönetimi, Reklam Ajansı ve Canlı Kuponlar',
+        btnText: 'STADYUM',
+        btnClass: 'bg-amber-400 text-slate-950',
+        onclick: "window.openUnifiedSportsAndMediaHub()"
+      };
+    }
+    if (/heal|hosp|sağlık|hastane|doktor|estetik|tedavi/.test(s)) {
+      return {
+        key: 'health_merged',
+        tab: 'life',
+        icon: 'health',
+        iconBg: 'linear-gradient(135deg, rgba(16,185,129,0.28), rgba(4,120,87,0.5))',
+        iconBorder: '#34d399',
+        badge: 'ÖZEL HASTANE & CHECK-UP',
+        title: 'Tıp Merkezi, Check-Up & Estetik Cerrahi',
+        sub: 'Mevcut Sağlık: %' + (G ? G.health : 90) + ' • Tam Kapsamlı Tedavi',
+        btnText: 'KLİNİK',
+        btnClass: 'bg-emerald-400 text-slate-950',
+        onclick: oc
+      };
+    }
+    if (/crim|mafia|suç|illegal|yeraltı|soygun|karanlık/.test(s)) {
+      return {
+        key: 'crime_merged',
+        tab: 'life',
+        icon: 'crime',
+        iconBg: 'linear-gradient(135deg, rgba(100,116,139,0.35), rgba(30,41,59,0.65))',
+        iconBorder: '#94a3b8',
+        badge: 'YERALTI & RİSKLİ OPERASYON',
+        title: 'Karanlık İşler & Yeraltı Operasyonları',
+        sub: 'Yüksek Riskli Kazanç ve Hukuki Savunma',
+        btnText: 'OPERASYON',
+        btnClass: 'bg-slate-700 text-white',
+        onclick: oc
+      };
+    }
+    if (/shop|life|vac|alışveriş|yaşam|tatil|lüks|aktivite|sosyal/.test(s)) {
+      return {
+        key: 'lifestyle_merged',
+        tab: 'life',
+        icon: 'lifestyle',
+        iconBg: 'linear-gradient(135deg, rgba(6,182,212,0.28), rgba(14,116,144,0.5))',
+        iconBorder: '#22d3ee',
+        badge: 'LÜKS YAŞAM & TATİL',
+        title: 'Lüks Alışveriş, Tatil & Yaşam Kalitesi',
+        sub: 'Mutluluk: %' + (G ? G.happy : 85) + ' • Dünya Turu & VIP Etkinlikler',
+        btnText: 'YAŞAM',
+        btnClass: 'bg-cyan-400 text-slate-950',
+        onclick: oc
+      };
+    }
+    return null;
+  }
+
+  function renderHdCardHTML(cfg) {
+    var svgMarkup = (window.HD_MENU_ICONS_V11 && window.HD_MENU_ICONS_V11[cfg.icon]) || window.HD_MENU_ICONS_V11.holding;
+    return `
+      <button type="button" onclick="${cfg.onclick.replace(/"/g, '&quot;')}" class="hd-named-menu-card">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="hd-menu-svg-frame" style="background:${cfg.iconBg}; border:1.5px solid ${cfg.iconBorder};">
+            ${svgMarkup}
+          </div>
+          <div class="min-w-0">
+            <span class="royal-tile-badge">${cfg.badge}</span>
+            <div class="text-sm font-black text-white truncate mt-1">${cfg.title}</div>
+            <div class="text-[11px] text-slate-300 truncate mt-0.5">${cfg.sub}</div>
+          </div>
+        </div>
+        <span class="hd-menu-action-pill ${cfg.btnClass}">${cfg.btnText} &rarr;</span>
+      </button>
+    `;
+  }
+
+  window.renderRoyalCasinoStyledMenu = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    window.ensureExpansionV11State();
+    if (typeof window.ensureCreditCardState === 'function') window.ensureCreditCardState();
+
+    var titleEl = document.getElementById('sheetTitle');
+    var subEl = document.getElementById('sheetSubtitle');
+    if (titleEl) titleEl.textContent = '👑 VIP YÖNETİM, HOLDİNG & YAŞAM MERKEZİ';
+    if (subEl) subEl.textContent = G.firstName + ' ' + G.lastName + ' (' + G.age + ' Yaş) • Nakit: ' + window.fmtMoney(G.money);
+
+    // Orijinal menünün butonlarını ilk açılışta yakala ve tekilleştir
+    if (!window._cachedHdMenuMap) {
+      var rawButtons = Array.from(body.querySelectorAll('button'));
+      var map = {};
+      rawButtons.forEach(function (btn) {
+        var oc = (btn.getAttribute('onclick') || '').trim();
+        if (!oc || /casino|gambling|openVIPCasinoModal|openBarberAndSalonModal|openCreditCardCenterModal|openSingleStartMenu|switchMenuSubTab/.test(oc)) return;
+        var mapped = mapMenuButtonToHdConfig(oc, btn.innerText || '');
+        if (mapped && !map[mapped.key]) {
+          map[mapped.key] = mapped;
+        }
+      });
+      if (Object.keys(map).length > 0) window._cachedHdMenuMap = map;
+    }
+
+    // Her zaman güncel sayıları göstermek için kart tanımlarını tazele
+    var baseMap = window._cachedHdMenuMap || {};
+    var refreshedMap = {};
+    Object.keys(baseMap).forEach(function (k) {
+      var item = baseMap[k];
+      refreshedMap[k] = mapMenuButtonToHdConfig(item.onclick, item.title) || item;
+    });
+
+    // Eğer temel oyunda ilgili buton yoksa bile bizim birleştirilmiş merkezlerimizi garanti olarak ekle
+    if (!refreshedMap.cars_merged) {
+      refreshedMap.cars_merged = mapMenuButtonToHdConfig("openMenuSection('cars')", 'Araçlar');
+    }
+    if (!refreshedMap.houses_merged) {
+      refreshedMap.houses_merged = mapMenuButtonToHdConfig("openMenuSection('houses')", 'Emlak');
+    }
+    if (!refreshedMap.holding_merged) {
+      refreshedMap.holding_merged = mapMenuButtonToHdConfig("openMenuSection('businesses')", 'Şirketler');
+    }
+
+    var c = window.getCountry();
+    var ccLimit = Math.round(c.monthlyMinWage * (G.creditCard.limitMult || 4.5));
+    var activeTab = (window.uiSubTabs && window.uiSubTabs.menu) || 'vip';
+
+    // 1. VIP, CASINO, MEDYA & STÜDYO SEKMESİ KARTLARI
+    var vipCards = [
+      {
+        icon: 'casino',
+        iconBg: 'linear-gradient(135deg, rgba(236,72,153,0.32), rgba(112,26,117,0.6))',
+        iconBorder: '#fde047',
+        badge: 'PRAGMATIC PLAY LIVE LOUNGE',
+        title: 'VIP Royal Casino & Slot Merkezi',
+        sub: 'Sweet Bonanza 1000 • Gates of Olympus 1000 • Blackjack 21',
+        btnText: 'OYNA',
+        btnClass: 'bg-amber-400 text-slate-950',
+        onclick: "window.openVIPCasinoModal('bonanza')"
+      },
+      {
+        icon: 'creditcard',
+        iconBg: 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(30,27,75,0.65))',
+        iconBorder: '#facc15',
+        badge: 'ROYAL BANK WORLD VIP • FİNDEKS: ' + (G.creditScore || 1350),
+        title: 'VIP Kredi Kartı, Nakit Avans & Limit',
+        sub: 'Limit: ' + window.fmtMoney(ccLimit) + ' • Dönem Borcu: ' + window.fmtMoney(G.creditCard.debt),
+        btnText: 'KARTIM',
+        btnClass: 'bg-emerald-400 text-slate-950',
+        onclick: "window.openCreditCardCenterModal()"
+      },
+      {
+        icon: 'sports',
+        iconBg: 'linear-gradient(135deg, rgba(250,204,21,0.3), rgba(30,58,138,0.65))',
+        iconBorder: '#facc15',
+        badge: 'KULÜP BAŞKANLIĞI • SKOR AĞI MEDYA • İDDAA',
+        title: 'Futbol Kulübü, Spor Medyası & Derbi Merkezi',
+        sub: (G.sportsV11.ownsClub ? G.sportsV11.clubName : 'Kulüp Satın Al') + ' • ' + (G.sportsV11.hasMediaBrand ? 'Skor Ağı Aktif' : 'Medya Markası Kur'),
+        btnText: 'STADYUM',
+        btnClass: 'bg-amber-400 text-slate-950',
+        onclick: "window.openUnifiedSportsAndMediaHub()"
+      },
+      {
+        icon: 'music',
+        iconBg: 'linear-gradient(135deg, rgba(168,85,247,0.32), rgba(131,24,67,0.6))',
+        iconBorder: '#e879f9',
+        badge: 'DRILL & TRAP PRODÜKSİYON • HANEDANLIK',
+        title: 'Müzik Stüdyosu, Hit Parça & Miras Merkezi',
+        sub: 'Yayınlanan Parça: ' + G.studioV11.tracks.length + ' Hit • Telif & 2. Nesil Miras',
+        btnText: 'STÜDYO',
+        btnClass: 'bg-pink-500 text-white',
+        onclick: "window.openMusicStudioAndDynastyHub()"
+      },
+      {
+        icon: 'barber',
+        iconBg: 'linear-gradient(135deg, rgba(56,189,248,0.3), rgba(15,23,42,0.7))',
+        iconBorder: '#38bdf8',
+        badge: 'KARAKTER & İMAJ STÜDYOSU',
+        title: 'VIP Kuaför, Saç Tasarımı & Lüks Kombin',
+        sub: 'Mevcut Karizma / Görünüm: %' + G.looks,
+        btnText: 'STÜDYO',
+        btnClass: 'bg-sky-400 text-slate-950',
+        onclick: "if(typeof openBarberAndSalonModal==='function') openBarberAndSalonModal();"
+      }
+    ];
+
+    // 2. YATIRIM, OTO AL-SAT, HOLDİNG & GAYRİMENKUL SEKMESİ KARTLARI
+    var investCards = [
+      refreshedMap.cars_merged,
+      refreshedMap.holding_merged,
+      refreshedMap.houses_merged
+    ].filter(Boolean);
+
+    // 3. AKADEMİ, SAĞLIK, YAŞAM & KAYIT SLOTLARI SEKMESİ KARTLARI
+    var lifeCards = [
+      {
+        icon: 'education',
+        iconBg: 'linear-gradient(135deg, rgba(139,92,246,0.32), rgba(46,16,101,0.65))',
+        iconBorder: '#a78bfa',
+        badge: 'T.C. ÖSYM YKS & SÜRÜCÜ KURSU',
+        title: 'Üniversite Sınavı (YKS), Tercih & Ehliyet (B/CE)',
+        sub: G.uniGrad ? ('Mezun: ' + (G.uniDeptName || 'Lisans')) : (G.inUni ? (G.uniDeptName + ' - ' + G.uniYears + '. Sınıf') : 'YKS Sınavı ve B/CE Ehliyet Merkezi'),
+        btnText: 'AKADEMİ',
+        btnClass: 'bg-amber-400 text-slate-950',
+        onclick: "window.openOSYMUniversityCenter()"
+      }
+    ];
+    if (refreshedMap.health_merged) lifeCards.push(refreshedMap.health_merged);
+    if (refreshedMap.lifestyle_merged) lifeCards.push(refreshedMap.lifestyle_merged);
+    if (refreshedMap.crime_merged) lifeCards.push(refreshedMap.crime_merged);
+    lifeCards.push({
+      icon: 'slots',
+      iconBg: 'linear-gradient(135deg, rgba(14,165,233,0.3), rgba(15,23,42,0.7))',
+      iconBorder: '#38bdf8',
+      badge: '3 BAĞIMSIZ KAYIT PROFİLİ',
+      title: 'Kayıt Slotları & 0 Yaş Yeni Hayat Başlat',
+      sub: 'Aktif Profil: Slot #0' + (window.currentSelectedSlot || 1) + ' • Karakter Değiştir / Sıfırla',
+      btnText: 'SLOTLAR',
+      btnClass: 'bg-sky-400 text-slate-950',
+      onclick: "window.closeBottomSheetSafe(); window.openSingleStartMenu(true);"
+    });
+
+    var currentList = activeTab === 'invest' ? investCards : (activeTab === 'life' ? lifeCards : vipCards);
+
+    body.innerHTML = `
+      <div class="space-y-2.5 pb-5">
+        <div class="clean-subtab-bar" style="grid-template-columns: repeat(3, 1fr);">
+          <button type="button" onclick="window.switchMenuSubTab('vip')" class="clean-subtab-btn ${activeTab === 'vip' ? 'active' : ''}">
+            👑 VIP &amp; Stüdyo
+          </button>
+          <button type="button" onclick="window.switchMenuSubTab('invest')" class="clean-subtab-btn ${activeTab === 'invest' ? 'active' : ''}">
+            🏎️ Galeri &amp; Holding
+          </button>
+          <button type="button" onclick="window.switchMenuSubTab('life')" class="clean-subtab-btn ${activeTab === 'life' ? 'active' : ''}">
+            🎓 Akademi &amp; Yaşam
+          </button>
+        </div>
+
+        <div class="space-y-2.5">
+          ${currentList.map(renderHdCardHTML).join('')}
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  // ============================================================================
+  // 3. OTO GALERİ EKSPERTİZ & AL-SAT TİCARETİ (MEVCUT GARAJ İLE BİRLEŞİK)
+  // ============================================================================
+  window.injectAlSatIntoCarsSection = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    window.ensureExpansionV11State();
+
+    var oldBox = document.getElementById('mergedAlSatShowroomPanel');
+    if (oldBox) oldBox.remove();
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var catalog = window.MERGED_EXPANSION_CATALOG.alsatCars || [];
+
+    var html = `
+      <div id="mergedAlSatShowroomPanel" class="merged-expansion-box space-y-3">
+        <div class="flex items-center justify-between border-b border-amber-400/25 pb-2">
+          <div>
+            <span class="royal-tile-badge">🏎️ ÇAĞATAY MOTORS • 2. EL EKSPERTİZ &amp; AL-SAT</span>
+            <div class="text-sm font-black text-white mt-0.5">Hasarlı/Fırsat Araç Al, Sanayide Yenile ve Kârla Sat!</div>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-mono-num text-[10.5px] font-black">
+            Portföy: ${G.alsatGarage.length} Araç
+          </span>
+        </div>
+
+        ${G.alsatGarage.length > 0 ? `
+          <div class="space-y-2">
+            <div class="text-[10px] font-black text-emerald-300 uppercase">GARAJINDAKİ AL-SAT ARAÇLARI (PAZARLIKLA SATIŞA HAZIR)</div>
+            ${G.alsatGarage.map(function (item, idx) {
+              return `
+                <div class="p-2.5 rounded-xl bg-slate-950 border border-emerald-400/40 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-xs font-black text-white">${item.name} (${item.plate})</div>
+                    <div class="text-[10px] text-slate-300">Durum: <strong class="${item.repaired ? 'text-emerald-400' : 'text-amber-300'}">${item.repaired ? 'Ekspertiz Kusursuz (Tamir Edildi)' : item.condition}</strong></div>
+                    <div class="text-[10px] text-emerald-400 font-mono-num">Alıcı Teklifi: ${window.fmtMoney(item.repaired ? item.sellPrice : Math.round(item.buyPrice * 1.05))}</div>
+                  </div>
+                  <div class="flex flex-col gap-1 shrink-0">
+                    ${!item.repaired ? `
+                      <button type="button" onclick="window.repairAlSatCar(${idx})" class="px-2.5 py-1.5 rounded-lg bg-sky-400 text-slate-950 text-[10px] font-black">
+                        🔧 Sanayide Yenile (${window.fmtMoney(item.repairCost)})
+                      </button>
+                    ` : ''}
+                    <button type="button" onclick="window.sellAlSatCarWithNegotiation(${idx})" class="px-2.5 py-1.5 rounded-lg bg-emerald-400 text-slate-950 text-[10px] font-black">
+                      🤝 Pazarlıkla Sat (+${window.fmtMoney(item.repaired ? item.sellPrice : Math.round(item.buyPrice * 1.05))})
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
+
+        <div class="space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase">İLANDAKİ FIRSAT EKSPERTİZ ARAÇLARI</div>
+          ${catalog.map(function (car) {
+            var buyP = Math.round(minW * car.buyMult);
+            var repP = Math.round(minW * car.repairMult);
+            var sellP = Math.round(minW * car.sellMult);
+            var netProfit = sellP - (buyP + repP);
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="ekspertiz-tag bg-amber-400/20 text-amber-300 border border-amber-400/40">${car.plate}</span>
+                    <span class="text-xs font-black text-white truncate">${car.name}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">${car.condition}</div>
+                  <div class="text-[10px] text-emerald-400 font-mono-num">Tahmini Net Al-Sat Kârı: +${window.fmtMoney(netProfit)}</div>
+                </div>
+                <button type="button" onclick="window.buyAlSatCar('${car.id}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black shrink-0">
+                  SATIN AL<br/>${window.fmtMoney(buyP)}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    body.insertAdjacentHTML('afterbegin', html);
+  };
+
+  window.buyAlSatCar = function (carId) {
+    window.ensureExpansionV11State();
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var item = window.MERGED_EXPANSION_CATALOG.alsatCars.find(function (x) { return x.id === carId; });
+    if (!item) return;
+
+    var buyP = Math.round(minW * item.buyMult);
+    if (G.money < buyP) { showToast('Bu aracı almak için nakit bakiyen yetersiz!'); return; }
+
+    G.money -= buyP;
+    G.alsatGarage.push({
+      id: item.id,
+      name: item.name,
+      plate: item.plate,
+      condition: item.condition,
+      buyPrice: buyP,
+      repairCost: Math.round(minW * item.repairMult),
+      sellPrice: Math.round(minW * item.sellMult),
+      repaired: false
+    });
+    window.addLog(G.age, '🏎️ **OTO GALERİ ALIMI:** **' + item.name + ' (' + item.plate + ')** aracını al-sat portföyüne **' + window.fmtMoney(buyP) + '** bedelle ekledin.', 'normal');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.injectAlSatIntoCarsSection();
+  };
+
+  window.repairAlSatCar = function (idx) {
+    var car = G.alsatGarage[idx];
+    if (!car || car.repaired) return;
+    if (G.money < car.repairCost) { showToast('Sanayi ve ekspertiz yenilemesi için nakit yetersiz!'); return; }
+    G.money -= car.repairCost;
+    car.repaired = true;
+    showToast('🔧 Araç sanayide kusursuz şekilde yenilendi! Değeri tavan yaptı.');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.injectAlSatIntoCarsSection();
+  };
+
+  window.sellAlSatCarWithNegotiation = function (idx) {
+    var car = G.alsatGarage[idx];
+    if (!car) return;
+    // Pazarlık bonusu (%5 ile %12 arası ekstra kâr)
+    var bonusMult = 1 + ((G.smart || 75) / 1000);
+    var finalPrice = car.repaired ? Math.round(car.sellPrice * bonusMult) : Math.round(car.buyPrice * 1.05);
+    var totalCost = car.buyPrice + (car.repaired ? car.repairCost : 0);
+    var netGain = finalPrice - totalCost;
+
+    G.money += finalPrice;
+    G.alsatGarage.splice(idx, 1);
+    window.addLog(G.age, '🤝 **OTO AL-SAT SATIŞI:** **' + car.name + '** aracını sıkı pazarlıkla **' + window.fmtMoney(finalPrice) + '** fiyata sattın! (Net Kâr: **+' + window.fmtMoney(netGain) + '**)', 'good');
+    showToast('🎉 Araç satıldı! Net Kâr: +' + window.fmtMoney(netGain));
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.injectAlSatIntoCarsSection();
+  };
+
+  // ============================================================================
+  // 4. LOJİSTİK FİLOSU, TEKSTİL & OTEL COST CONTROL (MEVCUT ŞİRKETLER İLE BİRLEŞİK)
+  // ============================================================================
+  window.injectHoldingIntoBusinessSection = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+    window.ensureExpansionV11State();
+
+    var oldBox = document.getElementById('mergedHoldingPanelV11');
+    if (oldBox) oldBox.remove();
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var units = window.MERGED_EXPANSION_CATALOG.holdingUnits || [];
+    var hasLogisticsBonus = (G.licenses && G.licenses.CE) || (G.uniDeptId === 'dept_logistics');
+
+    var html = `
+      <div id="mergedHoldingPanelV11" class="merged-expansion-box space-y-3">
+        <div class="flex items-center justify-between border-b border-sky-400/25 pb-2">
+          <div>
+            <span class="royal-tile-badge">🏢 KILIÇ HOLDİNG • LOJİSTİK, TEKSTİL &amp; OTEL ZİNCİRİ</span>
+            <div class="text-sm font-black text-white mt-0.5">Uluslararası Tır Filosu, Tekstil İhracatı &amp; Cost Control</div>
+          </div>
+          ${hasLogisticsBonus ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[9px] font-black">+%35 Lojistik/CE Bonusu Aktif</span>` : ''}
+        </div>
+
+        <div class="space-y-2">
+          ${units.map(function (u) {
+            var isOwned = G.holdingV11.ownedIds.indexOf(u.id) !== -1;
+            var setupCost = Math.round(minW * u.setupMult);
+            var annualRev = Math.round(minW * u.annualProfitMult * (G.holdingV11.costControlOptimized ? 1.4 : 1.0) * (u.id === 'hold_logistics' && hasLogisticsBonus ? 1.35 : 1.0));
+            return `
+              <div class="p-3 rounded-xl bg-slate-950 border ${isOwned ? 'border-emerald-400/60' : 'border-slate-800'} flex items-center justify-between gap-2.5">
+                <div class="min-w-0">
+                  <span class="text-[8.5px] font-black text-sky-400 uppercase tracking-wider block">${u.tag}</span>
+                  <div class="text-xs font-black text-white mt-0.5">${u.name}</div>
+                  <div class="text-[10px] text-slate-300 mt-0.5">${u.desc}</div>
+                  <div class="text-[10px] text-emerald-400 font-mono-num mt-1">Yıllık Net Bilanço Getirisi: +${window.fmtMoney(annualRev)} / Yıl</div>
+                </div>
+                <div class="shrink-0">
+                  ${isOwned ? `
+                    <span class="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black block">AKTİF ✓</span>
+                  ` : `
+                    <button type="button" onclick="window.acquireHoldingUnit('${u.id}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black">
+                      KUR / DEVRAL<br/>${window.fmtMoney(setupCost)}
+                    </button>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        ${G.holdingV11.ownedIds.length > 0 ? `
+          <div class="pt-1 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div class="text-[10.5px] text-slate-300">
+              📊 <strong>Maliyet Kontrolü (Cost Control &amp; Luca Denetimi):</strong> ${G.holdingV11.costControlOptimized ? '<span class="text-emerald-400 font-black">OPTİMİZE EDİLDİ (+%40 Kâr)</span>' : 'Tedarikçi ve hammadde giderlerini optimize et'}
+            </div>
+            ${!G.holdingV11.costControlOptimized ? `
+              <button type="button" onclick="window.runHoldingCostControl()" class="px-3 py-2 rounded-xl bg-sky-400 text-slate-950 text-[10px] font-black shrink-0">
+                COST CONTROL YAP (+%40 KÂR)
+              </button>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+    body.insertAdjacentHTML('afterbegin', html);
+  };
+
+  window.acquireHoldingUnit = function (unitId) {
+    window.ensureExpansionV11State();
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var u = window.MERGED_EXPANSION_CATALOG.holdingUnits.find(function (x) { return x.id === unitId; });
+    if (!u || G.holdingV11.ownedIds.indexOf(unitId) !== -1) return;
+
+    var cost = Math.round(minW * u.setupMult);
+    if (G.money < cost) { showToast('Bu holding yatırımını kurmak için nakit yetersiz!'); return; }
+
+    G.money -= cost;
+    G.holdingV11.ownedIds.push(unitId);
+    if (!Array.isArray(G.businesses)) G.businesses = [];
+    G.businesses.push({ id: unitId, name: u.name });
+
+    window.addLog(G.age, '🏢 **HOLDİNG YATIRIMI:** **' + u.name + '** şirketini **' + window.fmtMoney(cost) + '** sermaye ile kurdun! Her yıl düzenli temettü ve ihracat geliri kasana akacak.', 'milestone');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.injectHoldingIntoBusinessSection();
+  };
+
+  window.runHoldingCostControl = function () {
+    window.ensureExpansionV11State();
+    G.holdingV11.costControlOptimized = true;
+    G.smart = Math.min(100, (G.smart || 78) + 6);
+    window.addLog(G.age, '📊 **COST CONTROL & MUHASEBE DENETİMİ:** Tedarikçi ve stok maliyetlerini optimize ederek tüm şirketlerinin yıllık kârlılığını **%40 artırdın**!', 'good');
+    showToast('📊 Cost Control tamamlandı! Holding gelirlerin %40 arttı.');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.injectHoldingIntoBusinessSection();
+  };
+
+  // ============================================================================
+  // 5. FUTBOL KULÜBÜ BAŞKANLIĞI, "SKOR AĞI" MEDYA VE DERBİ İDDAA MERKEZİ
+  // ============================================================================
+  window.openUnifiedSportsAndMediaHub = function () {
+    window.ensureExpansionV11State();
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '⚽ Futbol Kulübü, Skor Ağı Medya & Derbi Merkezi';
+    document.getElementById('sheetSubtitle').textContent = 'Bakiye: ' + window.fmtMoney(G.money) + ' • Şöhret: %' + (G.fame || 10);
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var mediaSetupCost = Math.round(minW * 8);
+    var clubBuyCost = Math.round(minW * 120);
+    var transferCost = Math.round(minW * 25);
+    var couponBet = Math.round(minW * 1.5);
+    var sp = G.sportsV11;
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 1. SKOR AĞI DİJİTAL SPOR MEDYASI (SİYAH & TURUNCU TEMA) -->
+        <div class="p-3.5 rounded-2xl border-2 border-orange-500/70" style="background:linear-gradient(135deg,#090d16 0%,#1c1917 60%,#431407 100%);">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="px-2 py-0.5 rounded bg-orange-500 text-slate-950 text-[9px] font-black uppercase">🔥 SKOR AĞI • DİJİTAL SPOR MEDYASI</span>
+              <div class="text-sm font-black text-white mt-1">${sp.hasMediaBrand ? 'Skor Ağı Medya Grubu (Aktif)' : 'Skor Ağı Spor Medya Markasını Kur'}</div>
+              <div class="text-[11px] text-orange-200">${sp.hasMediaBrand ? ('Takipçi: ' + (sp.mediaFollowers || 250) + 'K • Yıllık Sponsorluk & Reklam Geliri') : 'Özel maç grafikleri, transfer haberleri ve sponsorluk gelirleri'}</div>
+            </div>
+            ${!sp.hasMediaBrand ? `
+              <button type="button" onclick="window.sportsHubAction('start_media', ${mediaSetupCost})" class="px-3 py-2 rounded-xl bg-orange-500 text-slate-950 text-[10.5px] font-black shrink-0">
+                MARKAYI KUR<br/>${window.fmtMoney(mediaSetupCost)}
+              </button>
+            ` : `
+              <button type="button" onclick="window.sportsHubAction('viral_post', 0)" class="px-3 py-2 rounded-xl bg-orange-500 text-slate-950 text-[10.5px] font-black shrink-0">
+                📲 VİRAL DERBİ POSTU AT
+              </button>
+            `}
+          </div>
+        </div>
+
+        <!-- 2. FUTBOL KULÜBÜ BAŞKANLIĞI & TRANSFER MERKEZİ -->
+        <div class="merged-expansion-box space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="royal-tile-badge">🏆 SÜPER LİG KULÜP BAŞKANLIĞI</span>
+              <div class="text-sm font-black text-white mt-1">${sp.ownsClub ? (sp.clubName + ' (Kadro Gücü: ' + sp.starLevel + '★)') : 'Profesyonel Futbol Kulübü Satın Al'}</div>
+              <div class="text-[11px] text-slate-300">${sp.ownsClub ? 'Yıllık yayın havuzu, kombine bilet ve UEFA gelirleri kasana akar.' : 'Kulüp başkanı ol, yıldız transferler yap ve şampiyonluk kupasını kaldır!'}</div>
+            </div>
+            ${!sp.ownsClub ? `
+              <button type="button" onclick="window.sportsHubAction('buy_club', ${clubBuyCost})" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10.5px] font-black shrink-0">
+                KULÜBÜ AL<br/>${window.fmtMoney(clubBuyCost)}
+              </button>
+            ` : `
+              <button type="button" onclick="window.sportsHubAction('star_transfer', ${transferCost})" class="px-3 py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10.5px] font-black shrink-0">
+                ⭐ YILDIZ TRANSFER ET<br/>${window.fmtMoney(transferCost)}
+              </button>
+            `}
+          </div>
+        </div>
+
+        <!-- 3. HAFTALIK DERBİ KOMBİNE İDDAA BÜLTENİ -->
+        <div class="merged-expansion-box space-y-2">
+          <div class="text-[10px] font-black text-amber-300 uppercase">⚽ CANLI DERBİ FİKSTÜRÜ &amp; ŞAMPİYONLUK KUPONU (BAHİS: ${window.fmtMoney(couponBet)})</div>
+          ${window.MERGED_EXPANSION_CATALOG.derbyMatches.map(function (m) {
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div class="text-xs font-black text-white">${m.title}</div>
+                <div class="grid grid-cols-3 gap-1.5 text-[10px] font-black">
+                  <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS 1', ${m.odds1}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-amber-400/40 text-amber-300">MS 1 (${m.odds1})</button>
+                  <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS X', ${m.odds0}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200">MS X (${m.odds0})</button>
+                  <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS 2', ${m.odds2}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-sky-400/40 text-sky-300">MS 2 (${m.odds2})</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  window.sportsHubAction = function (act, cost) {
+    window.ensureExpansionV11State();
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var sp = G.sportsV11;
+
+    if (act === 'start_media') {
+      if (G.money < cost) { showToast('Skor Ağı medya ajansını kurmak için nakit yetersiz!'); return; }
+      G.money -= cost;
+      sp.hasMediaBrand = true;
+      sp.mediaFollowers = 250;
+      G.fame = Math.min(100, (G.fame || 10) + 15);
+      window.addLog(G.age, '🔥 **SKOR AĞI KURULDU:** Siyah-turuncu temalı dijital spor medya markan **Skor Ağı** yayın hayatına başladı!', 'fame');
+    } else if (act === 'viral_post') {
+      var adRev = Math.round(minW * 2.2);
+      G.money += adRev;
+      sp.mediaFollowers = (sp.mediaFollowers || 250) + 85;
+      G.fame = Math.min(100, (G.fame || 10) + 5);
+      window.addLog(G.age, '📲 **SKOR AĞI VİRAL İÇERİK:** Hazırladığın derbi maç grafikleri milyonlarca etkileşim aldı! (**+' + window.fmtMoney(adRev) + '** Sponsorluk Geliri).', 'good');
+    } else if (act === 'buy_club') {
+      if (G.money < cost) { showToast('Kulübü devralmak için nakit sermayen yetersiz!'); return; }
+      G.money -= cost;
+      sp.ownsClub = true;
+      sp.starLevel = 3;
+      G.fame = Math.min(100, (G.fame || 20) + 35);
+      window.addLog(G.age, '🏆 **KULÜP BAŞKANI OLDUN:** **' + sp.clubName + '** hisselerinin çoğunluğunu satın alarak kulüp başkanlığı koltuğuna oturdun!', 'milestone');
+    } else if (act === 'star_transfer') {
+      if (G.money < cost) { showToast('Yıldız transfer bonservisi için nakit yetersiz!'); return; }
+      G.money -= cost;
+      sp.starLevel = Math.min(5, (sp.starLevel || 3) + 1);
+      var trophyBonus = Math.round(cost * 1.45);
+      G.money += trophyBonus;
+      window.addLog(G.age, '⭐ **YILDIZ TRANSFER & ŞAMPİYONLUK:** Takıma dünya yıldızı transfer ettin! Şampiyonluk ve forma satışlarından **+' + window.fmtMoney(trophyBonus) + '** gelir elde edildi!', 'fame');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.playDerbyBet = function (matchTitle, pick, odds, betAmt) {
+    if (G.money < betAmt) { showToast('Kupon oynamak için nakit yetersiz!'); return; }
+    G.money -= betAmt;
+    var winChance = pick === 'MS 1' ? 0.56 : 0.42;
+    if (Math.random() < winChance) {
+      var payout = Math.round(betAmt * odds);
+      G.money += payout;
+      window.addLog(G.age, '⚽ **İDDAA KUPONU TUTTU:** **' + matchTitle + '** (' + pick + ') tahminin doğru çıktı! Kazanç: **+' + window.fmtMoney(payout) + '**.', 'good');
+      showToast('🎉 Kupon tuttu! +' + window.fmtMoney(payout));
+    } else {
+      showToast('Kupon son dakikada yattı! Tekrar dene.');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // ============================================================================
+  // 6. MÜZİK STÜDYOSU (DRILL/TRAP PRODÜKSİYON) VE HANEDANLIK (2. NESİL MİRAS)
+  // ============================================================================
+  window.openMusicStudioAndDynastyHub = function () {
+    window.ensureExpansionV11State();
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '🎤 Müzik Stüdyosu & Hanedanlık Merkezi';
+    document.getElementById('sheetSubtitle').textContent = 'Şöhret: %' + (G.fame || 10) + ' • Hit Parçalar: ' + G.studioV11.tracks.length;
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var tracks = window.MERGED_EXPANSION_CATALOG.musicReleases || [];
+    var childrenList = Array.isArray(G.children) ? G.children : [];
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-5">
+        <!-- 1. DRILL & TRAP MÜZİK PRODÜKSİYON STÜDYOSU -->
+        <div class="merged-expansion-box space-y-2.5">
+          <div>
+            <span class="royal-tile-badge">🎧 PRO DRILL &amp; TRAP KAYIT STÜDYOSU</span>
+            <div class="text-sm font-black text-white mt-1">Şarkı Sözü Yaz, Klip Çek ve Dijital Telif Kazan</div>
+            <div class="text-[11px] text-slate-300">Yayınladığın her parça sana her yıl düzenli Spotify / YouTube telif geliri ve şöhret kazandırır.</div>
+          </div>
+
+          <div class="space-y-2">
+            ${tracks.map(function (t) {
+              var cost = Math.round(minW * t.costMult);
+              var annualRoyalty = Math.round(minW * t.royaltyMult);
+              return `
+                <div class="p-2.5 rounded-xl bg-slate-950 border border-pink-500/40 flex items-center justify-between gap-2">
+                  <div>
+                    <div class="text-xs font-black text-white">🎵 ${t.name}</div>
+                    <div class="text-[10px] text-emerald-400 font-mono-num">Yıllık Telif: +${window.fmtMoney(annualRoyalty)} / Yıl • +${t.fameGain} Şöhret</div>
+                  </div>
+                  <button type="button" onclick="window.produceMusicTrack('${t.id}')" class="px-3 py-2 rounded-xl bg-pink-500 text-white text-[10px] font-black shrink-0">
+                    KAYDET &amp; YAYINLA<br/>${window.fmtMoney(cost)}
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- 2. HANEDANLIK, VASİYET VE 2. NESİL DEVAMLILIK SİSTEMİ -->
+        <div class="merged-expansion-box space-y-2.5">
+          <div>
+            <span class="royal-tile-badge">👑 KILIÇ HANEDANLIĞI &amp; MİRAS AKTARIMI</span>
+            <div class="text-sm font-black text-white mt-1">Servetini, Şirketlerini ve Garajını 2. Nesile Devret</div>
+            <div class="text-[11px] text-slate-300">Çocuğun olduğunda tüm holdingini, gayrimenkullerini ve nakit servetini çocuğuna devredip oyuna onunla devam edebilirsin!</div>
+          </div>
+
+          ${childrenList.length > 0 ? `
+            <div class="space-y-2">
+              ${childrenList.map(function (ch, idx) {
+                return `
+                  <div class="p-2.5 rounded-xl bg-slate-950 border border-amber-400/50 flex items-center justify-between">
+                    <div>
+                      <div class="text-xs font-black text-white">👶 ${ch.name || ('Çocuk #' + (idx + 1))} (${ch.age || 5} Yaş)</div>
+                      <div class="text-[10px] text-amber-300">Resmi Mirasçı • %100 Servet Devri</div>
+                    </div>
+                    <button type="button" onclick="window.continueAsChildHeir(${idx})" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black">
+                      👑 MİRASI DEVRET &amp; ONUNLA OYNA
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <button type="button" onclick="window.adoptOrAddHeirChild()" class="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">
+              👶 Hanedana Veliaht / Evlat Ekle (Mirasçı Oluştur)
+            </button>
+          `}
+        </div>
+      </div>
+    `;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  window.produceMusicTrack = function (trkId) {
+    window.ensureExpansionV11State();
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var trk = window.MERGED_EXPANSION_CATALOG.musicReleases.find(function (x) { return x.id === trkId; });
+    if (!trk) return;
+
+    var cost = Math.round(minW * trk.costMult);
+    if (G.money < cost) { showToast('Stüdyo ve klip prodüksiyonu için nakit yetersiz!'); return; }
+
+    G.money -= cost;
+    var immediateStreamBonus = Math.round(cost * 1.35);
+    G.money += immediateStreamBonus;
+    G.fame = Math.min(100, (G.fame || 10) + trk.fameGain);
+    G.studioV11.tracks.push(trk.name);
+    G.studioV11.annualRoyaltyMult = (G.studioV11.annualRoyaltyMult || 0) + trk.royaltyMult;
+
+    window.addLog(G.age, '🎤 **HİT PARÇA YAYINLANDI:** **"' + trk.name + '"** dijital listelerde 1 numaraya yerleşti! İlk hafta dinlenmelerinden **+' + window.fmtMoney(immediateStreamBonus) + '** telif kazandın!', 'fame');
+    showToast('🎵 Parça listelerde #1 oldu! +' + window.fmtMoney(immediateStreamBonus));
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openMusicStudioAndDynastyHub();
+  };
+
+  window.adoptOrAddHeirChild = function () {
+    if (!Array.isArray(G.children)) G.children = [];
+    var childName = (G.gender === 'Kadın' ? 'Emin ' : 'Çağrı ') + (G.lastName || 'Kılıç');
+    G.children.push({ name: childName, age: 0, gender: 'Erkek', relation: 100 });
+    window.addLog(G.age, '👶 **HANEDANA YENİ VELİAHT:** Ailene **' + childName + '** katıldı!', 'milestone');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openMusicStudioAndDynastyHub();
+  };
+
+  window.continueAsChildHeir = function (idx) {
+    if (!Array.isArray(G.children) || !G.children[idx]) return;
+    var heir = G.children[idx];
+    var oldName = G.firstName + ' ' + G.lastName;
+    var firstParts = String(heir.name || 'Çağatay').split(' ');
+    G.firstName = firstParts[0] || 'Çağatay';
+    G.age = typeof heir.age === 'number' ? heir.age : 18;
+    G.health = 100;
+    G.happy = 95;
+    G.children.splice(idx, 1);
+
+    window.addLog(G.age, '👑 **2. NESİL HANEDANLIK DEVRİ:** **' + oldName + '** tüm holdingini, garajını ve **' + window.fmtMoney(G.money) + '** nakit servetini veliahtı **' + G.firstName + ' ' + G.lastName + '** adına devretti!', 'milestone');
+    showToast('👑 Miras devralındı! Yeni nesil olarak devam ediyorsun.');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.closeBottomSheetSafe();
+  };
+
+  // ============================================================================
+  // 7. FİNANS -> BORSA & KRİPTO SEKMESİNE 20X KALDIRAÇLI LONG/SHORT EKLEME
+  // ============================================================================
+  window.executeLeverageTrade = function (direction) {
+    var c = window.getCountry();
+    var marginBet = Math.round((c.monthlyMinWage || 22104) * 2.0);
+    if (G.money < marginBet) { showToast('20x Kaldıraçlı işlem teminatı için ' + window.fmtMoney(marginBet) + ' gerekli!'); return; }
+
+    G.money -= marginBet;
+    var win = Math.random() < 0.54;
+    if (win) {
+      var payout = Math.round(marginBet * 3.2);
+      G.money += payout;
+      window.addLog(G.age, '📈 **20X KALDIRAÇLI VURGUN (' + direction + '):** BTC/USDT paritesinde 20x kaldıraçlı işlemin hedefi vurdu! Kazanç: **+' + window.fmtMoney(payout) + '**.', 'good');
+      showToast('🚀 20x Long/Short Hedefi Vurdu: +' + window.fmtMoney(payout));
+    } else {
+      window.addLog(G.age, '📉 **20X LİKİDASYON:** Piyasadaki ani iğne nedeniyle 20x ' + direction + ' pozisyonun likide oldu (-' + window.fmtMoney(marginBet) + ').', 'bad');
+      showToast('📉 Pozisyon likide oldu!');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openNavSheet('finance');
+  };
+
+  // 8. YILLIK PASİF GELİRLERİ (HOLDİNG, SKOR AĞI, KULÜP VE MÜZİK TELİFİ) YAŞ İLERLEMESİNE BAĞLA
+  var _prevAdvanceAgeV11 = window.advanceAge;
+  window.advanceAge = advanceAge = function () {
+    window.ensureExpansionV11State();
+    if (typeof _prevAdvanceAgeV11 === 'function') _prevAdvanceAgeV11();
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var hasLogisticsBonus = (G.licenses && G.licenses.CE) || (G.uniDeptId === 'dept_logistics');
+
+    // Holding Yıllık Bilanço Geliri
+    if (G.holdingV11.ownedIds.length > 0) {
+      var totalHoldProfit = 0;
+      G.holdingV11.ownedIds.forEach(function (id) {
+        var u = window.MERGED_EXPANSION_CATALOG.holdingUnits.find(function (x) { return x.id === id; });
+        if (u) {
+          var p = Math.round(minW * u.annualProfitMult * (G.holdingV11.costControlOptimized ? 1.4 : 1.0) * (id === 'hold_logistics' && hasLogisticsBonus ? 1.35 : 1.0));
+          totalHoldProfit += p;
+        }
+      });
+      if (totalHoldProfit > 0) {
+        G.money += totalHoldProfit;
+        window.addLog(G.age, '🏢 **HOLDİNG YILLIK BİLANÇO KÂRI:** Sahip olduğun şirketlerden kasana **+' + window.fmtMoney(totalHoldProfit) + '** net kâr aktarıldı.', 'good');
+      }
+    }
+
+    // Skor Ağı & Futbol Kulübü Yıllık Geliri
+    var sp = G.sportsV11;
+    if (sp.hasMediaBrand || sp.ownsClub) {
+      var sportIncome = (sp.hasMediaBrand ? Math.round(minW * 3.5) : 0) + (sp.ownsClub ? Math.round(minW * 12 * (sp.starLevel || 3)) : 0);
+      G.money += sportIncome;
+      window.addLog(G.age, '🏆 **SPOR & MEDYA GELİRİ:** ' + (sp.ownsClub ? sp.clubName + ' yayın/bilet gelirleri ' : '') + (sp.hasMediaBrand ? 've Skor Ağı reklamlarından ' : '') + 'toplam **+' + window.fmtMoney(sportIncome) + '** kazandın.', 'good');
+    }
+
+    // Müzik Stüdyosu Yıllık Telif Geliri
+    if (G.studioV11.annualRoyaltyMult > 0) {
+      var roy = Math.round(minW * G.studioV11.annualRoyaltyMult);
+      G.money += roy;
+      window.addLog(G.age, '🎧 **DİJİTAL MÜZİK TELİFİ:** Yayınladığın ' + G.studioV11.tracks.length + ' parçanın yıllık Spotify/YouTube dinlenmelerinden **+' + window.fmtMoney(roy) + '** telif yattı.', 'good');
+    }
+
+    if (typeof window.renderGuaranteedMainTimeline === 'function') window.renderGuaranteedMainTimeline();
+  };
+
+  // 9. SEKMELER AÇILDIĞINDA BİRLEŞTİRİLMİŞ PANELLERİ OTOMATİK ENJEKTE ET
+  var _prevOpenMenuSecV11 = window.openMenuSection;
+  window.openMenuSection = openMenuSection = function (sec) {
+    var s = String(sec || '').toLowerCase();
+    if (/foot|sport|club|futbol|kulüp|iddaa/.test(s)) {
+      window.openUnifiedSportsAndMediaHub();
+      return;
+    }
+    if (typeof _prevOpenMenuSecV11 === 'function') _prevOpenMenuSecV11(sec);
+
+    if (/car|garage|araç|galeri|oto/.test(s)) {
+      window.injectAlSatIntoCarsSection();
+    } else if (/busi|comp|şirket|holding|ticaret|işletme/.test(s)) {
+      window.injectHoldingIntoBusinessSection();
+    }
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  var _prevOpenNavV11 = window.openNavSheet;
+  window.openNavSheet = openNavSheet = function (tab) {
+    if (typeof _prevOpenNavV11 === 'function') _prevOpenNavV11(tab);
+    if (tab === 'finance' && window.uiSubTabs && window.uiSubTabs.finance === 'market') {
+      var body = document.getElementById('sheetBody');
+      if (body && !document.getElementById('leverage20xBox')) {
+        var marAmt = Math.round((window.getCountry().monthlyMinWage || 22104) * 2.0);
+        body.insertAdjacentHTML('beforeend', `
+          <div id="leverage20xBox" class="merged-expansion-box mt-3 space-y-2">
+            <span class="royal-tile-badge">⚡ VADELİ İŞLEMLER • 20X KALDIRAÇLI KRİPTO MASASI</span>
+            <div class="text-xs font-black text-white">BTC/USDT 20x Long &amp; Short (Teminat: ${window.fmtMoney(marAmt)})</div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button type="button" onclick="window.executeLeverageTrade('LONG 📈')" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black">📈 20X LONG AÇ</button>
+              <button type="button" onclick="window.executeLeverageTrade('SHORT 📉')" class="py-2.5 rounded-xl bg-rose-500 text-white text-xs font-black">📉 20X SHORT AÇ</button>
+            </div>
+          </div>
+        `);
+      }
+    }
+  };
+})();
