@@ -2230,3 +2230,85 @@ window.MERGED_EXPANSION_CATALOG = {
     { id: 'trk_album', name: 'Bu Mayıs Bizim! (Platin Stüdyo Albümü)', costMult: 14.0, royaltyMult: 13.5, fameGain: 35 }
   ]
 };
+
+/* ============================================================================
+   GERÇEK FUTBOL KULÜPLERİ, VEKTÖREL LOGOLAR, FUTBOLCULAR, HOCA VE SPONSORLAR (V12)
+   ============================================================================ */
+
+window.CLUB_PRESIDENCY_DB = {
+  // Her Takım İçin Özel Vektörel Kulüp Arması (Logo) Üretici
+  getClubCrestSVG: function (clubId) {
+    var crests = {
+      fb: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#1e3a8a" stroke="#facc15" stroke-width="4"/><path d="M20,12 H28 V52 H20 Z" fill="#facc15"/><path d="M36,12 H44 V52 H36 Z" fill="#facc15"/><circle cx="32" cy="32" r="13" fill="#ffffff" stroke="#dc2626" stroke-width="2.5"/><text x="32" y="36" text-anchor="middle" fill="#1e3a8a" font-weight="900" font-size="11">FB</text><text x="32" y="8" text-anchor="middle" fill="#fde047" font-size="8">★★★★★</text></svg>`,
+      gs: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#991b1b" stroke="#facc15" stroke-width="4"/><path d="M32,10 H56 V34 C56,49 32,58 32,58 Z" fill="#eab308"/><circle cx="32" cy="32" r="13" fill="#ffffff" stroke="#991b1b" stroke-width="2.5"/><text x="32" y="36" text-anchor="middle" fill="#991b1b" font-weight="900" font-size="11">GS</text></svg>`,
+      bjk: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#090d16" stroke="#e2e8f0" stroke-width="4"/><path d="M20,12 H28 V53 H20 Z" fill="#ffffff"/><path d="M36,12 H44 V53 H36 Z" fill="#ffffff"/><circle cx="32" cy="31" r="11" fill="#dc2626" stroke="#ffffff" stroke-width="2"/><text x="32" y="35" text-anchor="middle" fill="#ffffff" font-weight="900" font-size="9.5">BJK</text></svg>`,
+      ts: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#7f1d1d" stroke="#38bdf8" stroke-width="4"/><path d="M22,12 H42 V53 H22 Z" fill="#0284c7"/><circle cx="32" cy="32" r="12" fill="#7f1d1d" stroke="#facc15" stroke-width="2"/><text x="32" y="36" text-anchor="middle" fill="#38bdf8" font-weight="900" font-size="11">TS</text></svg>`,
+      ibfk: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#1e3a8a" stroke="#f97316" stroke-width="4"/><polygon points="32,12 50,32 32,52 14,32" fill="#f97316"/><text x="32" y="36" text-anchor="middle" fill="#ffffff" font-weight="900" font-size="10">İBFK</text></svg>`,
+      sam: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#dc2626" stroke="#ffffff" stroke-width="4"/><path d="M22,12 H42 V53 H22 Z" fill="#ffffff"/><text x="32" y="36" text-anchor="middle" fill="#dc2626" font-weight="900" font-size="10">SAM</text></svg>`,
+      goz: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#facc15" stroke="#dc2626" stroke-width="4"/><path d="M8,26 H56 V38 H8 Z" fill="#dc2626"/><text x="32" y="36" text-anchor="middle" fill="#ffffff" font-weight="900" font-size="10">GÖZ</text></svg>`,
+      eyp: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#581c87" stroke="#facc15" stroke-width="4"/><path d="M22,12 H42 V53 H22 Z" fill="#facc15"/><text x="32" y="36" text-anchor="middle" fill="#581c87" font-weight="900" font-size="10">EYP</text></svg>`,
+      svs: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#b91c1c" stroke="#ffffff" stroke-width="4"/><circle cx="32" cy="32" r="12" fill="#ffffff"/><text x="32" y="36" text-anchor="middle" fill="#b91c1c" font-weight="900" font-size="10">SVS</text></svg>`,
+      koc: `<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M8,10 H56 V34 C56,49 32,58 32,58 C32,58 8,49 8,34 Z" fill="#059669" stroke="#090d16" stroke-width="4"/><path d="M22,12 H42 V53 H22 Z" fill="#090d16"/><text x="32" y="36" text-anchor="middle" fill="#10b981" font-weight="900" font-size="10">KOC</text></svg>`,
+      rma: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="34" r="24" fill="#ffffff" stroke="#facc15" stroke-width="4"/><path d="M12,20 L52,46" stroke="#4f46e5" stroke-width="5"/><polygon points="20,10 32,3 44,10" fill="#facc15"/><text x="32" y="39" text-anchor="middle" fill="#1e1b4b" font-weight="900" font-size="11">RMA</text></svg>`,
+      mci: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="25" fill="#38bdf8" stroke="#1e3a8a" stroke-width="4"/><circle cx="32" cy="32" r="16" fill="#ffffff"/><text x="32" y="36" text-anchor="middle" fill="#0284c7" font-weight="900" font-size="11">MCFC</text></svg>`,
+      bay: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="25" fill="#dc2626" stroke="#ffffff" stroke-width="3"/><circle cx="32" cy="32" r="15" fill="#0284c7" stroke="#ffffff" stroke-width="2"/><text x="32" y="36" text-anchor="middle" fill="#ffffff" font-weight="900" font-size="10">FCB</text></svg>`
+    };
+    return crests[clubId] || crests.fb;
+  },
+
+  // Satın Alınabilir & Ligde Yarışan Gerçek Kulüpler
+  clubs: [
+    { id: 'fb', name: 'Fenerbahçe SK', league: 'Süper Lig', basePower: 86, stadium: 'Ülker Stadyumu Şükrü Saracoğlu', capacity: 50530, buyMult: 145, initBudgetMult: 45, desc: '5 Yıldızlı Efsane • Şampiyonlar Ligi Hedefi' },
+    { id: 'gs', name: 'Galatasaray', league: 'Süper Lig', basePower: 85, stadium: 'RAMS Park', capacity: 52280, buyMult: 145, initBudgetMult: 42, desc: 'Süper Lig Şampiyonluk Adayı' },
+    { id: 'bjk', name: 'Beşiktaş JK', league: 'Süper Lig', basePower: 82, stadium: 'Tüpraş Stadyumu', capacity: 42590, buyMult: 115, initBudgetMult: 32, desc: 'Boğazın Kara Kartalı' },
+    { id: 'ts', name: 'Trabzonspor', league: 'Süper Lig', basePower: 80, stadium: 'Papara Park', capacity: 40782, buyMult: 95, initBudgetMult: 26, desc: 'Karadeniz Fırtınası' },
+    { id: 'ibfk', name: 'Başakşehir FK', league: 'Süper Lig', basePower: 77, stadium: 'Fatih Terim Stadyumu', capacity: 17156, buyMult: 65, initBudgetMult: 20, desc: 'Kurumsal Proje Kulübü' },
+    { id: 'sam', name: 'Samsunspor', league: 'Süper Lig', basePower: 76, stadium: 'Samsun 19 Mayıs Stadyumu', capacity: 33919, buyMult: 52, initBudgetMult: 16, desc: 'Karadeniz Temsilcisi' },
+    { id: 'goz', name: 'Göztepe SK', league: 'Süper Lig', basePower: 75, stadium: 'Gürsel Aksel Stadyumu', capacity: 20040, buyMult: 48, initBudgetMult: 15, desc: 'İzmir Efsanesi • Ateşli Taraftar' },
+    { id: 'eyp', name: 'Eyüpspor', league: 'Süper Lig', basePower: 74, stadium: 'Eyüp Stadyumu', capacity: 14500, buyMult: 42, initBudgetMult: 14, desc: 'İstanbul Temsilcisi' },
+    { id: 'svs', name: 'Sivasspor', league: 'Süper Lig', basePower: 73, stadium: 'BG Grup 4 Eylül Stadyumu', capacity: 27532, buyMult: 36, initBudgetMult: 11, desc: 'Anadolu Yiğidoları' },
+    { id: 'koc', name: 'Kocaelispor', league: 'Süper Lig / 1. Lig', basePower: 72, stadium: 'Yıldız Entegre Kocaeli Stadyumu', capacity: 34712, buyMult: 28, initBudgetMult: 10, desc: 'Körfez Fırtınası • Uygun Giriş Yatırımı' }
+  ],
+
+  // Avrupa Kupası (UEFA Şampiyonlar Ligi) Rakipleri
+  europeRivals: [
+    { id: 'rma', name: 'Real Madrid CF', power: 91, prizeMult: 28 },
+    { id: 'mci', name: 'Manchester City', power: 90, prizeMult: 26 },
+    { id: 'bay', name: 'FC Bayern Münih', power: 88, prizeMult: 24 }
+  ],
+
+  // Gerçek Futbolcu Transfer Havuzu
+  transferPool: [
+    { id: 'pl_arda', name: 'Arda Güler', pos: 'OOS / SĞK', age: 21, ovr: 86, nation: '🇹🇷', feeMult: 42, wageMult: 4.5 },
+    { id: 'pl_ferdi', name: 'Ferdi Kadıoğlu', pos: 'SLB / SĞB', age: 26, ovr: 84, nation: '🇹🇷', feeMult: 30, wageMult: 3.2 },
+    { id: 'pl_ennesyri', name: 'Youssef En-Nesyri', pos: 'SNT', age: 28, ovr: 84, nation: '🇲🇦', feeMult: 26, wageMult: 3.5 },
+    { id: 'pl_fred', name: 'Fred Rodrigues', pos: 'MO', age: 32, ovr: 83, nation: '🇧🇷', feeMult: 18, wageMult: 3.0 },
+    { id: 'pl_szymanski', name: 'Sebastian Szymanski', pos: 'OOS', age: 26, ovr: 82, nation: '🇵🇱', feeMult: 22, wageMult: 2.5 },
+    { id: 'pl_irfancan', name: 'İrfan Can Kahveci', pos: 'SĞK / OOS', age: 30, ovr: 82, nation: '🇹🇷', feeMult: 16, wageMult: 2.4 },
+    { id: 'pl_amrabat', name: 'Sofyan Amrabat', pos: 'MDO', age: 29, ovr: 82, nation: '🇲🇦', feeMult: 19, wageMult: 2.6 },
+    { id: 'pl_kenan', name: 'Kenan Yıldız', pos: 'SLK / SNT', age: 21, ovr: 84, nation: '🇹🇷', feeMult: 36, wageMult: 3.4 },
+    { id: 'pl_hakan', name: 'Hakan Çalhanoğlu', pos: 'MDO / MO', age: 32, ovr: 87, nation: '🇹🇷', feeMult: 38, wageMult: 4.8 },
+    { id: 'pl_osimhen', name: 'Victor Osimhen', pos: 'SNT', age: 27, ovr: 88, nation: '🇳🇬', feeMult: 58, wageMult: 6.0 },
+    { id: 'pl_rafa', name: 'Rafa Silva', pos: 'OOS / SNT', age: 32, ovr: 84, nation: '🇵🇹', feeMult: 20, wageMult: 3.6 },
+    { id: 'pl_semih', name: 'Semih Kılıçsoy', pos: 'SNT / SLK', age: 20, ovr: 79, nation: '🇹🇷', feeMult: 15, wageMult: 1.6 },
+    { id: 'pl_livakovic', name: 'Dominik Livakovic', pos: 'KL', age: 31, ovr: 83, nation: '🇭🇷', feeMult: 17, wageMult: 2.5 },
+    { id: 'pl_mbappe', name: 'Kylian Mbappé', pos: 'SNT', age: 27, ovr: 92, nation: '🇫🇷', feeMult: 110, wageMult: 11.0 },
+    { id: 'pl_haaland', name: 'Erling Haaland', pos: 'SNT', age: 26, ovr: 92, nation: '🇳🇴', feeMult: 115, wageMult: 11.5 }
+  ],
+
+  // Teknik Direktörler
+  managers: [
+    { id: 'mgr_mourinho', name: 'José Mourinho', style: 'The Special One • Avrupa & Derbi Uzmanı', powerBonus: 5, costMult: 12 },
+    { id: 'mgr_kartal', name: 'İsmail Kartal', style: '99 Puanlık Rekor • Hücum Pres', powerBonus: 4, costMult: 6 },
+    { id: 'mgr_klopp', name: 'Jürgen Klopp', style: 'Heavy Metal Gegenpress • Yüksek Tempo', powerBonus: 6, costMult: 16 },
+    { id: 'mgr_sergen', name: 'Sergen Yalçın', style: 'Yaratıcı 10 Numara & Şampiyonluk Ruhu', powerBonus: 3, costMult: 5 }
+  ],
+
+  // Resmi Kulüp Sponsorluk Paketleri
+  sponsors: [
+    { id: 'sp_chobani', type: 'stadium', name: 'Ülker / Chobani Stadyum İsim Hakkı', annualMult: 18, signBonusMult: 22, minRep: 70 },
+    { id: 'sp_otokoc', type: 'shirt', name: 'Otokoç & Avis Ana Göğüs Sponsorluğu', annualMult: 14, signBonusMult: 15, minRep: 65 },
+    { id: 'sp_emirates', type: 'global', name: 'Fly Emirates Global Forma Sponsorluğu', annualMult: 26, signBonusMult: 30, minRep: 84 },
+    { id: 'sp_puma', type: 'kit', name: 'PUMA Elit Forma & Ürün Tedarik Anlaşması', annualMult: 11, signBonusMult: 12, minRep: 60 }
+  ]
+};
