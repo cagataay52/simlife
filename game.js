@@ -13891,3 +13891,564 @@ window.renderVIPCasinoModal = function () {
     deduplicateAndCleanUI();
   };
 })();
+
+/* ============================================================================
+   TEK PARÇA TAMAMLANMIŞ GAME.JS PAKETİ (SADECE GAME.JS EN ALTINA YAPIŞTIR)
+   - Başlangıç & 3'lü Kayıt Slotu Açılmama Sorunu Çözümü
+   - Çift Vadeli Mevduat ve Çift Kumarhane Birleştirmesi
+   - 1:1 Pragmatic Play Sweet Bonanza 1000, Gates of Olympus 1000 & Manuel Bahis
+   ============================================================================ */
+(function () {
+  if (window._masterGameJsPatchV3) return;
+  window._masterGameJsPatchV3 = true;
+
+  // 1. GEREKLİ STİLLERİ OTOMATİK YÜKLE (style.css'e dokunmana gerek kalmaz)
+  if (!document.getElementById('pragmaticMasterAutoStyles')) {
+    var st = document.createElement('style');
+    st.id = 'pragmaticMasterAutoStyles';
+    st.textContent = `
+      #cityMapRootContainer, #menuMapSettingsBar, .avatar-ring-svg, .sticky-modal-hud { display: none !important; }
+      .cinematic-main-menu { position: fixed; inset: 0; z-index: 150; background: radial-gradient(circle at 50% 25%, #0f172a 0%, #070a14 65%, #020617 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+      .save-slot-card { width: 100%; max-width: 440px; background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(9,13,22,0.98)); border: 1px solid rgba(56,189,248,0.4); border-left: 4px solid #38bdf8; border-radius: 18px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+      .char-creator-modal { position: fixed; inset: 0; z-index: 160; background: rgba(2,6,23,0.92); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+      .char-creator-box { width: 100%; max-width: 460px; background: linear-gradient(160deg, #0f172a 0%, #090d16 65%, #172554 100%); border: 2px solid rgba(56,189,248,0.55); border-radius: 26px; padding: 18px; }
+      .creator-preview-frame { width: 112px; height: 124px; border-radius: 20px; border: 3px solid #38bdf8; overflow: hidden; background: #0f172a; margin: 0 auto; }
+      .sb1000-cabinet { background: radial-gradient(circle at 15% 15%, rgba(255,255,255,0.45) 0%, transparent 35%), linear-gradient(180deg, #38bdf8 0%, #f472b6 48%, #ec4899 78%, #be185d 100%); border: 3px solid #fde047; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(190,24,93,0.55); }
+      .sb1000-reel-frame { background: linear-gradient(180deg, rgba(255,245,250,0.96), rgba(252,231,243,0.94)); border: 4px solid #f59e0b; outline: 2px solid #ec4899; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+      .sb1000-cell { aspect-ratio: 1/1; border-radius: 11px; background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.98), rgba(251,207,232,0.6)); border: 1px solid rgba(244,114,182,0.4); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; animation: pragmaticDrop 0.24s ease-out both; }
+      .go1000-cabinet { background: radial-gradient(circle at 80% 18%, rgba(56,189,248,0.4) 0%, transparent 40%), linear-gradient(180deg, #1e1b4b 0%, #3b0764 52%, #172554 100%); border: 3px solid #facc15; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(0,0,0,0.8); }
+      .go1000-reel-frame { background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(23,15,45,0.98)); border: 4px solid #eab308; outline: 2px solid #fef08a; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+      .go1000-cell { aspect-ratio: 1/1; border-radius: 10px; background: radial-gradient(circle at 50% 35%, rgba(51,65,85,0.8), rgba(15,23,42,0.96)); border: 1px solid rgba(250,204,21,0.3); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; animation: pragmaticDrop 0.24s ease-out both; }
+      @keyframes pragmaticDrop { 0% { opacity: 0; transform: translateY(-22px) scale(0.85); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+      .cell-tumble-win { background: radial-gradient(circle, #fef08a 0%, #f59e0b 75%, #b45309 100%) !important; border: 2px solid #ffffff !important; box-shadow: 0 0 18px #facc15 !important; transform: scale(1.08); z-index: 5; }
+      .pragmatic-top-banner { background: linear-gradient(90deg, #b91c1c 0%, #ef4444 50%, #b91c1c 100%); border: 2px solid #fde047; border-radius: 999px; padding: 5px 14px; text-align: center; color: #ffffff; font-weight: 900; font-size: 11px; }
+      .pragmatic-bottom-hud { background: rgba(9,13,22,0.94); border: 1.5px solid rgba(255,255,255,0.18); border-radius: 18px; padding: 10px; color: #ffffff; }
+      .pragmatic-spin-btn { width: 62px; height: 62px; border-radius: 999px; background: radial-gradient(circle at 30% 25%, #ffffff 0%, #e2e8f0 50%, #94a3b8 100%); border: 4px solid #facc15; box-shadow: 0 0 22px rgba(250,204,21,0.75); color: #0f172a; font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+      .bet-manual-input { background: #020617; border: 1.5px solid #facc15; border-radius: 10px; color: #fde047; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 900; padding: 5px 8px; width: 100%; text-align: center; outline: none; }
+      .bj-table-felt { background: radial-gradient(circle at 50% 30%, #065f46 0%, #064e3b 60%, #022c22 100%); border: 3px solid #d97706; border-radius: 22px; padding: 14px; }
+      .playing-card-hd { width: 50px; height: 72px; border-radius: 9px; background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 6px 14px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: space-between; padding: 4px 5px; font-family: 'JetBrains Mono', monospace; font-weight: 900; }
+      .playing-card-hd.red-suit { color: #dc2626; }
+      .playing-card-hd.black-suit { color: #0f172a; }
+      .playing-card-back { background: repeating-linear-gradient(45deg, #1e3a8a 0 6px, #172554 6px 12px); border: 2px solid #facc15; display: flex; align-items: center; justify-content: center; color: #facc15; }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // 2. G HENÜZ YOKKEN ÇÖKMEYİ ÖNLEYEN GÜVENLİ KORUMALAR
+  var _rawGetCountry = window.getCountry;
+  window.getCountry = function () {
+    if (typeof G !== 'undefined' && G && G.countryId && typeof _rawGetCountry === 'function') {
+      try { return _rawGetCountry(); } catch (e) {}
+    }
+    return (typeof COUNTRIES !== 'undefined' && COUNTRIES[0])
+      ? COUNTRIES[0]
+      : { id: 'TR', name: 'Türkiye', flag: '🇹🇷', currency: '₺', monthlyMinWage: 22104, taxRate: 0.20, inflation: 0 };
+  };
+
+  var _rawFmtMoney = window.fmtMoney;
+  window.fmtMoney = function (n) {
+    var val = Math.round(Number(n) || 0);
+    if (typeof G !== 'undefined' && G && typeof _rawFmtMoney === 'function') {
+      try { return _rawFmtMoney(val); } catch (e) {}
+    }
+    return val.toLocaleString('tr-TR') + ' ₺';
+  };
+
+  // 3. 3'LÜ KAYIT SLOTU VE BAŞLANGIÇ EKRANI MOTORU
+  window.currentSelectedSlot = window.currentSelectedSlot || 1;
+  window.creationState = window.creationState || {
+    slotNum: 1, firstName: 'Çağatay', lastName: 'Kılıç', gender: 'Erkek',
+    birthCity: 'İstanbul', skinId: 'skin_wheat', hairStyleId: 'fade_crop',
+    hairColorId: 'hc_darkbrown', beardStyleId: 'beard_stubble', eyeColorId: 'eye_hazel', outfitId: 'out_tshirt'
+  };
+
+  window.getSlotStorageKey = function (sNum) {
+    return 'cagatay_life_sim_save_slot_' + sNum;
+  };
+
+  window.checkSaveSlotsMeta = function () {
+    var meta = {};
+    for (var s = 1; s <= 3; s++) {
+      var raw = localStorage.getItem(window.getSlotStorageKey(s));
+      if (raw) {
+        try {
+          var p = JSON.parse(raw);
+          meta[s] = { exists: true, name: (p.firstName || 'Oyuncu') + ' ' + (p.lastName || ''), age: p.age || 18, money: p.money || 0, city: p.birthCity || 'İstanbul' };
+        } catch (e) { meta[s] = { exists: false }; }
+      } else { meta[s] = { exists: false }; }
+    }
+    return meta;
+  };
+
+  window.createCompleteValidGameObject = function (opts) {
+    opts = opts || {};
+    var c = window.getCountry();
+    var baseWage = c.monthlyMinWage || 22104;
+    var startAge = typeof opts.age === 'number' ? opts.age : 18;
+    var startMoney = typeof opts.money === 'number' ? opts.money : Math.round(baseWage * 2);
+    var fName = opts.firstName || 'Çağatay';
+    var lName = opts.lastName || 'Kılıç';
+    var bCity = opts.birthCity || 'İstanbul';
+
+    return {
+      firstName: fName, lastName: lName, gender: opts.gender || 'Erkek',
+      age: startAge, countryId: 'TR', birthCity: bCity, portraitIdx: 0,
+      money: startMoney, bankSavings: 0, savings: 0, loanDebt: 0, mortgageDebt: 0, creditScore: 1350,
+      health: 95, happy: 85, smart: 78, intel: 78, looks: 78, fame: 10, stress: 15,
+      energy: 100, maxEnergy: 100, eduStage: 'Üniversite', uniYears: 0, uniGrad: false,
+      jobId: null, jobExp: 0, jobPerf: 70, inPrison: false, prisonYears: 0, criminalRecord: false, alive: true,
+      licenses: { B: false, CE: false }, houses: [], cars: [], businesses: [],
+      stockHoldings: {}, cryptoHoldings: {}, stocks: {}, crypto: {},
+      spouse: null, lover: null, children: [], achievements: [],
+      logs: [{ age: startAge, items: [{ text: '🌟 **YENİ HAYAT:** **' + fName + ' ' + lName + '** (' + bCity + ') olarak hayata başladın!', type: 'milestone' }] }],
+      charLook: {
+        skinId: opts.skinId || 'skin_wheat', hairStyleId: opts.hairStyleId || 'fade_crop',
+        hairColorId: opts.hairColorId || 'hc_darkbrown', beardStyleId: opts.beardStyleId || 'beard_stubble',
+        browStyleId: 'brow_natural', eyeColorId: opts.eyeColorId || 'eye_hazel',
+        outfitId: opts.outfitId || 'out_tshirt', glassesId: 'gl_none', yearsSinceHaircut: 0
+      }
+    };
+  };
+
+  window.closeAllStartOverlaysAndEnterGame = function () {
+    ['cinematicMainMenuRoot', 'charCreatorModalRoot', 'startModal', 'introModal', 'newGameModal', 'welcomeModal'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        if (id === 'cinematicMainMenuRoot' || id === 'charCreatorModalRoot') el.remove();
+      }
+    });
+    var sh = document.getElementById('appShell');
+    if (sh) sh.classList.remove('hidden');
+  };
+
+  window.loadGameFromSlot = function (sNum) {
+    window.currentSelectedSlot = sNum;
+    var raw = localStorage.getItem(window.getSlotStorageKey(sNum));
+    if (!raw) { window.openCharacterCreatorModal(sNum); return; }
+    try {
+      var loaded = JSON.parse(raw);
+      var fallback = window.createCompleteValidGameObject(loaded);
+      var merged = Object.assign(fallback, loaded);
+      if (!Array.isArray(merged.logs) || merged.logs.length === 0) merged.logs = fallback.logs;
+      try { G = merged; } catch (e) {}
+      window.G = merged;
+      window.closeAllStartOverlaysAndEnterGame();
+      if (typeof saveGame === 'function') saveGame();
+      if (typeof renderAll === 'function') renderAll();
+      if (typeof showToast === 'function') showToast('Slot #' + sNum + ' yüklendi!');
+    } catch (err) { window.openCharacterCreatorModal(sNum); }
+  };
+
+  window.openCharacterCreatorModal = function (sNum) {
+    window.currentSelectedSlot = sNum;
+    window.creationState.slotNum = sNum;
+    var modal = document.getElementById('charCreatorModalRoot');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'charCreatorModalRoot';
+      modal.className = 'char-creator-modal';
+      document.body.appendChild(modal);
+    }
+    modal.classList.remove('hidden');
+    window.renderCharacterCreatorContent();
+  };
+
+  window.renderCharacterCreatorContent = function () {
+    var modal = document.getElementById('charCreatorModalRoot');
+    if (!modal) return;
+    var cities = ['İstanbul', 'Ankara', 'İzmir', 'Tekirdağ (Şarköy)', 'Ordu', 'Antalya', 'Bursa'];
+    var previewImg = typeof window.generateDynamicCharacterSVG === 'function' ? window.generateDynamicCharacterSVG(false, window.creationState) : '';
+
+    modal.innerHTML = `
+      <div class="char-creator-box space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="text-xs font-black text-white">SLOT #${window.creationState.slotNum} • YENİ KARAKTER</div>
+          <button type="button" onclick="document.getElementById('charCreatorModalRoot').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 text-xs text-white">Geri ✕</button>
+        </div>
+        ${previewImg ? `<div class="creator-preview-frame"><img src="${previewImg}" class="w-full h-full object-cover"/></div>` : ''}
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div><label class="text-[10px] text-slate-400 block mb-1">Adın</label><input type="text" id="creatorInputName" value="${window.creationState.firstName}" oninput="window.creationState.firstName=this.value" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold"/></div>
+          <div><label class="text-[10px] text-slate-400 block mb-1">Soyadın</label><input type="text" id="creatorInputSurname" value="${window.creationState.lastName}" oninput="window.creationState.lastName=this.value" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold"/></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div><label class="text-[10px] text-slate-400 block mb-1">Cinsiyet</label><select onchange="window.creationState.gender=this.value; window.renderCharacterCreatorContent();" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold"><option value="Erkek" ${window.creationState.gender==='Erkek'?'selected':''}>Erkek</option><option value="Kadın" ${window.creationState.gender==='Kadın'?'selected':''}>Kadın</option></select></div>
+          <div><label class="text-[10px] text-slate-400 block mb-1">Memleket</label><select onchange="window.creationState.birthCity=this.value" class="w-full p-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-bold">${cities.map(function(ct){return '<option value="'+ct+'" '+(window.creationState.birthCity===ct?'selected':'')+'>'+ct+'</option>';}).join('')}</select></div>
+        </div>
+        <button type="button" onclick="window.finalizeAndStartNewLife()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 text-sm font-black shadow-lg cursor-pointer">🚀 BU KARAKTERLE HAYATA BAŞLA!</button>
+      </div>
+    `;
+  };
+
+  window.finalizeAndStartNewLife = function () {
+    var ni = document.getElementById('creatorInputName');
+    var si = document.getElementById('creatorInputSurname');
+    if (ni && ni.value.trim()) window.creationState.firstName = ni.value.trim();
+    if (si && si.value.trim()) window.creationState.lastName = si.value.trim();
+
+    var newG = window.createCompleteValidGameObject(window.creationState);
+    try { G = newG; } catch (e) {}
+    window.G = newG;
+    try { localStorage.setItem(window.getSlotStorageKey(window.currentSelectedSlot), JSON.stringify(newG)); } catch (e) {}
+
+    window.closeAllStartOverlaysAndEnterGame();
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    if (typeof showToast === 'function') showToast('🚀 Hoş geldin ' + newG.firstName + '!');
+  };
+
+  // 4. ÇİFT ÖZELLİKLERİ (MEVDUAT & KUMARHANE) TEKİLLEŞTİRME
+  window.deduplicateAndCleanUI = function () {
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+    if (typeof G !== 'undefined' && G && G.fxGold && G.fxGold.termDeposit > 0) {
+      if (typeof G.bankSavings === 'number') G.bankSavings += G.fxGold.termDeposit;
+      else G.money += G.fxGold.termDeposit;
+      G.fxGold.termDeposit = 0;
+    }
+    var goldCards = body.querySelectorAll('.fx-gold-card');
+    for (var i = 1; i < goldCards.length; i++) goldCards[i].remove();
+    if (goldCards[0]) {
+      goldCards[0].querySelectorAll('button').forEach(function (b) {
+        var oc = b.getAttribute('onclick') || '';
+        if (oc.indexOf('deposit_term') !== -1 || oc.indexOf('withdraw_term') !== -1) b.remove();
+      });
+    }
+    body.querySelectorAll('button').forEach(function (btn) {
+      var oc = btn.getAttribute('onclick') || '';
+      if (btn.id !== 'menuVipCasinoBtn' && (oc.indexOf("'casino'") !== -1 || oc.indexOf("'gambling'") !== -1)) {
+        btn.remove();
+      }
+    });
+  };
+
+  // 5. PRAGMATIC PLAY 1:1 SWEET BONANZA 1000 & GATES OF OLYMPUS 1000 MOTORU
+  window.OLYMPUS_SYMBOLS_DB = [
+    { id: 'zeus_scatter', icon: '⚡', name: 'Zeus Scatter', pay8: 3.0, pay10: 15.0, pay12: 50.0, weight: 4, isScatter: true },
+    { id: 'crown', icon: '👑', name: 'Kral Tacı', pay8: 5.0, pay10: 12.0, pay12: 25.0, weight: 7 },
+    { id: 'hourglass', icon: '⏳', name: 'Kum Saati', pay8: 2.5, pay10: 6.0, pay12: 12.0, weight: 9 },
+    { id: 'ring', icon: '💍', name: 'Yakut Yüzük', pay8: 2.0, pay10: 4.5, pay12: 9.0, weight: 10 },
+    { id: 'chalice', icon: '🏆', name: 'Altın Kadeh', pay8: 1.5, pay10: 3.5, pay12: 7.0, weight: 11 },
+    { id: 'gem_red', icon: '♦️', name: 'Kırmızı Elmas', pay8: 0.8, pay10: 1.8, pay12: 4.0, weight: 15 },
+    { id: 'gem_purple', icon: '🔮', name: 'Mor Kristal', pay8: 0.6, pay10: 1.4, pay12: 3.0, weight: 16 },
+    { id: 'gem_yellow', icon: '🌟', name: 'Sarı Mücevher', pay8: 0.5, pay10: 1.1, pay12: 2.5, weight: 17 },
+    { id: 'gem_green', icon: '❇️', name: 'Yeşil Zümrüt', pay8: 0.4, pay10: 0.9, pay12: 2.0, weight: 18 },
+    { id: 'gem_blue', icon: '💎', name: 'Mavi Safir', pay8: 0.3, pay10: 0.7, pay12: 1.5, weight: 19 }
+  ];
+
+  window.BONANZA_SYMBOLS_DB = [
+    { id: 'lollipop', icon: '🍭', name: 'Lolipop Scatter', pay8: 3.0, pay10: 15.0, pay12: 50.0, weight: 4, isScatter: true },
+    { id: 'heart_candy', icon: '❤️', name: 'Kırmızı Kalp Şeker', pay8: 5.0, pay10: 12.0, pay12: 25.0, weight: 7 },
+    { id: 'purple_candy', icon: '🟪', name: 'Mor Kare Şeker', pay8: 2.5, pay10: 6.0, pay12: 12.0, weight: 9 },
+    { id: 'green_candy', icon: '🟩', name: 'Yeşil Beşgen Şeker', pay8: 2.0, pay10: 4.5, pay12: 9.0, weight: 10 },
+    { id: 'blue_candy', icon: '🟦', name: 'Mavi Oval Şeker', pay8: 1.5, pay10: 3.2, pay12: 6.5, weight: 11 },
+    { id: 'apple', icon: '🍎', name: 'Kırmızı Elma', pay8: 0.9, pay10: 1.8, pay12: 4.0, weight: 15 },
+    { id: 'peach', icon: '🍑', name: 'Şeftali', pay8: 0.7, pay10: 1.4, pay12: 3.0, weight: 16 },
+    { id: 'watermelon', icon: '🍉', name: 'Karpuz', pay8: 0.5, pay10: 1.1, pay12: 2.5, weight: 17 },
+    { id: 'grapes', icon: '🍇', name: 'Üzüm', pay8: 0.4, pay10: 0.9, pay12: 2.0, weight: 18 },
+    { id: 'banana', icon: '🍌', name: 'Muz', pay8: 0.3, pay10: 0.7, pay12: 1.5, weight: 19 }
+  ];
+
+  window.casinoUI = window.casinoUI || {
+    gameTab: 'bonanza', customBetAmount: 2000, doubleChance: false,
+    freeSpinsLeft: 0, fsTotalMultiplier: 0, fsCumulativeWin: 0,
+    grid: [], lastWinAmt: 0, lastWinLog: 'Bahsini yaz ve Spin tuşuna bas!',
+    bjDeck: [], bjPlayer: [], bjDealer: [], bjState: 'idle', bjResultText: 'Bahsini yaz ve Kartları Dağıt!'
+  };
+
+  window.getPragmaticSymbolSVG = function (sym) {
+    if (!sym) return '';
+    if (sym.isMultiplier) {
+      var mv = sym.multValue || 10;
+      if (window.casinoUI.gameTab === 'bonanza') {
+        return '<svg viewBox="0 0 64 64" class="w-full h-full"><defs><radialGradient id="bG" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#fde047"/><stop offset="40%" stop-color="#ec4899"/><stop offset="75%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#1d4ed8"/></radialGradient></defs><path d="M32,12 Q42,4 48,10" fill="none" stroke="#f59e0b" stroke-width="3.5"/><circle cx="49" cy="10" r="4.5" fill="#fde047"/><circle cx="32" cy="36" r="22" fill="url(#bG)" stroke="#fff" stroke-width="2.5"/><rect x="8" y="26" width="48" height="19" rx="6" fill="rgba(9,13,22,0.85)" stroke="#fde047" stroke-width="1.5"/><text x="32" y="40" text-anchor="middle" fill="#fde047" font-family="monospace" font-weight="900" font-size="15">' + mv + 'x</text></svg>';
+      }
+      var oc = mv >= 50 ? '#ef4444' : (mv >= 15 ? '#a855f7' : (mv >= 8 ? '#3b82f6' : '#22c55e'));
+      return '<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="22" fill="' + oc + '" stroke="#fde047" stroke-width="3"/><text x="32" y="37" text-anchor="middle" fill="#fff" font-family="monospace" font-weight="900" font-size="14">' + mv + 'x</text></svg>';
+    }
+    var id = sym.id;
+    if (id === 'lollipop') return '<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="29" y="36" width="6" height="24" rx="3" fill="#fff"/><circle cx="32" cy="24" r="19" fill="#ec4899" stroke="#fff" stroke-width="3"/><path d="M32,24 m0,-12 a12,12 0 1,1 -8,20 a8,8 0 1,1 12,-12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>';
+    if (id === 'heart_candy') return '<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M32,54 C32,54 10,38 10,22 C10,13 18,8 25,8 C29,8 32,11 32,15 C32,11 35,8 39,8 C46,8 54,13 54,22 C54,38 32,54 32,54 Z" fill="#e11d48" stroke="#fecdd3" stroke-width="2.5"/></svg>';
+    if (id === 'purple_candy') return '<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="12" y="12" width="40" height="40" rx="8" fill="#7e22ce" stroke="#e9d5ff" stroke-width="2.5"/><rect x="19" y="19" width="26" height="26" rx="4" fill="#9333ea"/></svg>';
+    if (id === 'green_candy') return '<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,8 55,25 46,53 18,53 9,25" fill="#15803d" stroke="#bbf7d0" stroke-width="2.5"/><polygon points="32,16 46,27 40,45 24,45 18,27" fill="#22c55e"/></svg>';
+    if (id === 'blue_candy') return '<svg viewBox="0 0 64 64" class="w-full h-full"><ellipse cx="32" cy="32" rx="22" ry="15" transform="rotate(-20 32 32)" fill="#0284c7" stroke="#bae6fd" stroke-width="2.5"/></svg>';
+    if (id === 'apple') return '<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M32,16 Q38,8 44,12 Q39,18 32,16 Z" fill="#16a34a"/><circle cx="32" cy="36" r="18" fill="#dc2626" stroke="#fca5a5" stroke-width="1.5"/></svg>';
+    if (id === 'peach') return '<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="35" r="18" fill="#f97316" stroke="#fed7aa" stroke-width="1.5"/></svg>';
+    if (id === 'watermelon') return '<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M10,24 A22,22 0 0,0 54,24 Z" fill="#15803d"/><path d="M14,24 A18,18 0 0,0 50,24 Z" fill="#ef4444"/></svg>';
+    if (id === 'grapes') return '<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="24" cy="24" r="8" fill="#6d28d9"/><circle cx="38" cy="24" r="8" fill="#7c3aed"/><circle cx="22" cy="36" r="8" fill="#7c3aed"/><circle cx="32" cy="36" r="8.5" fill="#8b5cf6"/><circle cx="42" cy="36" r="8" fill="#6d28d9"/><circle cx="32" cy="48" r="8" fill="#5b21b6"/></svg>';
+    if (id === 'banana') return '<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M16,44 Q36,48 48,18 Q52,36 34,50 Q20,56 16,44 Z" fill="#facc15" stroke="#ca8a04" stroke-width="2"/></svg>';
+    if (id === 'zeus_scatter') return '<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="24" fill="#1e3a8a" stroke="#facc15" stroke-width="3"/><polygon points="36,8 18,34 31,34 26,56 46,28 33,28" fill="#fde047"/></svg>';
+    if (id === 'crown') return '<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="10,46 14,20 26,32 32,14 38,32 50,20 54,46" fill="#facc15" stroke="#b45309" stroke-width="2.5"/><rect x="10" y="46" width="44" height="7" rx="2" fill="#eab308"/></svg>';
+    if (id === 'hourglass') return '<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="18,14 46,14 32,32 46,50 18,50 32,32" fill="#38bdf8" stroke="#eab308" stroke-width="2.5"/></svg>';
+    if (id === 'ring') return '<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="36" r="15" fill="none" stroke="#facc15" stroke-width="6"/><polygon points="24,18 32,10 40,18 36,24 28,24" fill="#e11d48"/></svg>';
+    if (id === 'chalice') return '<svg viewBox="0 0 64 64" class="w-full h-full"><path d="M18,14 L46,14 C46,32 38,36 32,36 C26,36 18,32 18,14 Z" fill="#facc15" stroke="#b45309" stroke-width="2"/><rect x="29" y="36" width="6" height="12" fill="#eab308"/><rect x="20" y="48" width="24" height="5" rx="2" fill="#facc15"/></svg>';
+    var gc = { gem_red: '#e11d48', gem_purple: '#9333ea', gem_yellow: '#eab308', gem_green: '#16a34a', gem_blue: '#0284c7' }[id] || '#38bdf8';
+    return '<svg viewBox="0 0 64 64" class="w-full h-full"><polygon points="32,10 52,24 44,52 20,52 12,24" fill="' + gc + '" stroke="#fff" stroke-width="2"/></svg>';
+  };
+
+  window.pickWeightedSlotSymbol = function (symDb, inFs) {
+    if (Math.random() < (inFs ? 0.085 : 0.032)) {
+      var pool = [2, 3, 4, 5, 8, 10, 12, 15, 20, 25, 50, 100];
+      var mv = pool[Math.floor(Math.random() * pool.length)];
+      return { id: 'mult_orb', icon: '💣', name: mv + 'x Çarpan', isMultiplier: true, multValue: mv };
+    }
+    var totalW = symDb.reduce(function (s, x) { return s + x.weight; }, 0);
+    var rnd = Math.random() * totalW;
+    for (var i = 0; i < symDb.length; i++) {
+      if (rnd < symDb[i].weight) return Object.assign({}, symDb[i]);
+      rnd -= symDb[i].weight;
+    }
+    return Object.assign({}, symDb[symDb.length - 1]);
+  };
+
+  window.generateInitial6x5Grid = function () {
+    var db = window.casinoUI.gameTab === 'olympus' ? window.OLYMPUS_SYMBOLS_DB : window.BONANZA_SYMBOLS_DB;
+    var arr = [];
+    for (var i = 0; i < 30; i++) arr.push(window.pickWeightedSlotSymbol(db, false));
+    return arr;
+  };
+
+  window.setManualCasinoBet = function (val) {
+    window.casinoUI.customBetAmount = Math.max(10, Math.round(Number(val) || 1000));
+  };
+
+  window.adjustManualCasinoBet = function (mode) {
+    var cur = window.casinoUI.customBetAmount || 1000;
+    if (mode === 'half') window.casinoUI.customBetAmount = Math.max(50, Math.round(cur / 2));
+    else if (mode === 'double') window.casinoUI.customBetAmount = Math.min(Math.max(1000, G.money), cur * 2);
+    else if (mode === 'max') window.casinoUI.customBetAmount = Math.max(100, G.money);
+    else if (mode === 'plus') window.casinoUI.customBetAmount = cur + 1000;
+    else if (mode === 'minus') window.casinoUI.customBetAmount = Math.max(50, cur - 1000);
+    window.renderVIPCasinoModal();
+  };
+
+  window.spinPragmaticSlot = function (isBonusBuy) {
+    if (!G || window._tumbleBusy) return;
+    var inp = document.getElementById('customCasinoBetInput');
+    if (inp && Number(inp.value) >= 10) window.casinoUI.customBetAmount = Math.round(Number(inp.value));
+
+    var baseBet = window.casinoUI.customBetAmount || 1000;
+    var actualBet = window.casinoUI.doubleChance ? Math.round(baseBet * 1.25) : baseBet;
+
+    if (isBonusBuy) {
+      var buyCost = baseBet * 100;
+      if (G.money < buyCost) { if (typeof showToast === 'function') showToast('Bonus Satın Almak için ' + window.fmtMoney(buyCost) + ' gerekli!'); return; }
+      G.money -= buyCost;
+      window.casinoUI.freeSpinsLeft = window.casinoUI.gameTab === 'olympus' ? 15 : 10;
+      window.casinoUI.fsTotalMultiplier = 0;
+      window.casinoUI.fsCumulativeWin = 0;
+    } else if (window.casinoUI.freeSpinsLeft <= 0) {
+      if (G.money < actualBet) { if (typeof showToast === 'function') showToast('Bakiye yetersiz!'); return; }
+      G.money -= actualBet;
+    } else {
+      window.casinoUI.freeSpinsLeft -= 1;
+    }
+
+    var inFs = window.casinoUI.freeSpinsLeft > 0 || isBonusBuy;
+    var db = window.casinoUI.gameTab === 'olympus' ? window.OLYMPUS_SYMBOLS_DB : window.BONANZA_SYMBOLS_DB;
+    var grid = [];
+    for (var i = 0; i < 30; i++) {
+      grid.push(isBonusBuy && i < 4 ? Object.assign({}, db[0], { isWinning: true }) : window.pickWeightedSlotSymbol(db, inFs));
+    }
+    window.casinoUI.grid = grid;
+    window.casinoUI.roundRawWin = 0;
+    window.casinoUI.tumbleCount = 0;
+
+    if (isBonusBuy) {
+      window.casinoUI.lastWinLog = '🍭 4 SCATTER GELDİ! ' + window.casinoUI.freeSpinsLeft + ' FREE SPIN BAŞLADI — SPIN\'E BAS!';
+      if (typeof saveGame === 'function') saveGame();
+      if (typeof renderAll === 'function') renderAll();
+      window.renderVIPCasinoModal();
+      return;
+    }
+    evaluateTumbleCascade(baseBet, inFs, db);
+  };
+
+  function evaluateTumbleCascade(baseBet, inFs, db) {
+    var counts = {};
+    var scatterCount = 0;
+    window.casinoUI.grid.forEach(function (c) {
+      c.isWinning = false;
+      if (c.isScatter) scatterCount++;
+      else if (!c.isMultiplier) counts[c.id] = (counts[c.id] || 0) + 1;
+    });
+
+    var stepWin = 0;
+    var matchedNames = [];
+    Object.keys(counts).forEach(function (id) {
+      var cnt = counts[id];
+      if (cnt >= 8) {
+        var sInfo = db.find(function (x) { return x.id === id; });
+        if (sInfo) {
+          var mult = cnt >= 12 ? sInfo.pay12 : (cnt >= 10 ? sInfo.pay10 : sInfo.pay8);
+          stepWin += Math.round(baseBet * mult);
+          matchedNames.push(cnt + 'x ' + sInfo.name);
+          window.casinoUI.grid.forEach(function (c) { if (c.id === id) c.isWinning = true; });
+        }
+      }
+    });
+
+    if (stepWin > 0) {
+      window._tumbleBusy = true;
+      window.casinoUI.tumbleCount += 1;
+      window.casinoUI.roundRawWin += stepWin;
+      window.casinoUI.lastWinAmt = window.casinoUI.roundRawWin;
+      window.casinoUI.lastWinLog = '💥 TUMBLE #' + window.casinoUI.tumbleCount + ': +' + window.fmtMoney(stepWin) + ' (' + matchedNames.join(' + ') + ')';
+      window.renderVIPCasinoModal();
+
+      setTimeout(function () {
+        for (var col = 0; col < 6; col++) {
+          var surv = [];
+          for (var row = 4; row >= 0; row--) {
+            var cell = window.casinoUI.grid[row * 6 + col];
+            if (!cell.isWinning) surv.unshift(cell);
+          }
+          while (surv.length < 5) surv.unshift(window.pickWeightedSlotSymbol(db, inFs));
+          for (var r = 0; r < 5; r++) window.casinoUI.grid[r * 6 + col] = surv[r];
+        }
+        window._tumbleBusy = false;
+        evaluateTumbleCascade(baseBet, inFs, db);
+      }, 480);
+      return;
+    }
+
+    var bombSum = 0;
+    window.casinoUI.grid.forEach(function (c) { if (c.isMultiplier) bombSum += (c.multValue || 0); });
+    if (scatterCount >= 4) {
+      window.casinoUI.freeSpinsLeft += (inFs ? 5 : 10);
+      window.casinoUI.roundRawWin += baseBet * 3;
+    }
+
+    var finalPay = window.casinoUI.roundRawWin;
+    if (finalPay > 0 && bombSum > 0) finalPay = Math.round(finalPay * bombSum);
+
+    window.casinoUI.lastWinAmt = finalPay;
+    if (finalPay > 0) {
+      G.money += finalPay;
+      if (inFs) window.casinoUI.fsCumulativeWin += finalPay;
+      window.casinoUI.lastWinLog = bombSum > 0
+        ? '💣 SÜPER KAZANÇ: ' + window.fmtMoney(window.casinoUI.roundRawWin) + ' x ' + bombSum + 'x BOMBA = +' + window.fmtMoney(finalPay) + '!'
+        : '🎉 TOPLAM KAZANÇ: +' + window.fmtMoney(finalPay) + ' (' + window.casinoUI.tumbleCount + ' Tumble)';
+    } else {
+      window.casinoUI.lastWinLog = 'Eşleşme yok (En az 8 aynı sembol gerekli). Tekrar çevir!';
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.renderVIPCasinoModal();
+  }
+
+  window.openVIPCasinoModal = function (tab) {
+    if (tab) window.casinoUI.gameTab = tab;
+    if (!window.casinoUI.grid || window.casinoUI.grid.length !== 30) {
+      window.casinoUI.grid = window.generateInitial6x5Grid();
+    }
+    window.renderVIPCasinoModal();
+  };
+
+  window.renderVIPCasinoModal = function () {
+    var sheet = document.getElementById('bottomSheet');
+    if (!sheet || !G) return;
+    sheet.classList.remove('hidden');
+
+    document.getElementById('sheetTitle').textContent = '🎰 Pragmatic Play VIP Casino';
+    document.getElementById('sheetSubtitle').textContent = 'Bakiye: ' + window.fmtMoney(G.money) + ' • Sweet Bonanza 1000 • Olympus 1000';
+
+    var rawBet = window.casinoUI.customBetAmount || 2000;
+    var bonusBuyCost = rawBet * 100;
+    var isBonanza = window.casinoUI.gameTab === 'bonanza';
+
+    document.getElementById('sheetBody').innerHTML = `
+      <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-amber-400/40 mb-2 text-[10.5px] font-black">
+        <button onclick="window.casinoUI.freeSpinsLeft=0; window.casinoUI.grid=[]; window.openVIPCasinoModal('bonanza')" class="py-2 rounded-xl ${isBonanza ? 'bg-pink-500 text-white shadow' : 'text-slate-300'}">🍭 Sweet Bonanza 1000</button>
+        <button onclick="window.casinoUI.freeSpinsLeft=0; window.casinoUI.grid=[]; window.openVIPCasinoModal('olympus')" class="py-2 rounded-xl ${!isBonanza ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-300'}">⚡ Gates of Olympus 1000</button>
+      </div>
+
+      <div class="pragmatic-bottom-hud mb-2 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-[9px] text-slate-400 block font-bold">KASA BAKİYESİ (CREDIT)</span>
+            <strong class="text-emerald-400 font-mono-num text-xs">${window.fmtMoney(G.money)}</strong>
+          </div>
+          <div class="flex-1 max-w-[175px]">
+            <label class="text-[8.5px] text-amber-300 font-extrabold block text-center mb-0.5">✍️ BAHİS TUTARINI YAZ (₺)</label>
+            <input id="customCasinoBetInput" type="number" min="10" step="500" value="${rawBet}" oninput="window.setManualCasinoBet(this.value)" class="bet-manual-input" />
+          </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1 text-[9.5px] font-black">
+          <button onclick="window.adjustManualCasinoBet('minus')" class="py-1.5 rounded bg-slate-800 text-white">-1.000</button>
+          <button onclick="window.adjustManualCasinoBet('half')" class="py-1.5 rounded bg-slate-800 text-amber-300">1/2</button>
+          <button onclick="window.adjustManualCasinoBet('double')" class="py-1.5 rounded bg-slate-800 text-emerald-300">2X</button>
+          <button onclick="window.adjustManualCasinoBet('plus')" class="py-1.5 rounded bg-slate-800 text-white">+1.000</button>
+          <button onclick="window.adjustManualCasinoBet('max')" class="py-1.5 rounded bg-amber-400 text-slate-950">MAX BAS</button>
+        </div>
+      </div>
+
+      <div class="${isBonanza ? 'sb1000-cabinet' : 'go1000-cabinet'} space-y-2">
+        <div class="pragmatic-top-banner flex items-center justify-between">
+          <span>${isBonanza ? '🍭 SWEET BONANZA 1000™' : '⚡ GATES OF OLYMPUS 1000™'}</span>
+          <span class="font-mono-num">${window.casinoUI.freeSpinsLeft > 0 ? 'FREE SPINS: ' + window.casinoUI.freeSpinsLeft : '8+ EŞLEŞME = TUMBLE'}</span>
+        </div>
+
+        <div class="${isBonanza ? 'sb1000-reel-frame' : 'go1000-reel-frame'}">
+          ${window.casinoUI.grid.map(function (cell, idx) {
+            return '<div class="' + (isBonanza ? 'sb1000-cell' : 'go1000-cell') + ' ' + (cell.isWinning ? 'cell-tumble-win' : '') + '" style="animation-delay:' + ((idx % 6) * 0.02) + 's">' + window.getPragmaticSymbolSVG(cell) + '</div>';
+          }).join('')}
+        </div>
+
+        <div class="p-2 rounded-xl bg-slate-950/90 border border-white/20 text-center text-xs font-black text-amber-300">
+          ${window.casinoUI.lastWinLog}
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button onclick="window.spinPragmaticSlot(true)" class="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-b from-pink-500 to-red-700 border-2 border-yellow-300 text-white text-left text-[9px] font-black shadow-lg">
+            <div>🍭 BONUS SATIN AL (100x)</div>
+            <div class="font-mono-num text-xs">${window.fmtMoney(bonusBuyCost)}</div>
+          </button>
+          <button onclick="window.spinPragmaticSlot(false)" class="pragmatic-spin-btn">↻</button>
+          <button onclick="window.casinoUI.doubleChance=!window.casinoUI.doubleChance; window.renderVIPCasinoModal()" class="flex-1 py-2 px-2.5 rounded-xl border-2 ${window.casinoUI.doubleChance ? 'bg-emerald-600 border-yellow-300 text-white' : 'bg-slate-900 border-white/25 text-slate-300'} text-right text-[9px] font-black shadow-lg">
+            <div>ANTE BET (2X ŞANS)</div>
+            <div class="text-xs">${window.casinoUI.doubleChance ? 'AÇIK ✓' : 'KAPALI'}</div>
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
+  // 6. MENÜ VE FİNANS KANCALARINI BAĞLA
+  var _prevOpenNav = window.openNavSheet;
+  if (typeof _prevOpenNav === 'function') {
+    window.openNavSheet = openNavSheet = function (tab) {
+      _prevOpenNav(tab);
+      if (tab === 'menu') {
+        var body = document.getElementById('sheetBody');
+        if (body && !document.getElementById('menuVipCasinoBtn')) {
+          var grid = body.querySelector('.grid.grid-cols-2');
+          if (grid) {
+            grid.insertAdjacentHTML('afterbegin', `
+              <button id="menuVipCasinoBtn" onclick="window.openVIPCasinoModal('bonanza')" class="col-span-2 p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/25 via-purple-600/20 to-amber-500/25 border border-amber-400/60 text-left flex items-center justify-between mb-1 shadow-lg">
+                <div>
+                  <div class="text-xs font-black text-amber-300 uppercase">🍭 PRAGMATIC PLAY VIP CASINO</div>
+                  <div class="text-sm font-extrabold text-white">Sweet Bonanza 1000 • Gates of Olympus 1000</div>
+                </div>
+                <span class="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-black shrink-0">Oyna &rarr;</span>
+              </button>
+            `);
+          }
+        }
+      }
+      window.deduplicateAndCleanUI();
+    };
+  }
+
+  var _prevOpenMenu = window.openMenuSection;
+  if (typeof _prevOpenMenu === 'function') {
+    window.openMenuSection = openMenuSection = function (sec) {
+      if (sec === 'casino' || sec === 'gambling') {
+        window.openVIPCasinoModal('bonanza');
+        return;
+      }
+      _prevOpenMenu(sec);
+      window.deduplicateAndCleanUI();
+    };
+  }
+})();
