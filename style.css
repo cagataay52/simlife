@@ -2335,3 +2335,144 @@ input:not(.bet-manual-input), select, textarea, option {
   font-weight: 900;
   text-transform: uppercase;
 }
+
+/* ============================================================================
+   PROFESYONEL FUTBOL KULÜBÜ BAŞKANLIĞI, LİG TABLOSU VE TRANSFER VİTRİNİ (V12)
+   ============================================================================ */
+
+.presidency-hero-banner {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(250, 204, 21, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(16, 185, 129, 0.2) 0%, transparent 45%),
+    linear-gradient(145deg, #0f172a 0%, #1e1b4b 55%, #052e16 100%) !important;
+  border: 2px solid #facc15 !important;
+  border-radius: 22px !important;
+  padding: 14px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.75) !important;
+}
+
+.club-crest-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(9, 13, 22, 0.85);
+  border: 1.5px solid rgba(250, 204, 21, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+.club-crest-mini {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 6'lı Başkanlık Alt Sekme Çubuğu */
+.presidency-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 5px;
+  background: rgba(5, 8, 17, 0.96);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.presidency-nav-btn {
+  padding: 8px 4px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 900;
+  text-align: center;
+  color: #cbd5e1 !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.presidency-nav-btn.active {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%) !important;
+  color: #090d16 !important;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.35);
+}
+
+/* Gerçekçi Süper Lig Puan Durumu Tablosu */
+.superlig-table-container {
+  background: rgba(9, 13, 22, 0.96);
+  border: 1.5px solid rgba(250, 204, 21, 0.32);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.superlig-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 24px 24px 24px 24px 32px 34px;
+  align-items: center;
+  padding: 7px 8px;
+  font-size: 10.5px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+.superlig-row.header {
+  background: rgba(30, 41, 59, 0.9);
+  font-size: 9.5px;
+  font-weight: 900;
+  color: #fde047 !important;
+  text-transform: uppercase;
+}
+.superlig-row.my-club {
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.22) 0%, rgba(16, 185, 129, 0.15) 100%) !important;
+  border-left: 3px solid #facc15;
+  font-weight: 900;
+}
+
+/* Maç Günü Skorbord & Soyunma Odası Kartı */
+.matchday-arena-card {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.28) 0%, transparent 60%),
+    linear-gradient(180deg, #064e3b 0%, #090d16 85%) !important;
+  border: 2px solid #34d399 !important;
+  border-radius: 20px !important;
+  padding: 14px !important;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* Futbolcu Transfer Kartı (OVR Rozetli) */
+.transfer-player-card {
+  background: linear-gradient(150deg, rgba(19, 26, 46, 0.98) 0%, rgba(9, 13, 24, 0.99) 100%) !important;
+  border: 1px solid rgba(250, 204, 21, 0.3) !important;
+  border-radius: 16px !important;
+  padding: 10px 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ovr-shield-badge {
+  width: 42px;
+  height: 46px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #fde047 0%, #ca8a04 100%);
+  border: 1.5px solid #ffffff;
+  color: #090d16 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.4);
+}
+.ovr-shield-badge * {
+  color: #090d16 !important;
+}
