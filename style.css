@@ -2217,3 +2217,45 @@ input:not(.bet-manual-input), select, textarea, option {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6) !important;
 }
 
+/* ============================================================================
+   GERÇEKÇİ KOŞUL DOĞRULAMA ROZETİ VE OLAY PENCERESİ (EVENT MODAL) TASARIMI
+   ============================================================================ */
+
+.event-condition-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 78, 59, 0.45) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  color: #6ee7b7 !important;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.event-choice-btn-realistic {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 1.5px solid rgba(250, 204, 21, 0.35) !important;
+  color: #f8fafc !important;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+.event-choice-btn-realistic:hover {
+  border-color: #facc15 !important;
+  transform: translateY(-1px);
+}
