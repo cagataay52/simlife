@@ -17231,3 +17231,282 @@ window.renderVIPCasinoModal = function () {
   };
 })();
 
+/* ============================================================================
+   MASTER REALISM & CONTEXT GATEKEEPER ENGINE (V10 - GAME.JS)
+   1. Ehliyetsiz/Arabasız Polis Çevirmesini, Şirketsiz Vergi Cezasını,
+      Evsiz Emlak Cezasını ve Çocuk Yaşta Yetişkin Olaylarını %100 Engeller!
+   2. Haksız Kesilen Cezaları Anında Cüzdana İade Eder.
+   3. Her Yıl Oyuncunun Gerçek Yaş ve Varlıklarına Uygun Olay Üretir.
+   ============================================================================ */
+(function () {
+  if (window._masterRealismGatekeeperV10) return;
+  window._masterRealismGatekeeperV10 = true;
+
+  // 1. OYUNCUNUN MEVCUT VARLIK VE İMKAN DURUMUNU OKUYAN FONKSİYON
+  window.getPlayerCapabilitySnapshot = function () {
+    if (typeof G === 'undefined' || !G) {
+      return { age: 0, hasCar: false, hasLicenseB: false, hasBiz: false, hasHouse: false, hasJob: false, hasSpouse: false, isAdult: false };
+    }
+    var age = typeof G.age === 'number' ? G.age : 0;
+    var hasCar = Array.isArray(G.cars) && G.cars.length > 0;
+    var hasLicenseB = Boolean(G.licenses && (G.licenses.B || G.licenses.CE));
+    var hasBiz = Array.isArray(G.businesses) && G.businesses.length > 0;
+    var hasHouse = Array.isArray(G.houses) && G.houses.length > 0;
+    var hasJob = Boolean(G.jobId);
+    var hasSpouse = Boolean(G.spouse || G.lover);
+
+    return {
+      age: age,
+      isBaby: age < 6,
+      isChild: age >= 6 && age < 14,
+      isTeen: age >= 14 && age < 18,
+      isAdult: age >= 18,
+      hasCar: hasCar,
+      hasLicenseB: hasLicenseB,
+      hasBiz: hasBiz,
+      hasHouse: hasHouse,
+      hasJob: hasJob,
+      hasSpouse: hasSpouse
+    };
+  };
+
+  // 2. BİR METNİN VEYA OLAYIN OYUNCUNUN DURUMUYLA ÇELİŞİP ÇELİŞMEDİĞİNİ DENETLEYEN DEDEKTÖR
+  window.findRealismViolation = function (rawText) {
+    if (!rawText || typeof G === 'undefined' || !G) return null;
+    var s = String(rawText).toLowerCase();
+
+    // Bizim kendi onaylı sistem mesajlarımızı (doğum, okul, YKS, slot, kredi kartı işlemi vb.) koru
+    if (/dünyaya geldin|okula başladın|lise yılları|18 yaş reşitlik|yks|mezuniyet|ehliyet sınavını|yeni hayat/.test(s)) {
+      return null;
+    }
+
+    var cap = window.getPlayerCapabilitySnapshot();
+
+    // KURAL A: 18 YAŞINDAN KÜÇÜK (BEBEK / ÇOCUK / LİSELİ) İKEN YETİŞKİN OLAYI YASAK!
+    if (!cap.isAdult) {
+      if (/trafik|polis çevir|ehliyet|radar|direksiyon|araba sür|kasko|tüvtürk|muayene|şirket|vergi|maliye|sgk|iflas|ihale|fatura|ceza yedin|para cezası|icra|haciz|kredi|borsa|hisse|temettü|kumar|bahis|evlilik|boşan|eşin|maaş|terfi|işten kovul|mesai|kiracı|tapu/.test(s)) {
+        return 'YAS_UYUMSUZ_YETISKIN_OLAYI';
+      }
+    }
+
+    // KURAL B: ARABASI YOKKEN ARABA / TRAFİK / POLİS ÇEVİRMESİ YASAK!
+    if (!cap.hasCar) {
+      if (/araba sür|aracınla|direksiyon|trafik polis|polis çevir|çevirmeye|radar|hız sınırı|kırmızı ışık|egzoz|muayene|tüvtürk|kasko|trafik sigorta|otopark|lastik patla|motor arıza|şerit ihlal|alkollü araç|trafik ceza/.test(s)) {
+        return 'ARABA_YOKKEN_TRAFIK_OLAYI';
+      }
+    }
+
+    // KURAL C: EHLİYETİ YOKKEN "ARABA SÜRERKEN POLİS ÇEVİRMESİ" YASAK!
+    if (!cap.hasLicenseB) {
+      if (/araba sürerken|seyir halindeyken|direksiyon başında|hız sınırını aş|radara gir|ehliyetine el/.test(s)) {
+        return 'EHLIYET_YOKKEN_SURUS_OLAYI';
+      }
+    }
+
+    // KURAL D: ŞİRKETİ / İŞLETMESİ YOKKEN ŞİRKET / VERGİ / MALİYE / SGK CEZASI YASAK!
+    if (!cap.hasBiz) {
+      if (/şirket|işletme|fabrika|maliye|vergi denetim|vergi ceza|usulsüzlük|sgk|personel|işçi|tedarikçi|ihale|ticaret odası|zabıta|mühür|bilanço|iflas/.test(s)) {
+        return 'SIRKET_YOKKEN_SIRKET_CEZASI';
+      }
+    }
+
+    // KURAL E: EVİ / MÜLKÜ YOKKEN KİRACI / EMLAK VERGİSİ / AİDAT OLAYI YASAK!
+    if (!cap.hasHouse) {
+      if (/kiracı|emlak vergi|konut vergi|dairenin tesisat|site aidat|apartman yönet|kombi bozul|çatı akıt/.test(s)) {
+        return 'EV_YOKKEN_EMLAK_OLAYI';
+      }
+    }
+
+    // KURAL F: İŞİ YOKKEN PATRON / MAAŞ KESİNTİSİ / İŞTEN ATILMA OLAYI YASAK!
+    if (!cap.hasJob) {
+      if (/patronun|müdürün|maaş kesinti|işten kovul|işten çıkarıl|mesaiye kal|ofiste|terfi/.test(s)) {
+        return 'IS_YOKKEN_KARİYER_OLAYI';
+      }
+    }
+
+    // KURAL G: EŞİ / SEVGİLİSİ YOKKEN EŞ / EVLİLİK OLAYI YASAK!
+    if (!cap.hasSpouse) {
+      if (/eşinle|karınla|kocanla|evlilik yıldönüm|boşanma dava|kayınvalide/.test(s)) {
+        return 'ES_YOKKEN_EVLILIK_OLAYI';
+      }
+    }
+
+    return null;
+  };
+
+  // 3. OYUNCUNUN O ANKİ YAŞ VE İMKANLARINA %100 UYGUN GERÇEKÇİ OLAY SEÇİCİ
+  window.pickRealisticEventForPlayer = function () {
+    var db = window.REALISTIC_CONTEXT_EVENTS_DB || [];
+    var cap = window.getPlayerCapabilitySnapshot();
+
+    var eligible = db.filter(function (ev) {
+      if (cap.age < ev.minAge || cap.age > ev.maxAge) return false;
+      if (ev.reqCar && !cap.hasCar) return false;
+      if (ev.reqLicenseB && !cap.hasLicenseB) return false;
+      if (ev.reqNoLicenseB && cap.hasLicenseB) return false;
+      if (ev.reqBiz && !cap.hasBiz) return false;
+      if (ev.reqHouse && !cap.hasHouse) return false;
+      if (ev.reqJob && !cap.hasJob) return false;
+      if (ev.reqSpouse && !cap.hasSpouse) return false;
+      return true;
+    });
+
+    // Eğer oyuncunun özel varlığı (Araba, Şirket, Ev, İş) varsa önceliği o varlığın gerçekçi olayına ver!
+    var specialized = eligible.filter(function (ev) {
+      return ev.reqCar || ev.reqBiz || ev.reqHouse || ev.reqJob || ev.reqNoLicenseB;
+    });
+
+    var pool = (specialized.length > 0 && Math.random() < 0.72) ? specialized : eligible;
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+
+  // 4. GERÇEKÇİ OLAY PENCERESİ (MODAL) GÖSTERİCİ VE SEÇENEK UYGULAYICI
+  window.showRealisticContextModal = function (evItem) {
+    if (!evItem || !G) return;
+    var modal = document.getElementById('eventModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    var c = window.getCountry();
+    var baseWage = c.monthlyMinWage || 22104;
+
+    modal.innerHTML = `
+      <div class="w-full max-w-md mx-auto my-auto p-5 rounded-3xl bg-slate-950 border-2 border-amber-400/70 shadow-2xl space-y-3.5">
+        <div>
+          <span class="event-condition-pill">
+            ✓ KOŞUL DOĞRULANDI: ${evItem.conditionLabel}
+          </span>
+          <div class="text-base font-black text-white leading-snug">${evItem.title}</div>
+          <p class="text-xs text-slate-300 leading-relaxed mt-1.5">${evItem.desc}</p>
+        </div>
+
+        <div class="space-y-2 pt-1">
+          ${evItem.choices.map(function (ch, idx) {
+            var moneyPreview = '';
+            if (ch.eff && ch.eff.moneyMult) {
+              var amt = Math.round(baseWage * Math.abs(ch.eff.moneyMult));
+              moneyPreview = ch.eff.moneyMult > 0
+                ? ' <span class="text-emerald-400 font-mono-num">(+' + window.fmtMoney(amt) + ')</span>'
+                : ' <span class="text-rose-400 font-mono-num">(-' + window.fmtMoney(amt) + ')</span>';
+            }
+            return `
+              <button type="button" onclick="window.resolveRealisticEventChoice('${evItem.id}', ${idx})" class="event-choice-btn-realistic">
+                <span>${ch.label}${moneyPreview}</span>
+                <span class="text-amber-300 font-black">&rarr;</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  };
+
+  window.resolveRealisticEventChoice = function (evId, choiceIdx) {
+    var db = window.REALISTIC_CONTEXT_EVENTS_DB || [];
+    var evItem = db.find(function (x) { return x.id === evId; });
+    var modal = document.getElementById('eventModal');
+    if (modal) modal.classList.add('hidden');
+    if (!evItem || !evItem.choices[choiceIdx] || !G) return;
+
+    var ch = evItem.choices[choiceIdx];
+    var eff = ch.eff || {};
+    var c = window.getCountry();
+    var baseWage = c.monthlyMinWage || 22104;
+
+    if (eff.moneyMult) {
+      var delta = Math.round(baseWage * eff.moneyMult);
+      G.money = Math.max(0, (G.money || 0) + delta);
+    }
+    if (eff.health) G.health = Math.max(0, Math.min(100, (G.health || 85) + eff.health));
+    if (eff.happy) G.happy = Math.max(0, Math.min(100, (G.happy || 80) + eff.happy));
+    if (eff.smart) {
+      G.smart = Math.max(0, Math.min(100, (G.smart || 75) + eff.smart));
+      G.intel = G.smart;
+    }
+    if (eff.looks) G.looks = Math.max(0, Math.min(100, (G.looks || 75) + eff.looks));
+    if (eff.creditBonus) G.creditScore = Math.min(1900, (G.creditScore || 1350) + eff.creditBonus);
+    if (eff.yksBonus) G.yksScore = Math.min(500, (G.yksScore || 240) + eff.yksBonus);
+    if (eff.grantLicenseB) {
+      if (!G.licenses) G.licenses = { B: false, CE: false };
+      G.licenses.B = true;
+    }
+
+    if (ch.log) {
+      window.addLog(G.age, ch.log, 'good');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+  };
+
+  // 5. KAPI BEKÇİSİ 1: OPENEVENTMODAL KANCASI (SAÇMA OLAY PENCERELERİNİ YAKALAR VE DEĞİŞTİRİR)
+  var _prevOpenEventModalV10 = window.openEventModal;
+  window.openEventModal = openEventModal = function (cfg) {
+    if (!cfg || typeof G === 'undefined' || !G) return;
+
+    var combinedText = (cfg.badge || '') + ' ' + (cfg.title || '') + ' ' + (cfg.desc || '');
+    var violation = window.findRealismViolation(combinedText);
+
+    // Eğer oyun arabasız/ehliyetsiz trafik olayı veya şirketsiz vergi cezası açmaya çalıştıysa ENGELLE!
+    if (violation) {
+      var replacement = window.pickRealisticEventForPlayer();
+      if (replacement) {
+        window.showRealisticContextModal(replacement);
+      }
+      return;
+    }
+
+    if (typeof _prevOpenEventModalV10 === 'function') {
+      _prevOpenEventModalV10(cfg);
+    }
+  };
+
+  // 6. KAPI BEKÇİSİ 2: ADDLOG VE ADVANCEAGE KANCASI (SAÇMA LOG CEZALARINI İPTAL EDER VE PARAYI İADE EDER)
+  var _protectedMoneySnapshot = null;
+
+  var _prevAddLogV10 = window.addLog;
+  window.addLog = addLog = function (ageOrText, maybeText, maybeType) {
+    var txtVal = typeof ageOrText === 'number' ? String(maybeText || '') : String(ageOrText || '');
+    var violation = window.findRealismViolation(txtVal);
+
+    if (violation) {
+      // Eğer eski oyun bu saçma olay yüzünden oyuncunun parasını kestiyse ANINDA GERİ İADE ET!
+      if (_protectedMoneySnapshot !== null && typeof G !== 'undefined' && G && G.money < _protectedMoneySnapshot) {
+        G.money = _protectedMoneySnapshot;
+      }
+      // Saçma log satırını ana ekrana YAZMA (tamamen yut)!
+      return;
+    }
+
+    // Geçerli bir log ise para snapshot'ını güncelle ve yazdır
+    if (typeof G !== 'undefined' && G) {
+      _protectedMoneySnapshot = G.money;
+    }
+    if (typeof _prevAddLogV10 === 'function') {
+      return _prevAddLogV10(ageOrText, maybeText, maybeType);
+    }
+  };
+
+  var _prevAdvanceAgeV10 = window.advanceAge;
+  window.advanceAge = advanceAge = function () {
+    if (typeof G !== 'undefined' && G) {
+      _protectedMoneySnapshot = G.money;
+    }
+
+    if (typeof _prevAdvanceAgeV10 === 'function') {
+      _prevAdvanceAgeV10();
+    }
+
+    _protectedMoneySnapshot = null;
+
+    // Eğer bu yaş geçişinde ekranda açık bir olay penceresi yoksa, %55 ihtimalle yaşa ve imkanlara uygun gerçekçi olay çıkar!
+    var evModal = document.getElementById('eventModal');
+    var isModalOpen = evModal && !evModal.classList.contains('hidden');
+    if (!isModalOpen && Math.random() < 0.55) {
+      var realisticEv = window.pickRealisticEventForPlayer();
+      if (realisticEv) {
+        window.showRealisticContextModal(realisticEv);
+      }
+    }
+  };
+})();
