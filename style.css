@@ -2259,3 +2259,79 @@ input:not(.bet-manual-input), select, textarea, option {
   border-color: #facc15 !important;
   transform: translateY(-1px);
 }
+
+/* ============================================================================
+   HD SİMGELİ & İSİMLİ MENÜ KARTLARI VE BİRLEŞTİRİLMİŞ MODÜL VİTRİNLERİ (V11)
+   ============================================================================ */
+
+/* Tek Sütun / Çift Sütun Uyumlu HD Simgeli Menü Kartı */
+.hd-named-menu-card {
+  width: 100%;
+  background: linear-gradient(145deg, rgba(19, 26, 46, 0.96) 0%, rgba(10, 14, 26, 0.99) 100%) !important;
+  border: 1.5px solid rgba(250, 204, 21, 0.32) !important;
+  border-radius: 18px !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+.hd-named-menu-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: #facc15 !important;
+  box-shadow: 0 14px 28px rgba(250, 204, 21, 0.2) !important;
+}
+.hd-named-menu-card:active {
+  transform: scale(0.98) !important;
+}
+
+/* Sol HD Vektörel İkon Çerçevesi */
+.hd-menu-svg-frame {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* Sağ Aksiyon Rozeti */
+.hd-menu-action-pill {
+  padding: 6px 11px;
+  border-radius: 11px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Birleştirilmiş Modül Panelleri (Al-Sat, Holding, Spor Medya, Stüdyo) */
+.merged-expansion-box {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(250, 204, 21, 0.15) 0%, transparent 45%),
+    linear-gradient(155deg, #161e38 0%, #0b0f1d 65%, #060913 100%) !important;
+  border: 1.5px solid rgba(250, 204, 21, 0.45) !important;
+  border-radius: 20px !important;
+  padding: 14px !important;
+  margin-bottom: 14px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65) !important;
+}
+
+.ekspertiz-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
