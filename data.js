@@ -2166,3 +2166,67 @@ window.REALISTIC_CONTEXT_EVENTS_DB = [
     ]
   }
 ];
+
+/* ============================================================================
+   HD VEKTÖREL MENÜ SİMGELERİ VE BİRLEŞTİRİLMİŞ GELİŞTİRME VERİTABANI (V11)
+   ============================================================================ */
+
+window.HD_MENU_ICONS_V11 = {
+  casino: `<svg viewBox="0 0 48 48" class="w-8 h-8"><defs><linearGradient id="icCas" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><rect x="5" y="9" width="38" height="30" rx="7" fill="url(#icCas)" stroke="#fff" stroke-width="1.8"/><rect x="9" y="14" width="9" height="20" rx="2.5" fill="#090d16"/><rect x="19.5" y="14" width="9" height="20" rx="2.5" fill="#090d16"/><rect x="30" y="14" width="9" height="20" rx="2.5" fill="#090d16"/><text x="13.5" y="28" text-anchor="middle" fill="#fde047" font-weight="900" font-size="12">7</text><text x="24" y="28" text-anchor="middle" fill="#f43f5e" font-weight="900" font-size="12">7</text><text x="34.5" y="28" text-anchor="middle" fill="#38bdf8" font-weight="900" font-size="12">7</text></svg>`,
+
+  creditcard: `<svg viewBox="0 0 48 48" class="w-8 h-8"><rect x="4" y="10" width="40" height="28" rx="6" fill="#1e1b4b" stroke="#facc15" stroke-width="2"/><rect x="4" y="16" width="40" height="6" fill="#facc15"/><rect x="9" y="26" width="9" height="7" rx="1.5" fill="#fde047"/><circle cx="34" cy="30" r="4.5" fill="#ef4444"/><circle cx="38" cy="30" r="4.5" fill="#f59e0b" opacity="0.85"/></svg>`,
+
+  barber: `<svg viewBox="0 0 48 48" class="w-8 h-8"><circle cx="15" cy="35" r="5.5" fill="none" stroke="#38bdf8" stroke-width="3"/><circle cx="33" cy="35" r="5.5" fill="none" stroke="#38bdf8" stroke-width="3"/><line x1="19" y1="30" x2="35" y2="9" stroke="#f8fafc" stroke-width="3.5" stroke-linecap="round"/><line x1="29" y1="30" x2="13" y2="9" stroke="#94a3b8" stroke-width="3.5" stroke-linecap="round"/><circle cx="24" cy="22" r="2.8" fill="#facc15"/></svg>`,
+
+  cars: `<svg viewBox="0 0 48 48" class="w-8 h-8"><path d="M6,29 L13,16 L35,16 L42,29 L44,36 L4,36 Z" fill="#ef4444" stroke="#fecdd3" stroke-width="1.8"/><polygon points="15,19 33,19 38,27 10,27" fill="#090d16"/><circle cx="13" cy="36" r="5.5" fill="#0f172a" stroke="#fde047" stroke-width="2.2"/><circle cx="35" cy="36" r="5.5" fill="#0f172a" stroke="#fde047" stroke-width="2.2"/><rect x="20" y="30" width="8" height="3.5" rx="1" fill="#f8fafc"/></svg>`,
+
+  houses: `<svg viewBox="0 0 48 48" class="w-8 h-8"><polygon points="24,6 5,22 11,22 11,41 37,41 37,22 43,22" fill="#10b981" stroke="#a7f3d0" stroke-width="1.8"/><rect x="19.5" y="27" width="9" height="14" rx="1.5" fill="#064e3b"/><rect x="16" y="16" width="16" height="7" rx="1.5" fill="#fef08a"/></svg>`,
+
+  holding: `<svg viewBox="0 0 48 48" class="w-8 h-8"><rect x="7" y="14" width="34" height="26" rx="4" fill="#2563eb" stroke="#93c5fd" stroke-width="2"/><path d="M17,14 V9.5 C17,8 18.5,6.5 20,6.5 H28 C29.5,6.5 31,8 31,9.5 V14" fill="none" stroke="#fde047" stroke-width="2.5"/><line x1="7" y1="25" x2="41" y2="25" stroke="#1e3a8a" stroke-width="2.5"/><rect x="20.5" y="21.5" width="7" height="7" rx="1.5" fill="#facc15"/></svg>`,
+
+  sports: `<svg viewBox="0 0 48 48" class="w-8 h-8"><path d="M13,9 H35 V19 C35,27 29.5,31.5 24,31.5 C18.5,31.5 13,27 13,19 Z" fill="#facc15" stroke="#fef08a" stroke-width="2"/><path d="M13,12 H7 V18 C7,22 10,24 13,24" fill="none" stroke="#facc15" stroke-width="2.5"/><path d="M35,12 H41 V18 C41,22 38,24 35,24" fill="none" stroke="#facc15" stroke-width="2.5"/><rect x="20.5" y="31.5" width="7" height="6.5" fill="#ca8a04"/><rect x="15" y="38" width="18" height="4.5" rx="2" fill="#fde047"/></svg>`,
+
+  music: `<svg viewBox="0 0 48 48" class="w-8 h-8"><path d="M12,26 V22 C12,14 17.5,9 24,9 C30.5,9 36,14 36,22 V26" fill="none" stroke="#c084fc" stroke-width="3.5"/><rect x="7" y="24" width="7" height="13" rx="3.5" fill="#ec4899" stroke="#fbcfe8" stroke-width="1.5"/><rect x="34" y="24" width="7" height="13" rx="3.5" fill="#ec4899" stroke="#fbcfe8" stroke-width="1.5"/><rect x="21" y="18" width="6" height="11" rx="3" fill="#fde047"/><line x1="24" y1="29" x2="24" y2="39" stroke="#fde047" stroke-width="2.5"/></svg>`,
+
+  education: `<svg viewBox="0 0 48 48" class="w-8 h-8"><polygon points="24,7 4,17 24,27 44,17" fill="#8b5cf6" stroke="#ddd6fe" stroke-width="2"/><path d="M12,21.5 V33 C12,37.5 36,37.5 36,33 V21.5" fill="#5b21b6" stroke="#ddd6fe" stroke-width="1.8"/><line x1="40" y1="19" x2="40" y2="35" stroke="#facc15" stroke-width="3"/></svg>`,
+
+  health: `<svg viewBox="0 0 48 48" class="w-8 h-8"><rect x="7" y="7" width="34" height="34" rx="9" fill="#059669" stroke="#a7f3d0" stroke-width="2"/><path d="M13,25 H18.5 L21.5,15 L26,33 L29.5,21 L32,25 H36" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+
+  crime: `<svg viewBox="0 0 48 48" class="w-8 h-8"><rect x="10" y="20" width="28" height="20" rx="5" fill="#334155" stroke="#94a3b8" stroke-width="2"/><path d="M16,20 V14 C16,8.5 32,8.5 32,14 V20" fill="none" stroke="#cbd5e1" stroke-width="3.2"/><circle cx="24" cy="30" r="3.5" fill="#f43f5e"/></svg>`,
+
+  lifestyle: `<svg viewBox="0 0 48 48" class="w-8 h-8"><polygon points="24,6 41,18 24,42 7,18" fill="#06b6d4" stroke="#cffafe" stroke-width="2"/><polygon points="24,6 32,18 24,42 16,18" fill="#67e8f9" opacity="0.55"/></svg>`,
+
+  slots: `<svg viewBox="0 0 48 48" class="w-8 h-8"><rect x="8" y="8" width="32" height="32" rx="6" fill="#0284c7" stroke="#bae6fd" stroke-width="2"/><rect x="14" y="8" width="20" height="12" fill="#e0f2fe"/><rect x="14" y="26" width="20" height="14" rx="2" fill="#090d16"/></svg>`
+};
+
+window.MERGED_EXPANSION_CATALOG = {
+  // 1. OTO GALERİ EKSPERTİZ & AL-SAT PAZARI (Garaj ile Birleşik)
+  alsatCars: [
+    { id: 'alsat_egea', name: 'Fiat Egea 1.6 MultiJet Sedan', plate: '34 CK 412', condition: 'Sağ Çamurluk Boyalı • Tramer: 12.000 ₺', buyMult: 14, repairMult: 2.5, sellMult: 21 },
+    { id: 'alsat_c3', name: 'Citroën C3 Aircross 1.2 PureTech', plate: '34 IST 808', condition: 'Hatasız Boyasız • Bakım Gerekli', buyMult: 28, repairMult: 3.5, sellMult: 39 },
+    { id: 'alsat_tiggo8', name: 'Chery Tiggo 8 Pro Max Avantgarde', plate: '34 RKN 99', condition: 'Tampon Lokal Boya • İlk Sahibinden', buyMult: 46, repairMult: 4.5, sellMult: 64 },
+    { id: 'alsat_f30', name: 'BMW 320i M Sport (F30)', plate: '34 VIP 034', condition: '2 Parça Değişen • Ağır Bakım İster', buyMult: 42, repairMult: 6.0, sellMult: 60 },
+    { id: 'alsat_g63', name: 'Mercedes-AMG G63 V8 Biturbo', plate: '34 FB 1907', condition: 'Zırhlı Özel Seri • Ekspertiz Tam Puan', buyMult: 160, repairMult: 12.0, sellMult: 215 }
+  ],
+
+  // 2. LOJİSTİK FİLOSU, TEKSTİL VE OTEL HOLDİNG YATIRIMLARI (Şirketler ile Birleşik)
+  holdingUnits: [
+    { id: 'hold_logistics', name: 'Uluslararası Lojistik & Tır Filosu', tag: 'AVRUPA GÜMRÜK & SEVKİYAT', setupMult: 38, annualProfitMult: 14, desc: 'Avrupa hattında çalışan çekici ve dorse filosu. CE ehliyeti veya Lojistik diploması varsa gelir %35 artar.' },
+    { id: 'hold_textile', name: 'Tekstil & Dokuma İhracat Fabrikası', tag: 'ÜRETİM & ÖN MUHASEBE', setupMult: 55, annualProfitMult: 21, desc: 'Toptan kumaş üretimi, dış ticaret ve kurumsal fatura/cari yönetimi.' },
+    { id: 'hold_hotels', name: 'Sultanahmet & Pera VIP Otel Zinciri', tag: 'TURİZM & COST CONTROL', setupMult: 95, annualProfitMult: 36, desc: '3 otelli turizm grubu. Maliyet Kontrolü (Cost Control) yaparak yıllık net kârı %40 katlayabilirsin.' }
+  ],
+
+  // 3. SPOR KULÜBÜ, MEDYA ("SKOR AĞI") VE DERBİ MAÇLARI (Spor ile Birleşik)
+  derbyMatches: [
+    { id: 'm_fb_gs', title: 'Fenerbahçe SK vs Galatasaray', odds1: 1.95, odds0: 3.40, odds2: 2.85 },
+    { id: 'm_bjk_ts', title: 'Beşiktaş vs Trabzonspor', odds1: 2.05, odds0: 3.30, odds2: 2.70 },
+    { id: 'm_rm_mc', title: 'Real Madrid vs Manchester City (UCL)', odds1: 2.15, odds0: 3.50, odds2: 2.45 }
+  ],
+
+  // 4. MÜZİK STÜDYOSU (DRILL & TRAP PRODÜKSİYON)
+  musicReleases: [
+    { id: 'trk_drill', name: 'Sokak Nabzı (Turkish Drill Single)', costMult: 2.0, royaltyMult: 1.8, fameGain: 8 },
+    { id: 'trk_trap', name: 'Gece Vardiyası (Trap EP & Klip)', costMult: 5.5, royaltyMult: 4.8, fameGain: 18 },
+    { id: 'trk_album', name: 'Bu Mayıs Bizim! (Platin Stüdyo Albümü)', costMult: 14.0, royaltyMult: 13.5, fameGain: 35 }
+  ]
+};
