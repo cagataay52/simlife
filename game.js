@@ -18464,3 +18464,1006 @@ window.renderVIPCasinoModal = function () {
     }
   };
 })();
+
+/* ============================================================================
+   MASTER PATCH V12: GERÇEK FUTBOL KULÜBÜ BAŞKANLIĞI SİMÜLASYONU (GAME.JS)
+   - 10 Gerçek Takımlı Süper Lig Puan Durumu & Fikstür Motoru
+   - Gerçek Oyuncu Transfer Pazarı (Al/Sat, OVR, Maaş, Altyapı Wonderkid)
+   - Kulüp Kasası (Transfer Bütçesi), Başkan Hibesi, Sponsorluklar & UEFA Şampiyonlar Ligi
+   ============================================================================ */
+(function () {
+  if (window._clubPresidencyEngineV12) return;
+  window._clubPresidencyEngineV12 = true;
+
+  window.presidencyUI = {
+    activeTab: 'matchday', // 'matchday' | 'standings' | 'transfers' | 'finance' | 'stadium' | 'media'
+    lastMatchReport: 'Başkanlık koltuğuna geç ve takımını şampiyonluğa taşı!',
+    promisedWinBonus: false
+  };
+
+  // 1. KULÜP BAŞKANLIĞI VE SÜPER LİG VERİ DURUMUNU BAŞLAT / ONAR
+  window.ensureClubPresidencyState = function () {
+    if (typeof G === 'undefined' || !G) return;
+    if (typeof window.ensureExpansionV11State === 'function') window.ensureExpansionV11State();
+
+    var db = window.CLUB_PRESIDENCY_DB;
+    if (!db) return;
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    if (!G.clubPresidency) {
+      G.clubPresidency = {
+        ownsClub: false,
+        clubId: null,
+        clubName: null,
+        clubBudget: 0, // Kulüp Kasası / Transfer Bütçesi
+        fanApproval: 82, // % Taraftar Güveni
+        stadiumLevel: 1,
+        stadiumCapacity: 50530,
+        vipBoxLevel: 1,
+        academyLevel: 1,
+        ticketPriceTier: 'normal', // 'cheap' | 'normal' | 'vip'
+        managerId: 'mgr_kartal',
+        managerName: 'İsmail Kartal',
+        managerBonus: 4,
+        roster: [],
+        activeSponsors: [],
+        trophies: { superLig: 0, turkiyeKupasi: 0, uefaCL: 0 },
+        seasonWeek: 1,
+        standings: []
+      };
+    }
+
+    var cp = G.clubPresidency;
+    if (!Array.isArray(cp.standings) || cp.standings.length === 0) {
+      window.resetNewSuperLigSeason(false);
+    }
+  };
+
+  // Süper Lig 18 Haftalık Puan Tablosunu Oluştur / Sıfırla
+  window.resetNewSuperLigSeason = function (announceNewSeason) {
+    if (!G || !window.CLUB_PRESIDENCY_DB) return;
+    var cp = G.clubPresidency;
+    cp.seasonWeek = 1;
+    cp.standings = window.CLUB_PRESIDENCY_DB.clubs.map(function (cl) {
+      return {
+        id: cl.id,
+        name: cl.name,
+        power: cl.basePower,
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        gf: 0,
+        ga: 0,
+        pts: 0
+      };
+    });
+    if (announceNewSeason) {
+      window.presidencyUI.lastMatchReport = '🏆 Yeni Süper Lig sezonu fikstürü çekildi! İlk hafta maçına hazırsın.';
+    }
+  };
+
+  // Oyuncunun Kulübünün Güncel Kadro Gücünü (Team Overall) Hesapla
+  window.calculateMyClubPower = function () {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return 75;
+    var clubMeta = window.CLUB_PRESIDENCY_DB.clubs.find(function (x) { return x.id === cp.clubId; }) || { basePower: 80 };
+    var base = clubMeta.basePower;
+
+    // Kadrodaki yıldızların katkısı
+    var rosterBonus = 0;
+    (cp.roster || []).forEach(function (pl) {
+      if (pl.ovr >= 88) rosterBonus += 2.5;
+      else if (pl.ovr >= 84) rosterBonus += 1.5;
+      else rosterBonus += 0.8;
+    });
+
+    var mgrBonus = cp.managerBonus || 3;
+    var facBonus = ((cp.academyLevel || 1) - 1) + ((cp.stadiumLevel || 1) - 1);
+    return Math.min(99, Math.round(base + rosterBonus + mgrBonus + facBonus));
+  };
+
+  // 2. KULÜP SATIN ALMA / BAŞKAN SEÇİLME FONKSİYONU
+  window.takeOverFootballClub = function (clubId) {
+    window.ensureClubPresidencyState();
+    var db = window.CLUB_PRESIDENCY_DB;
+    var cl = db.clubs.find(function (x) { return x.id === clubId; });
+    if (!cl) return;
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+    var buyCost = Math.round(minW * cl.buyMult);
+
+    if (G.money < buyCost) {
+      showToast(cl.name + ' başkanlığı ve hisse devri için ' + window.fmtMoney(buyCost) + ' kişisel sermaye gerekiyor!');
+      return;
+    }
+
+    G.money -= buyCost;
+    var cp = G.clubPresidency;
+    cp.ownsClub = true;
+    cp.clubId = cl.id;
+    cp.clubName = cl.name;
+    cp.stadiumCapacity = cl.capacity;
+    cp.clubBudget = Math.round(minW * cl.initBudgetMult);
+    cp.fanApproval = 88;
+
+    // Başlangıç Yıldız Kadrosunu Ata
+    if (cl.id === 'fb') {
+      cp.roster = [
+        Object.assign({}, db.transferPool.find(function (p) { return p.id === 'pl_fred'; })),
+        Object.assign({}, db.transferPool.find(function (p) { return p.id === 'pl_ennesyri'; })),
+        Object.assign({}, db.transferPool.find(function (p) { return p.id === 'pl_szymanski'; })),
+        Object.assign({}, db.transferPool.find(function (p) { return p.id === 'pl_irfancan'; })),
+        Object.assign({}, db.transferPool.find(function (p) { return p.id === 'pl_livakovic'; }))
+      ].filter(Boolean);
+    } else {
+      cp.roster = [
+        Object.assign({}, db.transferPool[4]),
+        Object.assign({}, db.transferPool[11])
+      ].filter(Boolean);
+    }
+
+    // Eski sistemle de tam senkronize et
+    if (G.sportsV11) {
+      G.sportsV11.ownsClub = true;
+      G.sportsV11.clubName = cl.name;
+    }
+
+    G.fame = Math.min(100, (G.fame || 20) + 35);
+    window.resetNewSuperLigSeason(false);
+    window.presidencyUI.lastMatchReport = '👑 Olağanüstü Kongrede rekor oyla ' + cl.name + ' Başkanı seçildin! Kulüp kasasında ' + window.fmtMoney(cp.clubBudget) + ' transfer bütçesi hazır.';
+    window.addLog(G.age, '👑 **KULÜP BAŞKANI SEÇİLDİN:** **' + cl.name + '** kulübünü **' + window.fmtMoney(buyCost) + '** yatırımla devraldın! Başlangıç transfer bütçen: **' + window.fmtMoney(cp.clubBudget) + '**.', 'milestone');
+
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // 3. HAFTALIK SÜPER LİG MAÇ SİMÜLASYONU (CANLI DERBİ & PUAN DURUMU GÜNCELLEME)
+  window.playNextLeagueWeek = function (simulateRestOfSeason) {
+    window.ensureClubPresidencyState();
+    var cp = G.clubPresidency;
+    if (!cp.ownsClub) return;
+
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    if (cp.seasonWeek > 18) {
+      window.resetNewSuperLigSeason(true);
+      window.openUnifiedSportsAndMediaHub();
+      return;
+    }
+
+    var weeksToRun = simulateRestOfSeason ? (19 - cp.seasonWeek) : 1;
+
+    for (var w = 0; w < weeksToRun; w++) {
+      if (cp.seasonWeek > 18) break;
+
+      var myPower = window.calculateMyClubPower();
+      // Kendi takımımızın tablodaki gücünü güncelle
+      var myRow = cp.standings.find(function (t) { return t.id === cp.clubId; });
+      if (myRow) myRow.power = myPower;
+
+      // Takımları eşleştir (Her hafta farklı fikstür kaydırması)
+      var list = cp.standings.slice();
+      var myIdx = list.findIndex(function (t) { return t.id === cp.clubId; });
+      if (myIdx > 0) {
+        var temp = list[0];
+        list[0] = list[myIdx];
+        list[myIdx] = temp;
+      }
+
+      var oppIdx = ((cp.seasonWeek - 1) % (list.length - 1)) + 1;
+      var myTeam = list[0];
+      var myOpp = list[oppIdx];
+
+      // 1. Bizim Maçımız
+      var bonusEdge = window.presidencyUI.promisedWinBonus ? 6 : 0;
+      var diff = (myTeam.power + bonusEdge) - myOpp.power;
+      var myGoals = Math.max(0, Math.round(1.4 + (diff * 0.08) + (Math.random() * 2.2 - 0.6)));
+      var oppGoals = Math.max(0, Math.round(1.0 - (diff * 0.05) + (Math.random() * 1.9 - 0.5)));
+
+      recordMatchResult(myTeam, myOpp, myGoals, oppGoals);
+
+      // Maç Sonucu Geliri (Gişe + Yayın Hakkı)
+      var ticketMult = cp.ticketPriceTier === 'vip' ? 1.45 : (cp.ticketPriceTier === 'cheap' ? 0.75 : 1.0);
+      var gateIncome = Math.round(minW * (1.8 + (cp.stadiumLevel || 1) * 0.6 + (cp.vipBoxLevel || 1) * 0.5) * ticketMult);
+      cp.clubBudget += gateIncome;
+
+      if (myGoals > oppGoals) {
+        var broadcastWin = Math.round(minW * 2.2);
+        cp.clubBudget += broadcastWin;
+        cp.fanApproval = Math.min(100, (cp.fanApproval || 80) + (cp.TicketPriceTier === 'cheap' ? 5 : 3));
+        var scorer = (cp.roster && cp.roster.length > 0) ? cp.roster[Math.floor(Math.random() * cp.roster.length)].name : 'Yıldız Oyuncu';
+        window.presidencyUI.lastMatchReport = '⚽ ' + cp.seasonWeek + '. HAFTA ZAFERİ: ' + myTeam.name + ' ' + myGoals + ' - ' + oppGoals + ' ' + myOpp.name + ' (Gol: ' + scorer + ' • Gişe & Yayın: +' + window.fmtMoney(gateIncome + broadcastWin) + ')';
+      } else if (myGoals === oppGoals) {
+        cp.fanApproval = Math.max(10, (cp.fanApproval || 80) - 1);
+        window.presidencyUI.lastMatchReport = '🤝 ' + cp.seasonWeek + '. HAFTA BERABERLİK: ' + myTeam.name + ' ' + myGoals + ' - ' + oppGoals + ' ' + myOpp.name + ' (Gişe: +' + window.fmtMoney(gateIncome) + ')';
+      } else {
+        cp.fanApproval = Math.max(5, (cp.fanApproval || 80) - 5);
+        window.presidencyUI.lastMatchReport = '⚠️ ' + cp.seasonWeek + '. HAFTA MAĞLUBİYET: ' + myTeam.name + ' ' + myGoals + ' - ' + oppGoals + ' ' + myOpp.name + ' (Taraftar transfer bekliyor!)';
+      }
+      window.presidencyUI.promisedWinBonus = false;
+
+      // 2. Ligdeki Diğer Takımların Maçlarını Simüle Et
+      var others = list.filter(function (t, idx) { return idx !== 0 && idx !== oppIdx; });
+      for (var i = 0; i < others.length; i += 2) {
+        if (others[i + 1]) {
+          var tA = others[i];
+          var tB = others[i + 1];
+          var d = tA.power - tB.power;
+          var gA = Math.max(0, Math.round(1.2 + d * 0.06 + (Math.random() * 2 - 0.6)));
+          var gB = Math.max(0, Math.round(1.1 - d * 0.05 + (Math.random() * 2 - 0.6)));
+          recordMatchResult(tA, tB, gA, gB);
+        }
+      }
+
+      cp.seasonWeek += 1;
+    }
+
+    // Puan Tablosunu Sırala (Puan -> Averaj -> Atılan Gol)
+    cp.standings.sort(function (a, b) {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      var avA = a.gf - a.ga;
+      var avB = b.gf - b.ga;
+      if (avB !== avA) return avB - avA;
+      return b.gf - a.gf;
+    });
+
+    // 18. Hafta Bittiyse Sezon Sonu Şampiyonluk Kontrolü
+    if (cp.seasonWeek > 18) {
+      var rank = cp.standings.findIndex(function (t) { return t.id === cp.clubId; }) + 1;
+      if (rank === 1) {
+        var champPrize = Math.round(minW * 55);
+        cp.clubBudget += champPrize;
+        cp.trophies.superLig = (cp.trophies.superLig || 0) + 1;
+        cp.fanApproval = 100;
+        G.fame = Math.min(100, (G.fame || 50) + 25);
+        window.presidencyUI.lastMatchReport = '🏆 ŞAMPİYON ' + cp.clubName.toUpperCase() + '! Süper Lig\'i 1. sırada tamamladın! Kulüp kasasına +' + window.fmtMoney(champPrize) + ' şampiyonluk ve Şampiyonlar Ligi ayak bastı ödülü yattı!';
+        window.addLog(G.age, '🏆 **SÜPER LİG ŞAMPİYONLUĞU:** Başkanlığını yaptığın **' + cp.clubName + '** Süper Lig Şampiyonu oldu! (+' + window.fmtMoney(champPrize) + ' Kulüp Ödülü).', 'milestone');
+      } else {
+        var runnerPrize = Math.round(minW * Math.max(6, (22 - rank * 2)));
+        cp.clubBudget += runnerPrize;
+        window.presidencyUI.lastMatchReport = '🏁 SEZON SONA ERDİ: ' + cp.clubName + ' ligi ' + rank + '. sırada tamamladı. Yayın havuzu ödülü: +' + window.fmtMoney(runnerPrize) + '.';
+        window.addLog(G.age, '⚽ **SEZON SONU:** **' + cp.clubName + '** sezonu **' + rank + '. sırada** tamamladı (+' + window.fmtMoney(runnerPrize) + ' Yayın Geliri).', 'normal');
+      }
+    }
+
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  function recordMatchResult(teamA, teamB, gA, gB) {
+    teamA.played += 1;
+    teamB.played += 1;
+    teamA.gf += gA;
+    teamA.ga += gB;
+    teamB.gf += gB;
+    teamB.ga += gA;
+    if (gA > gB) {
+      teamA.won += 1;
+      teamA.pts += 3;
+      teamB.lost += 1;
+    } else if (gA < gB) {
+      teamB.won += 1;
+      teamB.pts += 3;
+      teamA.lost += 1;
+    } else {
+      teamA.drawn += 1;
+      teamB.drawn += 1;
+      teamA.pts += 1;
+      teamB.pts += 1;
+    }
+  }
+
+  // Başkan Soyunma Odası Galibiyet Primi Vaadi
+  window.promiseLockerRoomBonus = function () {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub || window.presidencyUI.promisedWinBonus) return;
+    var c = window.getCountry();
+    var bonusCost = Math.round((c.monthlyMinWage || 22104) * 2.5);
+
+    if (cp.clubBudget < bonusCost) {
+      showToast('Soyunma odası primi için kulüp kasasında ' + window.fmtMoney(bonusCost) + ' olmalı!');
+      return;
+    }
+    cp.clubBudget -= bonusCost;
+    window.presidencyUI.promisedWinBonus = true;
+    showToast('🔥 Soyunma odasına inip ' + window.fmtMoney(bonusCost) + ' prim açıkladın! Takım hırslandı (+6 Güç)!');
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // UEFA Şampiyonlar Ligi Gece Maçı
+  window.playUefaChampionsLeagueMatch = function () {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var rivals = window.CLUB_PRESIDENCY_DB.europeRivals;
+    var eurOpp = rivals[Math.floor(Math.random() * rivals.length)];
+    var myPower = window.calculateMyClubPower();
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    var diff = myPower - eurOpp.power;
+    var myG = Math.max(0, Math.round(1.3 + diff * 0.09 + (Math.random() * 2.2 - 0.5)));
+    var oppG = Math.max(0, Math.round(1.3 - diff * 0.06 + (Math.random() * 2.0 - 0.5)));
+
+    if (myG >= oppG) {
+      if (myG === oppG) myG += 1; // Uzatmada zafer
+      var uefaPrize = Math.round(minW * eurOpp.prizeMult);
+      cp.clubBudget += uefaPrize;
+      cp.trophies.uefaCL = (cp.trophies.uefaCL || 0) + 1;
+      cp.fanApproval = 100;
+      window.presidencyUI.lastMatchReport = '🌟 AVRUPA ZAFERİ (UEFA): ' + cp.clubName + ' ' + myG + ' - ' + oppG + ' ' + eurOpp.name + '! UEFA galibiyet ve tur primi olarak kulüp kasasına +' + window.fmtMoney(uefaPrize) + ' girdi!';
+      window.addLog(G.age, '🌟 **UEFA ŞAMPİYONLAR LİGİ ZAFERİ:** **' + cp.clubName + '**, Avrupa devi **' + eurOpp.name + '** takımını **' + myG + '-' + oppG + '** mağlup etti! (+' + window.fmtMoney(uefaPrize) + ' UEFA Ödülü).', 'fame');
+    } else {
+      var partPrize = Math.round(minW * 5);
+      cp.clubBudget += partPrize;
+      window.presidencyUI.lastMatchReport = '⚽ UEFA Şampiyonlar Ligi: ' + cp.clubName + ' ' + myG + ' - ' + oppG + ' ' + eurOpp.name + '. Ayak bastı ve yayın geliri: +' + window.fmtMoney(partPrize) + '.';
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // 4. TRANSFER PAZARI: OYUNCU SATIN ALMA, SATMA, ALTYAPI WONDERKID VE HOCA ATAMA
+  window.buyTransferPlayer = function (playerId) {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var pl = window.CLUB_PRESIDENCY_DB.transferPool.find(function (x) { return x.id === playerId; });
+    if (!pl) return;
+
+    if (cp.roster.some(function (r) { return r.id === playerId; })) {
+      showToast(pl.name + ' zaten kadroda yer alıyor!');
+      return;
+    }
+
+    var c = window.getCountry();
+    var fee = Math.round((c.monthlyMinWage || 22104) * pl.feeMult);
+    if (cp.clubBudget < fee) {
+      showToast('Kulüp Transfer Bütçesi yetersiz! (Sponsorluk imzala veya Başkan Cebinden Kulübe Para Aktar)');
+      return;
+    }
+
+    cp.clubBudget -= fee;
+    cp.roster.push(Object.assign({}, pl));
+    cp.fanApproval = Math.min(100, (cp.fanApproval || 80) + 8);
+    window.presidencyUI.lastMatchReport = '✍️ KAP BİLDİRİMİ: ' + pl.name + ' (' + pl.ovr + ' OVR) ' + window.fmtMoney(fee) + ' bonservis bedeliyle ' + cp.clubName + ' kadrosuna katıldı!';
+    window.addLog(G.age, '✍️ **YILDIZ TRANSFER (KAP):** **' + pl.name + ' (' + pl.ovr + ' OVR)**, **' + window.fmtMoney(fee) + '** bonservisle **' + cp.clubName + '** takımına transfer edildi!', 'fame');
+
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.sellRosterPlayer = function (idx) {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.roster[idx]) return;
+    var pl = cp.roster[idx];
+    var c = window.getCountry();
+    var sellVal = Math.round((c.monthlyMinWage || 22104) * (pl.feeMult || 18) * 1.15);
+
+    cp.clubBudget += sellVal;
+    cp.roster.splice(idx, 1);
+    window.presidencyUI.lastMatchReport = '💰 TRANSFER SATIŞI: ' + pl.name + ', Avrupa kulübüne ' + window.fmtMoney(sellVal) + ' bonservisle satıldı!';
+    window.addLog(G.age, '💰 **FUTBOLCU SATIŞI:** **' + pl.name + '** satışından kulüp kasasına **+' + window.fmtMoney(sellVal) + '** bonservis geliri girdi.', 'good');
+
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.promoteYouthWonderkid = function () {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var c = window.getCountry();
+    var scoutCost = Math.round((c.monthlyMinWage || 22104) * 6);
+    if (cp.clubBudget < scoutCost) { showToast('Altyapı taraması için ' + window.fmtMoney(scoutCost) + ' kulüp bütçesi gerekli!'); return; }
+
+    cp.clubBudget -= scoutCost;
+    var names = ['Emre Demirci', 'Caner Kılıç', 'Mertkan Yıldırım', 'Kerem Aktürk', 'Bora Soylu'];
+    var pickedName = names[Math.floor(Math.random() * names.length)];
+    var ovr = 78 + (cp.academyLevel || 1) * 2 + Math.floor(Math.random() * 4);
+    var wk = {
+      id: 'wk_' + Date.now(),
+      name: pickedName + ' (Wonderkid)',
+      pos: 'OOS / SNT',
+      age: 17,
+      ovr: Math.min(89, ovr),
+      nation: '🇹🇷',
+      feeMult: 28,
+      wageMult: 1.0
+    };
+    cp.roster.push(wk);
+    window.addLog(G.age, '🌟 **ALTYAPIDAN WONDERKID ÇIKTI:** Kulüp akademisinden 17 yaşındaki **' + wk.name + ' (' + wk.ovr + ' OVR)** A takıma yükseldi!', 'good');
+    showToast('🌟 Wonderkid keşfedildi: ' + wk.name + ' (' + wk.ovr + ' OVR)!');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.hireClubManager = function (mgrId) {
+    var cp = G.clubPresidency;
+    var mgr = window.CLUB_PRESIDENCY_DB.managers.find(function (m) { return m.id === mgrId; });
+    if (!cp || !mgr) return;
+    var c = window.getCountry();
+    var cost = Math.round((c.monthlyMinWage || 22104) * mgr.costMult);
+    if (cp.clubBudget < cost) { showToast('Teknik direktör imza parası için kulüp bütçesi yetersiz!'); return; }
+
+    cp.clubBudget -= cost;
+    cp.managerId = mgr.id;
+    cp.managerName = mgr.name;
+    cp.managerBonus = mgr.powerBonus;
+    cp.fanApproval = Math.min(100, (cp.fanApproval || 80) + 10);
+    window.addLog(G.age, '👔 **TEKNİK DİREKTÖR İMZASI:** **' + cp.clubName + '** teknik direktörlük görevine **' + mgr.name + '** getirildi!', 'fame');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // 5. BAŞKAN CEBİNDEN KULÜBE SERMAYE AKTARIMI, SPONSORLUK VE STADYUM YATIRIMI
+  window.injectPersonalCashToClub = function (mult) {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var c = window.getCountry();
+    var amt = Math.round((c.monthlyMinWage || 22104) * mult);
+    if (G.money < amt) { showToast('Cüzdanında bu tutarda nakit bulunmuyor!'); return; }
+
+    G.money -= amt;
+    cp.clubBudget += amt;
+    cp.fanApproval = Math.min(100, (cp.fanApproval || 80) + 7);
+    window.addLog(G.age, '💼 **BAŞKANDAN SERMAYE ARTIŞI:** Kendi kişisel servetinden **' + cp.clubName + '** transfer bütçesine **+' + window.fmtMoney(amt) + '** hibe ettin!', 'good');
+    showToast('💸 Kulüp kasasına +' + window.fmtMoney(amt) + ' aktarıldı!');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.withdrawClubDividend = function () {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var c = window.getCountry();
+    var amt = Math.round((c.monthlyMinWage || 22104) * 15);
+    if (cp.clubBudget < amt) { showToast('Kulüp kasasında çekilebilir ' + window.fmtMoney(amt) + ' fazla bakiye yok!'); return; }
+
+    cp.clubBudget -= amt;
+    G.money += amt;
+    cp.fanApproval = Math.max(15, (cp.fanApproval || 80) - 8);
+    window.addLog(G.age, '🏦 **KULÜP TEMETTÜ ÇEKİMİ:** Kulüp kasasından kişisel hesabına **+' + window.fmtMoney(amt) + '** başkanlık temettüsü aktardın.', 'normal');
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.signClubSponsor = function (spId) {
+    var cp = G.clubPresidency;
+    var sp = window.CLUB_PRESIDENCY_DB.sponsors.find(function (x) { return x.id === spId; });
+    if (!cp || !sp) return;
+    if (cp.activeSponsors.indexOf(spId) !== -1) { showToast('Bu sponsorluk anlaşması zaten aktif!'); return; }
+
+    var myPower = window.calculateMyClubPower();
+    if (myPower < sp.minRep) {
+      showToast('Bu dev sponsorluk için takım gücü en az ' + sp.minRep + ' olmalı! (Şu an: ' + myPower + ')');
+      return;
+    }
+
+    var c = window.getCountry();
+    var signBonus = Math.round((c.monthlyMinWage || 22104) * sp.signBonusMult);
+    cp.clubBudget += signBonus;
+    cp.activeSponsors.push(spId);
+    window.addLog(G.age, '🤝 **DEV SPONSORLUK ANLAŞMASI:** **' + cp.clubName + '** ile **' + sp.name + '** arasında anlaşma imzalandı! Peşin imza parası: **+' + window.fmtMoney(signBonus) + '**.', 'good');
+    showToast('🤝 Sponsorluk imzalandı! +' + window.fmtMoney(signBonus));
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.upgradeClubFacility = function (facType) {
+    var cp = G.clubPresidency;
+    if (!cp || !cp.ownsClub) return;
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    if (facType === 'stadium') {
+      var cost = Math.round(minW * 25 * (cp.stadiumLevel || 1));
+      if (cp.clubBudget < cost) { showToast('Stadyum kapasite artırımı için kulüp bütçesi yetersiz!'); return; }
+      cp.clubBudget -= cost;
+      cp.stadiumLevel = (cp.stadiumLevel || 1) + 1;
+      cp.stadiumCapacity += 10000;
+      window.addLog(G.age, '🏟️ **STADYUM KAPASİTESİ BÜYÜTÜLDÜ:** Stadyum kapasitesi **' + cp.stadiumCapacity.toLocaleString('tr-TR') + '** kişiye yükseltildi!', 'good');
+    } else if (facType === 'vipbox') {
+      var vCost = Math.round(minW * 18 * (cp.vipBoxLevel || 1));
+      if (cp.clubBudget < vCost) { showToast('VIP Loca inşası için kulüp bütçesi yetersiz!'); return; }
+      cp.clubBudget -= vCost;
+      cp.vipBoxLevel = (cp.vipBoxLevel || 1) + 1;
+      window.addLog(G.age, '🥂 **VIP LOCA YATIRIMI:** Stadyuma yeni kurumsal VIP localar eklendi, maç günü gişe geliri arttı!', 'good');
+    } else if (facType === 'academy') {
+      var aCost = Math.round(minW * 16 * (cp.academyLevel || 1));
+      if (cp.clubBudget < aCost) { showToast('Altyapı akademisi yatırımı için kulüp bütçesi yetersiz!'); return; }
+      cp.clubBudget -= aCost;
+      cp.academyLevel = (cp.academyLevel || 1) + 1;
+      window.addLog(G.age, '🌱 **ALTYAPI AKADEMİSİ GELİŞTİRİLDİ:** Genç yetenek akademisi Seviye ' + cp.academyLevel + ' oldu!', 'good');
+    }
+    if (typeof saveGame === 'function') saveGame();
+    if (typeof renderAll === 'function') renderAll();
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  // ============================================================================
+  // 6. ANA FUTBOL KULÜBÜ BAŞKANLIĞI ARAYÜZ ÇİZİCİSİ (6 SEKMELİ KOMPLE STÜDYO)
+  // ============================================================================
+  window.switchPresidencyTab = function (t) {
+    window.presidencyUI.activeTab = t;
+    window.openUnifiedSportsAndMediaHub();
+  };
+
+  window.openUnifiedSportsAndMediaHub = function () {
+    window.ensureClubPresidencyState();
+    var sheet = document.getElementById('bottomSheet');
+    if (sheet) sheet.classList.remove('hidden');
+
+    var cp = G.clubPresidency;
+    var db = window.CLUB_PRESIDENCY_DB;
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    document.getElementById('sheetTitle').textContent = cp.ownsClub ? ('👑 ' + cp.clubName + ' • Başkanlık Makamı') : '⚽ Türkiye Futbol Federasyonu & Kulüp Devri';
+    document.getElementById('sheetSubtitle').textContent = cp.ownsClub
+      ? ('Kulüp Kasası: ' + window.fmtMoney(cp.clubBudget) + ' • Kişisel Nakit: ' + window.fmtMoney(G.money))
+      : ('Kişisel Nakit: ' + window.fmtMoney(G.money) + ' • Satın Alınabilir Süper Lig Kulüpleri');
+
+    var body = document.getElementById('sheetBody');
+    if (!body) return;
+
+    // A) EĞER HENÜZ KULÜP SATIN ALINMADIYSA -> LOGOLU GERÇEK KULÜP SEÇİM EKRANI
+    if (!cp.ownsClub) {
+      body.innerHTML = `
+        <div class="space-y-3 pb-5">
+          <div class="presidency-hero-banner space-y-1.5">
+            <span class="royal-tile-badge">👑 TFF KULÜP DEVİR &amp; BAŞKANLIK MERKEZİ</span>
+            <div class="text-base font-black text-white">Başkanı Olmak İstediğin Kulübü Seç</div>
+            <p class="text-xs text-slate-300">İster <strong>Fenerbahçe SK</strong> gibi bir dünya devinin başkanlık koltuğuna otur, ister Anadolu kulübünü devralıp yıldız transferlerle Şampiyonlar Ligi şampiyonu yap!</p>
+          </div>
+
+          <div class="space-y-2.5">
+            ${db.clubs.map(function (cl) {
+              var cost = Math.round(minW * cl.buyMult);
+              var initBud = Math.round(minW * cl.initBudgetMult);
+              return `
+                <div class="p-3 rounded-2xl bg-slate-950 border border-amber-400/40 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="club-crest-box">${db.getClubCrestSVG(cl.id)}</div>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono-num text-[9.5px] font-black">${cl.basePower} GÜÇ</span>
+                        <span class="text-[10px] font-bold text-sky-300 truncate">${cl.stadium}</span>
+                      </div>
+                      <div class="text-sm font-black text-white truncate mt-0.5">${cl.name}</div>
+                      <div class="text-[10.5px] text-emerald-400 font-mono-num">Başlangıç Transfer Bütçesi: +${window.fmtMoney(initBud)}</div>
+                    </div>
+                  </div>
+                  <button type="button" onclick="window.takeOverFootballClub('${cl.id}')" class="px-3 py-2.5 rounded-xl bg-amber-400 text-slate-950 text-[10.5px] font-black shrink-0">
+                    BAŞKAN OL<br/>${window.fmtMoney(cost)}
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+      return;
+    }
+
+    // B) KULÜP BAŞKANIYSA -> 6 SEKMELİ PROFESYONEL BAŞKANLIK PANELİ
+    var myPower = window.calculateMyClubPower();
+    var myRank = cp.standings.findIndex(function (t) { return t.id === cp.clubId; }) + 1;
+    var tab = window.presidencyUI.activeTab || 'matchday';
+
+    // Sıradaki rakibi bul
+    var list = cp.standings.slice();
+    var myIdx = list.findIndex(function (t) { return t.id === cp.clubId; });
+    if (myIdx > 0) { var tmp = list[0]; list[0] = list[myIdx]; list[myIdx] = tmp; }
+    var oppIdx = ((Math.min(18, cp.seasonWeek) - 1) % (list.length - 1)) + 1;
+    var nextOpp = list[oppIdx] || list[1];
+
+    var headerHtml = `
+      <div class="presidency-hero-banner space-y-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="club-crest-box">${db.getClubCrestSVG(cp.clubId)}</div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono-num text-[9.5px] font-black">${myPower} GENEL GÜÇ</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[9.5px] font-black">LİG: ${myRank}. SIRA</span>
+              </div>
+              <div class="text-base font-black text-white truncate mt-0.5">${cp.clubName}</div>
+              <div class="text-[10.5px] text-slate-300 truncate">T.D.: <strong>${cp.managerName}</strong> • Taraftar Güveni: <strong class="text-amber-300">%${cp.fanApproval}</strong></div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[8.5px] font-black text-amber-300 uppercase">TRANSFER BÜTÇESİ</div>
+            <div class="text-xs font-mono-num font-black text-emerald-400">${window.fmtMoney(cp.clubBudget)}</div>
+            <div class="text-[9px] text-slate-300 mt-0.5">🏆 ${cp.trophies.superLig || 0} Lig • 🌟 ${cp.trophies.uefaCL || 0} UEFA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="presidency-nav-grid">
+        <button type="button" onclick="window.switchPresidencyTab('matchday')" class="presidency-nav-btn ${tab === 'matchday' ? 'active' : ''}">🏟️ Maç &amp; Fikstür</button>
+        <button type="button" onclick="window.switchPresidencyTab('standings')" class="presidency-nav-btn ${tab === 'standings' ? 'active' : ''}">📊 Puan Durumu</button>
+        <button type="button" onclick="window.switchPresidencyTab('transfers')" class="presidency-nav-btn ${tab === 'transfers' ? 'active' : ''}">🔄 Transfer (${cp.roster.length})</button>
+        <button type="button" onclick="window.switchPresidencyTab('finance')" class="presidency-nav-btn ${tab === 'finance' ? 'active' : ''}">🤝 Sponsor &amp; Kasa</button>
+        <button type="button" onclick="window.switchPresidencyTab('stadium')" class="presidency-nav-btn ${tab === 'stadium' ? 'active' : ''}">🏗️ Stadyum &amp; Tesis</button>
+        <button type="button" onclick="window.switchPresidencyTab('media')" class="presidency-nav-btn ${tab === 'media' ? 'active' : ''}">🔥 Skor Ağı &amp; İddaa</button>
+      </div>
+    `;
+
+    var tabContentHtml = '';
+
+    // SEKME 1: MAÇ GÜNÜ, SOYUNMA ODASI PRİMİ VE AVRUPA GECESİ
+    if (tab === 'matchday') {
+      tabContentHtml = `
+        <div class="space-y-3 pb-4">
+          <div class="matchday-arena-card space-y-3">
+            <div class="text-[10px] font-black text-emerald-300 uppercase tracking-widest">
+              ${cp.seasonWeek <= 18 ? ('SÜPER LİG • ' + cp.seasonWeek + '. HAFTA KARŞILAŞMASI') : 'SEZON TAMAMLANDI • YENİ SEZON HAZIR'}
+            </div>
+
+            <div class="flex items-center justify-around py-2">
+              <div class="flex flex-col items-center gap-1 w-2/5">
+                <div class="club-crest-box">${db.getClubCrestSVG(cp.clubId)}</div>
+                <div class="text-xs font-black text-white truncate max-w-full">${cp.clubName}</div>
+                <span class="text-[10px] text-amber-300 font-bold">Güç: ${myPower}</span>
+              </div>
+
+              <div class="text-lg font-black text-amber-400 font-mono-num">VS</div>
+
+              <div class="flex flex-col items-center gap-1 w-2/5">
+                <div class="club-crest-box">${db.getClubCrestSVG(nextOpp.id)}</div>
+                <div class="text-xs font-black text-white truncate max-w-full">${nextOpp.name}</div>
+                <span class="text-[10px] text-slate-300 font-bold">Güç: ${nextOpp.power}</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-950/90 border border-amber-400/40 text-xs font-bold text-amber-200">
+              ${window.presidencyUI.lastMatchReport}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="window.playNextLeagueWeek(false)" class="py-3 rounded-xl bg-amber-400 text-slate-950 text-xs font-black">
+                ${cp.seasonWeek <= 18 ? ('⚽ ' + cp.seasonWeek + '. HAFTA MAÇINI OYNA') : '🔄 YENİ SEZONU BAŞLAT'}
+              </button>
+              <button type="button" onclick="window.promiseLockerRoomBonus()" class="py-3 rounded-xl ${window.presidencyUI.promisedWinBonus ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 border border-amber-400/50 text-white'} text-xs font-black">
+                ${window.presidencyUI.promisedWinBonus ? '🔥 PRİM VERİLDİ (+6 GÜÇ)' : '🎤 SOYUNMA ODASI PRİMİ'}
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button type="button" onclick="window.playNextLeagueWeek(true)" class="py-2.5 rounded-xl bg-sky-400 text-slate-950 text-[11px] font-black">
+                ⏩ TÜM SEZONU SİMÜLE ET
+              </button>
+              <button type="button" onclick="window.playUefaChampionsLeagueMatch()" class="py-2.5 rounded-xl bg-purple-600 border border-amber-300 text-white text-[11px] font-black">
+                🌟 UEFA ŞAMPİYONLAR LİGİ MAÇI
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // SEKME 2: CANLI SÜPER LİG PUAN DURUMU TABLOSU
+    else if (tab === 'standings') {
+      tabContentHtml = `
+        <div class="space-y-3 pb-4">
+          <div class="superlig-table-container">
+            <div class="superlig-row header">
+              <span>#</span>
+              <span>KULÜP</span>
+              <span class="text-center">O</span>
+              <span class="text-center">G</span>
+              <span class="text-center">B</span>
+              <span class="text-center">M</span>
+              <span class="text-center">AV</span>
+              <span class="text-right">P</span>
+            </div>
+            ${cp.standings.map(function (row, idx) {
+              var isMine = row.id === cp.clubId;
+              var av = row.gf - row.ga;
+              var rankBadgeColor = idx < 2 ? 'text-emerald-400 font-black' : (idx < 4 ? 'text-sky-400 font-bold' : (idx >= 8 ? 'text-rose-400' : 'text-slate-300'));
+              return `
+                <div class="superlig-row ${isMine ? 'my-club' : ''}">
+                  <span class="font-mono-num ${rankBadgeColor}">${idx + 1}</span>
+                  <div class="flex items-center gap-1.5 min-w-0 pr-1">
+                    <span class="club-crest-mini">${db.getClubCrestSVG(row.id)}</span>
+                    <span class="truncate text-white ${isMine ? 'font-black text-amber-300' : 'font-semibold'}">${row.name}</span>
+                  </div>
+                  <span class="text-center font-mono-num text-slate-300">${row.played}</span>
+                  <span class="text-center font-mono-num text-emerald-400">${row.won}</span>
+                  <span class="text-center font-mono-num text-amber-300">${row.drawn}</span>
+                  <span class="text-center font-mono-num text-rose-400">${row.lost}</span>
+                  <span class="text-center font-mono-num text-slate-200">${av > 0 ? '+' + av : av}</span>
+                  <span class="text-right font-mono-num font-black text-amber-300">${row.pts}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
+            <span>🟢 İlk 2: UEFA Şampiyonlar Ligi</span>
+            <span>🔵 3-4: Avrupa Kupası</span>
+            <span>🔴 Son 2: Küme Hattı</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // SEKME 3: TRANSFER PAZARI, MEVCUT KADRO VE TEKNİK DİREKTÖR
+    else if (tab === 'transfers') {
+      tabContentHtml = `
+        <div class="space-y-3 pb-5">
+          <!-- Teknik Direktör Seçimi -->
+          <div class="merged-expansion-box space-y-2">
+            <div class="text-[10px] font-black text-amber-300 uppercase">👔 TEKNİK DİREKTÖR &amp; TAKTİK EKİP (AKTİF: ${cp.managerName})</div>
+            <div class="grid grid-cols-2 gap-1.5">
+              ${db.managers.map(function (m) {
+                var isCur = cp.managerId === m.id;
+                var mCost = Math.round(minW * m.costMult);
+                return `
+                  <button type="button" onclick="window.hireClubManager('${m.id}')" class="p-2 rounded-xl border text-left ${isCur ? 'bg-emerald-950/60 border-emerald-400' : 'bg-slate-950 border-slate-800'}">
+                    <div class="text-xs font-black text-white">${m.name} (+${m.powerBonus} Güç)</div>
+                    <div class="text-[9.5px] text-slate-300 truncate">${m.style}</div>
+                    <div class="text-[9.5px] font-mono-num text-amber-300 mt-0.5">${isCur ? 'GÖREVDE ✓' : window.fmtMoney(mCost)}</div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Mevcut Yıldız Kadromuz + Altyapı Wonderkid -->
+          <div class="merged-expansion-box space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black text-emerald-300 uppercase">⭐ KULÜP A TAKIM YILDIZ KADROSU (${cp.roster.length} FUTBOLCU)</span>
+              <button type="button" onclick="window.promoteYouthWonderkid()" class="px-2.5 py-1 rounded-lg bg-sky-400 text-slate-950 text-[9.5px] font-black">
+                🌱 Altyapıdan Wonderkid Çıkar
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              ${cp.roster.map(function (pl, idx) {
+                var sellVal = Math.round(minW * (pl.feeMult || 18) * 1.15);
+                return `
+                  <div class="transfer-player-card">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <div class="ovr-shield-badge">
+                        <span class="text-xs font-black leading-none">${pl.ovr}</span>
+                        <span class="text-[8px] font-extrabold leading-none mt-0.5">${pl.pos.split('/')[0]}</span>
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-xs font-black text-white truncate">${pl.nation || ''} ${pl.name}</div>
+                        <div class="text-[10px] text-slate-300">${pl.pos} • ${pl.age} Yaş • Piyasa: ${window.fmtMoney(sellVal)}</div>
+                      </div>
+                    </div>
+                    <button type="button" onclick="window.sellRosterPlayer(${idx})" class="px-2.5 py-1.5 rounded-lg bg-rose-500 text-white text-[10px] font-black shrink-0">
+                      SAT (+${window.fmtMoney(sellVal)})
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Dünya & Süper Lig Transfer Listesi -->
+          <div class="space-y-2">
+            <div class="text-[10px] font-black text-amber-300 uppercase px-1">🌍 ULUSLARARASI TRANSFER LİSTESİ (KULÜP BÜTÇESİ: ${window.fmtMoney(cp.clubBudget)})</div>
+            ${db.transferPool.map(function (pl) {
+              var inRoster = cp.roster.some(function (r) { return r.id === pl.id; });
+              var fee = Math.round(minW * pl.feeMult);
+              return `
+                <div class="transfer-player-card">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="ovr-shield-badge">
+                      <span class="text-xs font-black leading-none">${pl.ovr}</span>
+                      <span class="text-[8px] font-extrabold leading-none mt-0.5">${pl.pos.split('/')[0]}</span>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-xs font-black text-white truncate">${pl.nation} ${pl.name}</div>
+                      <div class="text-[10px] text-slate-300">${pl.pos} • ${pl.age} Yaş • Bonservis: <strong class="text-amber-300">${window.fmtMoney(fee)}</strong></div>
+                    </div>
+                  </div>
+                  ${inRoster ? `
+                    <span class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black shrink-0">KADRODA ✓</span>
+                  ` : `
+                    <button type="button" onclick="window.buyTransferPlayer('${pl.id}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black shrink-0">
+                      TRANSFER ET<br/>${window.fmtMoney(fee)}
+                    </button>
+                  `}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // SEKME 4: KULÜP KASASI, BAŞKAN SERMAYE HİBESİ VE RESMİ SPONSORLUKLAR
+    else if (tab === 'finance') {
+      tabContentHtml = `
+        <div class="space-y-3 pb-5">
+          <!-- Başkan Cebinden Kulübe Para Aktarma -->
+          <div class="merged-expansion-box space-y-2.5">
+            <span class="royal-tile-badge">💼 BAŞKANLIK SERMAYE ENJEKSİYONU &amp; TEMETTÜ</span>
+            <div class="text-xs font-black text-white">Kişisel Servetinden Kulüp Transfer Bütçesine Nakit Aktar</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" onclick="window.injectPersonalCashToClub(10)" class="py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-[10px] font-black">
+                +${window.fmtMoney(minW * 10)}<br/>Hibe Et
+              </button>
+              <button type="button" onclick="window.injectPersonalCashToClub(35)" class="py-2.5 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black">
+                +${window.fmtMoney(minW * 35)}<br/>Dev Hibe
+              </button>
+              <button type="button" onclick="window.withdrawClubDividend()" class="py-2.5 rounded-xl bg-slate-800 border border-amber-400/40 text-white text-[10px] font-black">
+                Kulüpten<br/>Temettü Çek
+              </button>
+            </div>
+          </div>
+
+          <!-- Resmi Sponsorluk Anlaşmaları -->
+          <div class="space-y-2">
+            <div class="text-[10px] font-black text-amber-300 uppercase px-1">🤝 RESMİ FORMA &amp; STADYUM İSİM SPONSORLUKLARI</div>
+            ${db.sponsors.map(function (sp) {
+              var signed = cp.activeSponsors.indexOf(sp.id) !== -1;
+              var signBonus = Math.round(minW * sp.signBonusMult);
+              var annual = Math.round(minW * sp.annualMult);
+              return `
+                <div class="p-3 rounded-2xl bg-slate-950 border ${signed ? 'border-emerald-400/60' : 'border-slate-800'} flex items-center justify-between gap-2.5">
+                  <div class="min-w-0">
+                    <span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[9px] font-black">Min. Güç Şartı: ${sp.minRep}</span>
+                    <div class="text-xs font-black text-white mt-1">${sp.name}</div>
+                    <div class="text-[10px] text-emerald-400 font-mono-num">Peşin İmza: +${window.fmtMoney(signBonus)} • Yıllık: +${window.fmtMoney(annual)}</div>
+                  </div>
+                  ${signed ? `
+                    <span class="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[10px] font-black shrink-0">AKTİF ✓</span>
+                  ` : `
+                    <button type="button" onclick="window.signClubSponsor('${sp.id}')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black shrink-0">
+                      İMZALA
+                    </button>
+                  `}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // SEKME 5: STADYUM KAPASİTESİ, KOMBİNE BİLET VE TESİSLEŞME
+    else if (tab === 'stadium') {
+      var stCost = Math.round(minW * 25 * (cp.stadiumLevel || 1));
+      var vipCost = Math.round(minW * 18 * (cp.vipBoxLevel || 1));
+      var acCost = Math.round(minW * 16 * (cp.academyLevel || 1));
+
+      tabContentHtml = `
+        <div class="space-y-3 pb-5">
+          <div class="merged-expansion-box space-y-2.5">
+            <span class="royal-tile-badge">🎟️ KOMBİNE &amp; BİLET FİYAT POLİTİKASI</span>
+            <div class="text-xs font-black text-white">Kapasite: ${cp.stadiumCapacity.toLocaleString('tr-TR')} Kişi • Bilet Stratejisi Seç:</div>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" onclick="G.clubPresidency.ticketPriceTier='cheap'; window.openUnifiedSportsAndMediaHub()" class="py-2 rounded-xl border text-[10px] font-black ${cp.ticketPriceTier === 'cheap' ? 'bg-emerald-400 text-slate-950' : 'bg-slate-900 text-white'}">
+                Halk Bileti<br/>(+Taraftar Desteği)
+              </button>
+              <button type="button" onclick="G.clubPresidency.ticketPriceTier='normal'; window.openUnifiedSportsAndMediaHub()" class="py-2 rounded-xl border text-[10px] font-black ${cp.ticketPriceTier === 'normal' ? 'bg-amber-400 text-slate-950' : 'bg-slate-900 text-white'}">
+                Standart Gişe<br/>(Dengeli Gelir)
+              </button>
+              <button type="button" onclick="G.clubPresidency.ticketPriceTier='vip'; window.openUnifiedSportsAndMediaHub()" class="py-2 rounded-xl border text-[10px] font-black ${cp.ticketPriceTier === 'vip' ? 'bg-sky-400 text-slate-950' : 'bg-slate-900 text-white'}">
+                Yüksek VIP Bilet<br/>(+%45 Gişe Geliri)
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-black text-white">🏟️ Stadyum Tribün Kapasitesi (Seviye ${cp.stadiumLevel})</div>
+                <div class="text-[10px] text-slate-300">+10.000 Ekstra Koltuk Kapasitesi ve Takım Gücü</div>
+              </div>
+              <button type="button" onclick="window.upgradeClubFacility('stadium')" class="px-3 py-2 rounded-xl bg-amber-400 text-slate-950 text-[10px] font-black">
+                BÜYÜT (${window.fmtMoney(stCost)})
+              </button>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-black text-white">🥂 Kurumsal VIP Localar (Seviye ${cp.vipBoxLevel})</div>
+                <div class="text-[10px] text-slate-300">Her iç saha maçında yüksek döviz/loca geliri sağlar</div>
+              </div>
+              <button type="button" onclick="window.upgradeClubFacility('vipbox')" class="px-3 py-2 rounded-xl bg-emerald-400 text-slate-950 text-[10px] font-black">
+                İNŞA ET (${window.fmtMoney(vipCost)})
+              </button>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-xs font-black text-white">🌱 Genç Yetenek &amp; Wonderkid Akademisi (Seviye ${cp.academyLevel})</div>
+                <div class="text-[10px] text-slate-300">Altyapıdan çıkan genç yıldızların OVR gücünü artırır</div>
+              </div>
+              <button type="button" onclick="window.upgradeClubFacility('academy')" class="px-3 py-2 rounded-xl bg-sky-400 text-slate-950 text-[10px] font-black">
+                GELİŞTİR (${window.fmtMoney(acCost)})
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // SEKME 6: SKOR AĞI MEDYA VE DERBİ İDDAA BÜLTENİ
+    else if (tab === 'media') {
+      var sp = G.sportsV11 || { hasMediaBrand: false, mediaFollowers: 250 };
+      var mediaSetupCost = Math.round(minW * 8);
+      var couponBet = Math.round(minW * 1.5);
+
+      tabContentHtml = `
+        <div class="space-y-3 pb-5">
+          <div class="p-3.5 rounded-2xl border-2 border-orange-500/70" style="background:linear-gradient(135deg,#090d16 0%,#1c1917 60%,#431407 100%);">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="px-2 py-0.5 rounded bg-orange-500 text-slate-950 text-[9px] font-black uppercase">🔥 SKOR AĞI • DİJİTAL SPOR MEDYASI</span>
+                <div class="text-sm font-black text-white mt-1">${sp.hasMediaBrand ? 'Skor Ağı Medya Grubu (Aktif)' : 'Skor Ağı Spor Medya Markasını Kur'}</div>
+                <div class="text-[11px] text-orange-200">${sp.hasMediaBrand ? ('Takipçi: ' + (sp.mediaFollowers || 250) + 'K • Sponsorluk & Reklam Geliri') : 'Özel maç grafikleri, transfer haberleri ve reklam gelirleri'}</div>
+              </div>
+              ${!sp.hasMediaBrand ? `
+                <button type="button" onclick="window.sportsHubAction('start_media', ${mediaSetupCost})" class="px-3 py-2 rounded-xl bg-orange-500 text-slate-950 text-[10.5px] font-black shrink-0">
+                  MARKAYI KUR<br/>${window.fmtMoney(mediaSetupCost)}
+                </button>
+              ` : `
+                <button type="button" onclick="window.sportsHubAction('viral_post', 0)" class="px-3 py-2 rounded-xl bg-orange-500 text-slate-950 text-[10.5px] font-black shrink-0">
+                  📲 VİRAL DERBİ POSTU AT
+                </button>
+              `}
+            </div>
+          </div>
+
+          <div class="merged-expansion-box space-y-2">
+            <div class="text-[10px] font-black text-amber-300 uppercase">⚽ CANLI DERBİ İDDAA BÜLTENİ (KUPON BEDELİ: ${window.fmtMoney(couponBet)})</div>
+            ${window.MERGED_EXPANSION_CATALOG.derbyMatches.map(function (m) {
+              return `
+                <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                  <div class="text-xs font-black text-white">${m.title}</div>
+                  <div class="grid grid-cols-3 gap-1.5 text-[10px] font-black">
+                    <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS 1', ${m.odds1}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-amber-400/40 text-amber-300">MS 1 (${m.odds1})</button>
+                    <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS X', ${m.odds0}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200">MS X (${m.odds0})</button>
+                    <button type="button" onclick="window.playDerbyBet('${m.title}', 'MS 2', ${m.odds2}, ${couponBet})" class="py-1.5 rounded-lg bg-slate-900 border border-sky-400/40 text-sky-300">MS 2 (${m.odds2})</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    body.innerHTML = headerHtml + tabContentHtml;
+    if (typeof window.ensureCloseButtonsVisible === 'function') window.ensureCloseButtonsVisible();
+  };
+
+  // Yıllık Yaş İlerlemesinde Aktif Sponsorluk Gelirlerini Kulüp Kasasına Yatır
+  var _prevAdvanceAgeV12 = window.advanceAge;
+  window.advanceAge = advanceAge = function () {
+    window.ensureClubPresidencyState();
+    if (typeof _prevAdvanceAgeV12 === 'function') _prevAdvanceAgeV12();
+
+    var cp = G.clubPresidency;
+    if (cp && cp.ownsClub && cp.activeSponsors.length > 0) {
+      var c = window.getCountry();
+      var minW = c.monthlyMinWage || 22104;
+      var totalSp = 0;
+      cp.activeSponsors.forEach(function (id) {
+        var sp = window.CLUB_PRESIDENCY_DB.sponsors.find(function (x) { return x.id === id; });
+        if (sp) totalSp += Math.round(minW * sp.annualMult);
+      });
+      if (totalSp > 0) {
+        cp.clubBudget += totalSp;
+        window.addLog(G.age, '🤝 **KULÜP SPONSORLUK GELİRİ:** **' + cp.clubName + '** sponsorluk anlaşmalarından kulüp kasasına **+' + window.fmtMoney(totalSp) + '** transfer bütçesi eklendi.', 'good');
+      }
+    }
+  };
+})();
