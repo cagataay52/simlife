@@ -14452,3 +14452,519 @@ window.renderVIPCasinoModal = function () {
     };
   }
 })();
+
+/* ============================================================================
+   MASTER PATCH V4: TEK GİRİŞ EKRANI, EMOJİSİZ 4K VEKTÖREL MENÜ VE HATA ONARIMI
+   (SADECE GAME.JS EN ALTINA YAPIŞTIRIN)
+   ============================================================================ */
+(function () {
+  if (window._masterPatchV4Applied) return;
+  window._masterPatchV4Applied = true;
+
+  // 1. 4K METALİK & CAM EFEKTLİ (GLASSMORPHISM) MENÜ VE ARAYÜZ STİLLERİ
+  var oldStyle = document.getElementById('pragmaticMasterAutoStyles');
+  if (oldStyle) oldStyle.remove();
+
+  var st = document.createElement('style');
+  st.id = 'pragmaticMasterAutoStyles';
+  st.textContent = `
+    /* Eski İkinci Giriş Ekranlarını ve Bozuk Barları Kesin Olarak Gizle */
+    #startModal, #introModal, #newGameModal, #welcomeModal, #setupModal,
+    #cityMapRootContainer, #menuMapSettingsBar, .avatar-ring-svg, .sticky-modal-hud {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Tekil Sinematik Ana Giriş Ekranı */
+    .cinematic-main-menu {
+      position: fixed; inset: 0; z-index: 9999;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.16) 0%, transparent 45%),
+        radial-gradient(circle at 80% 80%, rgba(234, 179, 8, 0.14) 0%, transparent 45%),
+        linear-gradient(180deg, #060913 0%, #0b1120 55%, #020617 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+
+    .save-slot-card {
+      width: 100%; max-width: 440px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(7, 11, 20, 0.98) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.32);
+      border-left: 4px solid #38bdf8;
+      border-radius: 18px; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.7);
+      transition: transform 0.16s ease, border-color 0.16s ease;
+    }
+    .save-slot-card:hover { transform: translateY(-2px); border-color: #facc15; }
+
+    .char-creator-modal {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(2, 6, 23, 0.94); backdrop-filter: blur(14px);
+      display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto;
+    }
+    .char-creator-box {
+      width: 100%; max-width: 450px;
+      background: linear-gradient(165deg, #0f172a 0%, #090d16 70%, #172554 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.5); border-radius: 26px; padding: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+    }
+    .creator-preview-frame {
+      width: 112px; height: 124px; border-radius: 20px; border: 2.5px solid #38bdf8;
+      overflow: hidden; background: #0f172a; margin: 0 auto;
+    }
+
+    /* 4K BENTO MENÜ TASARIMI (EMOJİSİZ, VEKTÖREL İKONLU) */
+    .hd-menu-hero-card {
+      position: relative; overflow: hidden;
+      border-radius: 20px; padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+    }
+    .hd-menu-hero-card:active { transform: scale(0.98); }
+
+    .hd-menu-bento-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .hd-menu-tile {
+      position: relative; overflow: hidden;
+      background: linear-gradient(155deg, rgba(15, 23, 42, 0.96) 0%, rgba(9, 13, 22, 0.99) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 18px; padding: 13px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      min-height: 98px; text-align: left; cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition: all 0.16s ease;
+    }
+    .hd-menu-tile:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px rgba(14, 165, 233, 0.18);
+    }
+    .hd-menu-tile:active { transform: scale(0.97); }
+
+    .hd-icon-box {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Pragmatic Play 1:1 Slot Stilleri */
+    .sb1000-cabinet { background: radial-gradient(circle at 15% 15%, rgba(255,255,255,0.45) 0%, transparent 35%), linear-gradient(180deg, #38bdf8 0%, #f472b6 48%, #ec4899 78%, #be185d 100%); border: 3px solid #fde047; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(190,24,93,0.55); }
+    .sb1000-reel-frame { background: linear-gradient(180deg, rgba(255,245,250,0.96), rgba(252,231,243,0.94)); border: 4px solid #f59e0b; outline: 2px solid #ec4899; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .sb1000-cell { aspect-ratio: 1/1; border-radius: 11px; background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.98), rgba(251,207,232,0.6)); border: 1px solid rgba(244,114,182,0.4); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; animation: pragmaticDrop 0.24s ease-out both; }
+    .go1000-cabinet { background: radial-gradient(circle at 80% 18%, rgba(56,189,248,0.4) 0%, transparent 40%), linear-gradient(180deg, #1e1b4b 0%, #3b0764 52%, #172554 100%); border: 3px solid #facc15; border-radius: 22px; padding: 10px; box-shadow: 0 16px 40px rgba(0,0,0,0.8); }
+    .go1000-reel-frame { background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(23,15,45,0.98)); border: 4px solid #eab308; outline: 2px solid #fef08a; border-radius: 16px; padding: 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .go1000-cell { aspect-ratio: 1/1; border-radius: 10px; background: radial-gradient(circle at 50% 35%, rgba(51,65,85,0.8), rgba(15,23,42,0.96)); border: 1px solid rgba(250,204,21,0.3); display: flex; align-items: center; justify-content: center; position: relative; padding: 3px; animation: pragmaticDrop 0.24s ease-out both; }
+    @keyframes pragmaticDrop { 0% { opacity: 0; transform: translateY(-20px) scale(0.86); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    .cell-tumble-win { background: radial-gradient(circle, #fef08a 0%, #f59e0b 75%, #b45309 100%) !important; border: 2px solid #ffffff !important; box-shadow: 0 0 18px #facc15 !important; transform: scale(1.07); z-index: 5; }
+    .pragmatic-top-banner { background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%); border: 2px solid #fde047; border-radius: 999px; padding: 5px 14px; text-align: center; color: #ffffff; font-weight: 900; font-size: 11px; letter-spacing: 0.04em; }
+    .pragmatic-bottom-hud { background: rgba(9,13,22,0.95); border: 1.5px solid rgba(255,255,255,0.16); border-radius: 18px; padding: 10px; color: #ffffff; }
+    .pragmatic-spin-btn { width: 62px; height: 62px; border-radius: 999px; background: radial-gradient(circle at 30% 25%, #ffffff 0%, #e2e8f0 50%, #94a3b8 100%); border: 4px solid #facc15; box-shadow: 0 0 22px rgba(250,204,21,0.75); color: #0f172a; font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .bet-manual-input { background: #020617; border: 1.5px solid #facc15; border-radius: 10px; color: #fde047; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 900; padding: 5px 8px; width: 100%; text-align: center; outline: none; }
+  `;
+  document.head.appendChild(st);
+
+  // 2. OTOMATİK VERİ ONARICI (OYUNDAKİ TÜM UNDEFINED / NAN HATALARINI ÖNLER)
+  window.healGameState = function () {
+    if (typeof G === 'undefined' || !G) return;
+    var c = window.getCountry();
+    var minW = c.monthlyMinWage || 22104;
+
+    if (typeof G.money !== 'number' || isNaN(G.money)) G.money = minW * 2;
+    if (typeof G.bankSavings !== 'number' || isNaN(G.bankSavings)) G.bankSavings = 0;
+    if (typeof G.savings !== 'number' || isNaN(G.savings)) G.savings = G.bankSavings;
+    if (typeof G.loanDebt !== 'number' || isNaN(G.loanDebt)) G.loanDebt = 0;
+    if (typeof G.health !== 'number' || isNaN(G.health)) G.health = 90;
+    if (typeof G.happy !== 'number' || isNaN(G.happy)) G.happy = 80;
+    if (typeof G.looks !== 'number' || isNaN(G.looks)) G.looks = 75;
+    if (typeof G.smart !== 'number' || isNaN(G.smart)) G.smart = 75;
+    if (typeof G.intel !== 'number' || isNaN(G.intel)) G.intel = G.smart;
+    if (typeof G.fame !== 'number' || isNaN(G.fame)) G.fame = 10;
+    if (typeof G.stress !== 'number' || isNaN(G.stress)) G.stress = 20;
+    if (typeof G.energy !== 'number' || isNaN(G.energy)) G.energy = 100;
+    if (typeof G.maxEnergy !== 'number' || isNaN(G.maxEnergy)) G.maxEnergy = 100;
+    if (typeof G.creditScore !== 'number' || isNaN(G.creditScore)) G.creditScore = 1350;
+
+    if (!Array.isArray(G.houses)) G.houses = [];
+    if (!Array.isArray(G.cars)) G.cars = [];
+    if (!Array.isArray(G.businesses)) G.businesses = [];
+    if (!Array.isArray(G.children)) G.children = [];
+    if (!Array.isArray(G.achievements)) G.achievements = [];
+    if (!Array.isArray(G.logs) || G.logs.length === 0) {
+      G.logs = [{ age: G.age || 18, items: [{ text: 'Hayat simülasyonu aktif.', type: 'milestone' }] }];
+    }
+    if (!G.licenses) G.licenses = { B: false, CE: false };
+    if (!G.stockHoldings) G.stockHoldings = {};
+    if (!G.cryptoHoldings) G.cryptoHoldings = {};
+    if (!G.charLook) {
+      G.charLook = {
+        skinId: 'skin_wheat', hairStyleId: 'fade_crop', hairColorId: 'hc_darkbrown',
+        beardStyleId: 'beard_stubble', browStyleId: 'brow_natural',
+        eyeColorId: 'eye_hazel', outfitId: 'out_tshirt', glassesId: 'gl_none', yearsSinceHaircut: 0
+      };
+    }
+    if (!G.fxGold) {
+      G.fxGold = { gramGold: 0, goldPriceMult: 0.14, usdBalance: 0, termDeposit: 0, ccStatementDebt: 0, ccLimitMult: 3.5 };
+    }
+    // İkinci vadeli mevduatta kalan parayı ana banka mevduatına birleştir
+    if (G.fxGold.termDeposit > 0) {
+      G.bankSavings += G.fxGold.termDeposit;
+      G.fxGold.termDeposit = 0;
+    }
+  };
+
+  // 3. ÇİFT GİRİŞ EKRANI TEMİZLEYİCİ VE TEKİL 3'LÜ KAYIT SLOTU SİSTEMİ
+  function purgeDuplicateStartScreens() {
+    // Eski oyunun kendi başlangıç modallarını tamamen kaldır
+    ['startModal', 'introModal', 'newGameModal', 'welcomeModal', 'setupModal'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+      }
+    });
+
+    // Eğer birden fazla cinematicMainMenuRoot oluştuysa fazlalarını sil
+    var menus = document.querySelectorAll('#cinematicMainMenuRoot');
+    for (var i = 1; i < menus.length; i++) menus[i].remove();
+  }
+
+  // Eğer Slot #1 boşsa ama eski oyunun kaydı varsa onu otomatik Slot #1'e aktar
+  function migrateLegacySaveIfNeeded() {
+    var slot1Key = window.getSlotStorageKey(1);
+    if (!localStorage.getItem(slot1Key)) {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('cagatay_life_sim_save_slot_') === -1) {
+          try {
+            var raw = localStorage.getItem(k);
+            var obj = JSON.parse(raw);
+            if (obj && obj.firstName && typeof obj.money === 'number') {
+              localStorage.setItem(slot1Key, raw);
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  }
+
+  window.openSingleStartMenu = function (forceOpen) {
+    purgeDuplicateStartScreens();
+    migrateLegacySaveIfNeeded();
+
+    if (!forceOpen && typeof G !== 'undefined' && G && G.firstName && window._gameEnteredSuccessfully) {
+      return;
+    }
+
+    var menuEl = document.getElementById('cinematicMainMenuRoot');
+    if (!menuEl) {
+      menuEl = document.createElement('div');
+      menuEl.id = 'cinematicMainMenuRoot';
+      menuEl.className = 'cinematic-main-menu';
+      document.body.appendChild(menuEl);
+    }
+
+    var slots = window.checkSaveSlotsMeta();
+
+    menuEl.innerHTML = `
+      <div class="text-center space-y-2.5 mb-7">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-500/15 border border-sky-400/40 text-sky-300 font-mono-num text-[11px] font-black tracking-widest">
+          EXECUTIVE EDITION • 4K ENGINE
+        </div>
+        <h1 class="text-3xl font-black text-white tracking-tight">ZİRVE HAYATLAR</h1>
+        <p class="text-xs text-slate-400 max-w-xs mx-auto">Kariyer, Holding, Gayrimenkul ve VIP Casino Simülasyonu</p>
+      </div>
+
+      <div class="w-full max-w-[440px] space-y-3 mb-6">
+        <div class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest px-1">KAYIT PROFİLLERİ (3 BAĞIMSIZ SLOT)</div>
+        ${[1, 2, 3].map(function (sNum) {
+          var st = slots[sNum];
+          return `
+            <div class="save-slot-card">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500/25 to-indigo-600/25 border border-sky-400/50 flex items-center justify-center font-mono-num font-black text-sky-300 text-sm shrink-0">
+                  0${sNum}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm font-black text-white truncate">${st.exists ? st.name : 'Boş Kayıt Slotu'}</div>
+                  <div class="text-[11px] text-slate-400 truncate">${st.exists ? (st.age + ' Yaş • ' + window.fmtMoney(st.money) + ' • ' + st.city) : 'Yeni bir karakter ve kariyer başlat'}</div>
+                </div>
+              </div>
+              <div class="flex gap-1.5 shrink-0">
+                ${st.exists ? `
+                  <button type="button" onclick="window.loadGameFromSlot(${sNum})" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 text-xs font-black shadow cursor-pointer">DEVAM ET</button>
+                  <button type="button" onclick="window.openCharacterCreatorModal(${sNum})" class="px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-extrabold cursor-pointer" title="Sıfırdan Başlat">YENİLE</button>
+                ` : `
+                  <button type="button" onclick="window.openCharacterCreatorModal(${sNum})" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 text-slate-950 text-xs font-black shadow cursor-pointer">OLUŞTUR</button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  };
+
+  var _origLoadSlot = window.loadGameFromSlot;
+  window.loadGameFromSlot = function (sNum) {
+    window._gameEnteredSuccessfully = true;
+    purgeDuplicateStartScreens();
+    if (typeof _origLoadSlot === 'function') _origLoadSlot(sNum);
+    window.healGameState();
+    if (typeof renderAll === 'function') renderAll();
+  };
+
+  var _origFinalize = window.finalizeAndStartNewLife;
+  window.finalizeAndStartNewLife = function () {
+    window._gameEnteredSuccessfully = true;
+    purgeDuplicateStartScreens();
+    if (typeof _origFinalize === 'function') _origFinalize();
+    window.healGameState();
+    if (typeof renderAll === 'function') renderAll();
+  };
+
+  // 4. EMOJİSİZ 4K VEKTÖREL İKON KÜTÜPHANESİ (MENÜ KARTLARI İÇİN)
+  function getMenuVectorSVG(type) {
+    var svgs = {
+      casino: '<svg viewBox="0 0 48 48" class="w-7 h-7"><defs><linearGradient id="gCas" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><rect x="6" y="10" width="36" height="28" rx="7" fill="url(#gCas)" stroke="#fff" stroke-width="1.8"/><rect x="10" y="15" width="8" height="18" rx="2" fill="#090d16"/><rect x="20" y="15" width="8" height="18" rx="2" fill="#090d16"/><rect x="30" y="15" width="8" height="18" rx="2" fill="#090d16"/><text x="14" y="28" text-anchor="middle" fill="#fde047" font-weight="900" font-size="11">7</text><text x="24" y="28" text-anchor="middle" fill="#f43f5e" font-weight="900" font-size="11">7</text><text x="34" y="28" text-anchor="middle" fill="#38bdf8" font-weight="900" font-size="11">7</text></svg>',
+      barber: '<svg viewBox="0 0 48 48" class="w-7 h-7"><circle cx="16" cy="34" r="6" fill="none" stroke="#38bdf8" stroke-width="3"/><circle cx="32" cy="34" r="6" fill="none" stroke="#38bdf8" stroke-width="3"/><line x1="20" y1="29" x2="34" y2="10" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/><line x1="28" y1="29" x2="14" y2="10" stroke="#94a3b8" stroke-width="3.5" stroke-linecap="round"/><circle cx="24" cy="22" r="2.5" fill="#facc15"/></svg>',
+      houses: '<svg viewBox="0 0 48 48" class="w-6 h-6"><polygon points="24,6 6,22 12,22 12,40 36,40 36,22 42,22" fill="#10b981" stroke="#a7f3d0" stroke-width="2"/><rect x="20" y="27" width="8" height="13" rx="1.5" fill="#064e3b"/><rect x="18" y="16" width="12" height="6" rx="1" fill="#ecfdf5"/></svg>',
+      cars: '<svg viewBox="0 0 48 48" class="w-6 h-6"><path d="M8,28 L14,16 L34,16 L40,28 L42,35 L6,35 Z" fill="#ef4444" stroke="#fecdd3" stroke-width="2"/><polygon points="16,19 32,19 36,27 12,27" fill="#0f172a"/><circle cx="14" cy="35" r="5" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/><circle cx="34" cy="35" r="5" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/></svg>',
+      business: '<svg viewBox="0 0 48 48" class="w-6 h-6"><rect x="8" y="14" width="32" height="24" rx="4" fill="#3b82f6" stroke="#bfdbfe" stroke-width="2"/><path d="M18,14 V10 C18,8.5 19.5,7 21,7 H27 C28.5,7 30,8.5 30,10 V14" fill="none" stroke="#bfdbfe" stroke-width="2.5"/><line x1="8" y1="25" x2="40" y2="25" stroke="#1d4ed8" stroke-width="2.5"/><rect x="21" y="22" width="6" height="6" rx="1" fill="#facc15"/></svg>',
+      education: '<svg viewBox="0 0 48 48" class="w-6 h-6"><polygon points="24,8 4,18 24,28 44,18" fill="#8b5cf6" stroke="#ddd6fe" stroke-width="2"/><path d="M12,22 V33 C12,37 36,37 36,33 V22" fill="#6d28d9" stroke="#ddd6fe" stroke-width="1.8"/><line x1="40" y1="20" x2="40" y2="34" stroke="#facc15" stroke-width="2.5"/></svg>',
+      health: '<svg viewBox="0 0 48 48" class="w-6 h-6"><rect x="8" y="8" width="32" height="32" rx="9" fill="#059669" stroke="#a7f3d0" stroke-width="2"/><path d="M14,25 H19 L22,16 L26,33 L29,22 L32,25 H35" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      crime: '<svg viewBox="0 0 48 48" class="w-6 h-6"><rect x="10" y="20" width="28" height="20" rx="4" fill="#475569" stroke="#cbd5e1" stroke-width="2"/><path d="M16,20 V14 C16,9 32,9 32,14 V20" fill="none" stroke="#94a3b8" stroke-width="3"/><circle cx="24" cy="30" r="3" fill="#f43f5e"/></svg>',
+      sports: '<svg viewBox="0 0 48 48" class="w-6 h-6"><path d="M14,10 H34 V20 C34,27 29,31 24,31 C19,31 14,27 14,20 Z" fill="#eab308" stroke="#fef08a" stroke-width="2"/><rect x="21" y="31" width="6" height="7" fill="#ca8a04"/><rect x="16" y="38" width="16" height="4" rx="1.5" fill="#facc15"/></svg>',
+      shopping: '<svg viewBox="0 0 48 48" class="w-6 h-6"><polygon points="24,6 40,18 24,42 8,18" fill="#06b6d4" stroke="#cffafe" stroke-width="2"/><polygon points="24,6 32,18 24,42 16,18" fill="#22d3ee" opacity="0.6"/></svg>',
+      slots: '<svg viewBox="0 0 48 48" class="w-6 h-6"><rect x="8" y="8" width="32" height="32" rx="6" fill="#0284c7" stroke="#bae6fd" stroke-width="2"/><rect x="14" y="8" width="20" height="12" fill="#e0f2fe"/><rect x="14" y="26" width="20" height="14" rx="2" fill="#0f172a"/></svg>',
+      defaultIcon: '<svg viewBox="0 0 48 48" class="w-6 h-6"><rect x="8" y="8" width="14" height="14" rx="3" fill="#38bdf8"/><rect x="26" y="8" width="14" height="14" rx="3" fill="#818cf8"/><rect x="8" y="26" width="14" height="14" rx="3" fill="#34d399"/><rect x="26" y="26" width="14" height="14" rx="3" fill="#facc15"/></svg>'
+    };
+    return svgs[type] || svgs.defaultIcon;
+  }
+
+  // Metindeki tüm ucuz emojileri temizleyen yardımcı fonksiyon
+  function stripAllEmojis(str) {
+    if (!str) return '';
+    return str
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function detectCategoryAppearance(onclickStr, titleStr) {
+    var s = (onclickStr + ' ' + titleStr).toLowerCase();
+    if (/house|emlak|konut|ev|mülk|gayrimenkul/.test(s)) {
+      return { icon: 'houses', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(16, 185, 129, 0.4)', tag: 'GAYRİMENKUL & TAPU' };
+    }
+    if (/car|araç|araba|galeri|garaj|oto/.test(s)) {
+      return { icon: 'cars', bg: 'rgba(239, 68, 68, 0.16)', border: 'rgba(239, 68, 68, 0.4)', tag: 'OTOMOTİV & GARAJ' };
+    }
+    if (/busi|şirket|holding|ticaret|girişim|fabrika/.test(s)) {
+      return { icon: 'business', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(59, 130, 246, 0.4)', tag: 'KURUMSAL YATIRIM' };
+    }
+    if (/edu|eğitim|okul|üniversite|ehliyet|kurs|sınav/.test(s)) {
+      return { icon: 'education', bg: 'rgba(139, 92, 246, 0.16)', border: 'rgba(139, 92, 246, 0.4)', tag: 'AKADEMİ & LİSANS' };
+    }
+    if (/heal|sağlık|hastane|doktor|estetik|spor salonu/.test(s)) {
+      return { icon: 'health', bg: 'rgba(5, 150, 105, 0.16)', border: 'rgba(5, 150, 105, 0.4)', tag: 'TIP & CHECK-UP' };
+    }
+    if (/crim|suç|mafya|illegal|yeraltı|soygun/.test(s)) {
+      return { icon: 'crime', bg: 'rgba(100, 116, 139, 0.2)', border: 'rgba(148, 163, 184, 0.4)', tag: 'YERALTI OPERASYON' };
+    }
+    if (/foot|futbol|kulüp|stadyum|maç|iddaa|bahis|spor/.test(s)) {
+      return { icon: 'sports', bg: 'rgba(234, 179, 8, 0.16)', border: 'rgba(234, 179, 8, 0.4)', tag: 'SPOR & KULÜP' };
+    }
+    if (/shop|alışveriş|yaşam|tatil|lüks|aktivite/.test(s)) {
+      return { icon: 'shopping', bg: 'rgba(6, 182, 212, 0.16)', border: 'rgba(6, 182, 212, 0.4)', tag: 'LÜKS & YAŞAM' };
+    }
+    return { icon: 'defaultIcon', bg: 'rgba(56, 189, 248, 0.15)', border: 'rgba(56, 189, 248, 0.35)', tag: 'YÖNETİM PANELİ' };
+  }
+
+  // 5. MENÜ SEKME ÇİZİCİSİ: ESKİ DANDİK EMOJİLİ MENÜYÜ 4K BENTO HUB'A DÖNÜŞTÜRÜR
+  function rebuildMenuInto4KBentoHub() {
+    var body = document.getElementById('sheetBody');
+    if (!body || !G) return;
+
+    // Başlığı temizle
+    var titleEl = document.getElementById('sheetTitle');
+    var subEl = document.getElementById('sheetSubtitle');
+    if (titleEl) titleEl.textContent = 'YÖNETİM & YAŞAM MERKEZİ';
+    if (subEl) subEl.textContent = G.firstName + ' ' + G.lastName + ' • Net Servet: ' + window.fmtMoney(typeof getNetWorth === 'function' ? getNetWorth() : G.money);
+
+    // Orijinal menünün içindeki tüm butonları oku (hiçbir özellik kaybolmasın, çiftler elensin)
+    var rawButtons = Array.from(body.querySelectorAll('button'));
+    var seenTargets = {};
+    var cleanItems = [];
+
+    rawButtons.forEach(function (btn) {
+      var oc = (btn.getAttribute('onclick') || '').trim();
+      if (!oc) return;
+      // Casino ve Berber butonlarını üstte özel 4K vitrin olarak çizeceğimiz için listeden ayıkla
+      if (/casino|gambling|openVIPCasinoModal|openBarberAndSalonModal/.test(oc)) return;
+      if (seenTargets[oc]) return;
+      seenTargets[oc] = true;
+
+      var rawLines = btn.innerText.split('\n').map(function (l) { return stripAllEmojis(l); }).filter(Boolean);
+      var mainTitle = rawLines[0] || 'Bölüm';
+      var subTitle = rawLines[1] || 'Detayları görüntüle ve yönet';
+
+      cleanItems.push({
+        onclick: oc.replace(/"/g, '&quot;'),
+        title: mainTitle,
+        sub: subTitle,
+        theme: detectCategoryAppearance(oc, mainTitle)
+      });
+    });
+
+    var houseCount = Array.isArray(G.houses) ? G.houses.length : 0;
+    var carCount = Array.isArray(G.cars) ? G.cars.length : 0;
+
+    body.innerHTML = `
+      <div class="space-y-3 pb-4">
+        <!-- Üst Özet Durum Çubuğu -->
+        <div class="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800/90 text-center">
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">NAKİT BÜTÇE</div>
+            <div class="text-xs font-mono-num font-black text-emerald-400 mt-0.5">${window.fmtMoney(G.money)}</div>
+          </div>
+          <div class="border-x border-slate-800">
+            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">GAYRİMENKUL</div>
+            <div class="text-xs font-mono-num font-black text-sky-400 mt-0.5">${houseCount} Mülk</div>
+          </div>
+          <div>
+            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">GARAJ FİLOSU</div>
+            <div class="text-xs font-mono-num font-black text-amber-400 mt-0.5">${carCount} Araç</div>
+          </div>
+        </div>
+
+        <!-- 1. HERO KART: PRAGMATIC PLAY VIP CASINO & SLOT LOUNGE -->
+        <div onclick="window.openVIPCasinoModal('bonanza')" class="hd-menu-hero-card" style="background: linear-gradient(135deg, #4a044e 0%, #1e1b4b 55%, #090d16 100%); border: 1.5px solid rgba(250, 204, 21, 0.55);">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <div class="hd-icon-box" style="background: rgba(250, 204, 21, 0.18); border: 1px solid rgba(250, 204, 21, 0.5);">
+              ${getMenuVectorSVG('casino')}
+            </div>
+            <div class="min-w-0">
+              <div class="text-[9px] font-black text-amber-300 uppercase tracking-widest">PRAGMATIC PLAY LIVE LOUNGE</div>
+              <div class="text-sm font-black text-white truncate">VIP Royal Casino &amp; Slot Merkezi</div>
+              <div class="text-[10.5px] text-slate-300 truncate">Sweet Bonanza 1000 • Gates of Olympus 1000</div>
+            </div>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-[10.5px] font-black shrink-0 shadow">
+            GİRİŞ YAP
+          </span>
+        </div>
+
+        <!-- 2. HERO KART: STİL, KUAFÖR & KARAKTER STÜDYOSU -->
+        <div onclick="if(typeof openBarberAndSalonModal==='function') openBarberAndSalonModal();" class="hd-menu-hero-card" style="background: linear-gradient(135deg, #0f172a 0%, #172554 60%, #090d16 100%); border: 1.5px solid rgba(56, 189, 248, 0.45);">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <div class="hd-icon-box" style="background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.5);">
+              ${getMenuVectorSVG('barber')}
+            </div>
+            <div class="min-w-0">
+              <div class="text-[9px] font-black text-sky-300 uppercase tracking-widest">KARAKTER &amp; İMAJ STÜDYOSU</div>
+              <div class="text-sm font-black text-white truncate">VIP Kuaför, Sakal &amp; Kombin Tasarımı</div>
+              <div class="text-[10.5px] text-slate-300 truncate">Mevcut Karizma / Görünüm: %${G.looks}</div>
+            </div>
+          </div>
+          <span class="px-3 py-2 rounded-xl bg-sky-400 text-slate-950 text-[10.5px] font-black shrink-0 shadow">
+            STÜDYO
+          </span>
+        </div>
+
+        <!-- 3. BENTO KATEGORİ IZGARASI (TÜM MENÜ ÖZELLİKLERİ, EMOJİSİZ 4K VEKTÖREL) -->
+        <div class="hd-menu-bento-grid">
+          ${cleanItems.map(function (item) {
+            return `
+              <button type="button" onclick="${item.onclick}" class="hd-menu-tile">
+                <div class="flex items-center justify-between w-full mb-2">
+                  <div class="hd-icon-box" style="background:${item.theme.bg}; border:1px solid ${item.theme.border};">
+                    ${getMenuVectorSVG(item.theme.icon)}
+                  </div>
+                  <span class="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider">${item.theme.tag}</span>
+                </div>
+                <div>
+                  <div class="text-xs font-black text-white leading-tight">${item.title}</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${item.sub}</div>
+                </div>
+              </button>
+            `;
+          }).join('')}
+
+          <!-- 3'lü Kayıt Slotu Değiştirme Kartı -->
+          <button type="button" onclick="document.getElementById('bottomSheet').classList.add('hidden'); window.openSingleStartMenu(true);" class="hd-menu-tile">
+            <div class="flex items-center justify-between w-full mb-2">
+              <div class="hd-icon-box" style="background:rgba(14,165,233,0.16); border:1px solid rgba(14,165,233,0.4);">
+                ${getMenuVectorSVG('slots')}
+              </div>
+              <span class="text-[8.5px] font-extrabold text-sky-400 uppercase tracking-wider">KAYIT SİSTEMİ</span>
+            </div>
+            <div>
+              <div class="text-xs font-black text-white leading-tight">Kayıt Slotları (Slot #${window.currentSelectedSlot})</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Farklı karaktere geç veya yeni aç</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 6. ANA OYUN FONKSİYONLARINI GÜVENLİ HALE GETİR VE KANCALA
+  var _baseRenderAll = window.renderAll;
+  if (typeof _baseRenderAll === 'function') {
+    window.renderAll = renderAll = function () {
+      purgeDuplicateStartScreens();
+      window.healGameState();
+      try { _baseRenderAll(); } catch (e) { console.error('RenderAll koruma devreye girdi:', e); }
+    };
+  }
+
+  var _baseAdvanceAge = window.advanceAge;
+  if (typeof _baseAdvanceAge === 'function') {
+    window.advanceAge = advanceAge = function () {
+      window.healGameState();
+      try { _baseAdvanceAge(); } catch (e) { console.error('AdvanceAge koruma devreye girdi:', e); }
+      window.healGameState();
+    };
+  }
+
+  var _baseOpenNavSheet = window.openNavSheet;
+  if (typeof _baseOpenNavSheet === 'function') {
+    window.openNavSheet = openNavSheet = function (tab) {
+      window.healGameState();
+      _baseOpenNavSheet(tab);
+      if (tab === 'menu') {
+        rebuildMenuInto4KBentoHub();
+      } else {
+        window.deduplicateAndCleanUI();
+      }
+    };
+  }
+
+  var _baseOpenMenuSection = window.openMenuSection;
+  if (typeof _baseOpenMenuSection === 'function') {
+    window.openMenuSection = openMenuSection = function (sec) {
+      window.healGameState();
+      if (sec === 'casino' || sec === 'gambling') {
+        window.openVIPCasinoModal('bonanza');
+        return;
+      }
+      _baseOpenMenuSection(sec);
+      window.deduplicateAndCleanUI();
+      // Açılan alt pencerelerin başlığındaki emojileri de temizle
+      var stTitle = document.getElementById('sheetTitle');
+      if (stTitle) stTitle.textContent = stripAllEmojis(stTitle.textContent);
+    };
+  }
+
+  // İlk açılışta eski ikinci giriş ekranını kaldır ve tekil menüyü göster
+  purgeDuplicateStartScreens();
+  setTimeout(function () {
+    purgeDuplicateStartScreens();
+    window.openSingleStartMenu(false);
+  }, 60);
+})();
